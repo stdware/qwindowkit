@@ -1,0 +1,26 @@
+project(QWKWidgets
+    VERSION ${QWINDOWKIT_VERSION}
+    LANGUAGES CXX
+)
+
+set(_src
+    qwkwidgetsglobal.h
+    widgetitemdelegate_p.h
+    widgetitemdelegate.cpp
+    widgetwindowagent.h
+    widgetwindowagent_p.h
+    widgetwindowagent.cpp
+)
+
+qwk_add_library(${PROJECT_NAME} AUTOGEN
+    SOURCES ${_src}
+    LINKS QWKCore
+    QT_LINKS Core Gui Widgets
+    QT_INCLUDE_PRIVATE Core Gui Widgets
+    PREFIX QWK_WIDGETS
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+)
