@@ -1,7 +1,7 @@
 #ifndef QWKWIDGETSGLOBAL_H
 #define QWKWIDGETSGLOBAL_H
 
-#include <QtGlobal>
+#include <QtCore/QtGlobal>
 
 #ifndef QWK_WIDGETS_EXPORT
 #  ifdef QWK_WIDGETS_STATIC

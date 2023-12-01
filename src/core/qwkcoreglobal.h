@@ -1,7 +1,7 @@
 #ifndef QWKCOREGLOBAL_H
 #define QWKCOREGLOBAL_H
 
-#include <QLoggingCategory>
+#include <QtCore/QLoggingCategory>
 
 #ifndef QWK_CORE_EXPORT
 #  ifdef QWK_CORE_STATIC

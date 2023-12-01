@@ -5,6 +5,9 @@ set(QWINDOWKIT_PROJECT_COPYRIGHT "Copyright 2023 Stdware Collections")
 set(QWINDOWKIT_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include)
 set(QWINDOWKIT_BUILD_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../etc/include)
 
+set(QWINDOWKIT_ENABLED_TARGETS)
+set(QWINDOWKIT_ENABLED_SUBDIRECTORIES)
+
 # ----------------------------------
 # Configurations
 # ----------------------------------
@@ -144,21 +147,20 @@ if(QWINDOWKIT_BUILD_DOCUMENTATIONS)
         set(_install_options INSTALL_DIR share/doc/${QWINDOWKIT_INSTALL_NAME})
     endif()
 
-    set(_doc_targets)
-    qm_collect_targets(_doc_targets SHARED STATIC)
+    set(_doc_targets ${QWINDOWKIT_ENABLED_TARGETS})
 
     set(QWINDOWKIT_DOXYGEN_TAGFILE
         ${CMAKE_BUILD_SHARE_DIR}/doc/${QWINDOWKIT_INSTALL_NAME}/${QWINDOWKIT_INSTALL_NAME}_tagfile.xml
-        CACHE FILEPATH "QWINDOWKIT doxygen tag file path" FORCE
+        CACHE FILEPATH "QWindowKit doxygen tag file path" FORCE
     )
 
     qm_import(Doxygen)
-    qm_setup_doxygen(QWINDOWKIT_RunDoxygen
-        NAME "QWINDOWKIT"
+    qm_setup_doxygen(QWindowKit_RunDoxygen
+        NAME "QWindowKit"
         DESCRIPTION "${QWINDOWKIT_PROJECT_DESCRIPTION}"
         MDFILE ../README.md
         OUTPUT_DIR ${CMAKE_BUILD_SHARE_DIR}/doc/${QWINDOWKIT_INSTALL_NAME}
-        INPUT QWINDOWKIT
+        INPUT ${QWINDOWKIT_ENABLED_SUBDIRECTORIES}
         TARGETS ${_doc_targets}
         DEPENDS ${_doc_targets}
         NO_EXPAND_MACROS Q_OBJECT Q_GADGET Q_DECLARE_TR_FUNCTIONS

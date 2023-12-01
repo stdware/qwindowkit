@@ -25,8 +25,9 @@ else()
         contexts/qtwindowcontext_p.h
         contexts/qtwindowcontext.cpp
     )
+
     if(APPLE)
-        # add files
+    # add files
     else()
         list(APPEND _src
             qwindowkit_linux.h
@@ -47,3 +48,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED TRUE
 )
+
+set(QWINDOWKIT_ENABLED_TARGETS ${QWINDOWKIT_ENABLED_TARGETS} ${PROJECT_NAME} PARENT_SCOPE)
+set(QWINDOWKIT_ENABLED_SUBDIRECTORIES ${QWINDOWKIT_ENABLED_SUBDIRECTORIES} core PARENT_SCOPE)

@@ -1,7 +1,7 @@
 #ifndef QWKQUICKGLOBAL_H
 #define QWKQUICKGLOBAL_H
 
-#include <QtGlobal>
+#include <QtCore/QtGlobal>
 
 #ifndef QWK_QUICK_EXPORT
 #  ifdef QWK_QUICK_STATIC

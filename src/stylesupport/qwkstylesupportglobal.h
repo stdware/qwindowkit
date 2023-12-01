@@ -1,7 +1,7 @@
 #ifndef QWKSTYLESUPPORTGLOBAL_H
 #define QWKSTYLESUPPORTGLOBAL_H
 
-#include <QtGlobal>
+#include <QtCore/QtGlobal>
 
 #ifndef QWK_STYLESUPPORT_EXPORT
 #  ifdef QWK_STYLESUPPORT_STATIC
