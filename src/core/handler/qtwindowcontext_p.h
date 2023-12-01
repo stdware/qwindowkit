@@ -10,6 +10,9 @@ namespace QWK {
     public:
         QtWindowContext(QWindow *window, WindowItemDelegate *delegate);
         ~QtWindowContext();
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override;
     };
 
 }

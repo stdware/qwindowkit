@@ -24,6 +24,7 @@ namespace QWK {
             Close,
             NumSystemButton,
         };
+        Q_ENUM(SystemButton)
 
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos);
