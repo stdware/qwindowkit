@@ -119,6 +119,10 @@ endfunction()
 # ----------------------------------
 add_subdirectory(core)
 
+if(QWINDOWKIT_BUILD_STYLE_SUPPORT)
+    add_subdirectory(stylesupport)
+endif()
+
 if(QWINDOWKIT_BUILD_WIDGETS)
     add_subdirectory(widgets)
 endif()
