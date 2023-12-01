@@ -18,7 +18,7 @@ namespace QWK {
         ~WidgetWindowAgent();
 
     public:
-        void setup(QWidget *w);
+        bool setup(QWidget *w);
 
         bool isHitTestVisible(QWidget *w) const;
         void setHitTestVisible(QWidget *w, bool visible);

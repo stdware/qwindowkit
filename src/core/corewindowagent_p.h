@@ -16,9 +16,9 @@ namespace QWK {
 
         CoreWindowAgent *q_ptr; // no need to initialize
 
-        void setup(QWindow *window, WindowItemDelegate *delegate);
+        bool setup(QWindow *window, WindowItemDelegate *delegate);
 
-        AbstractWindowContext *m_eventHandler{};
+        AbstractWindowContext *m_eventHandler;
     };
 
 }

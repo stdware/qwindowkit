@@ -2,28 +2,40 @@
 #include "corewindowagent_p.h"
 
 #ifdef Q_OS_WINDOWS
-#  include "handler/win32windowcontext_p.h"
+#  include "win32windowcontext_p.h"
 #else
-#  include "handler/qtwindowcontext_p.h"
+#  include "qtwindowcontext_p.h"
 #endif
+
+Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() {
+    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : m_eventHandler(nullptr) {
     }
 
     CoreWindowAgentPrivate::~CoreWindowAgentPrivate() {
+        delete m_eventHandler;
     }
 
     void CoreWindowAgentPrivate::init() {
     }
 
-    void CoreWindowAgentPrivate::setup(QWindow *window, WindowItemDelegate *delegate) {
+    bool CoreWindowAgentPrivate::setup(QWindow *window, WindowItemDelegate *delegate) {
+        auto handler =
 #ifdef Q_OS_WINDOWS
-        m_eventHandler = new Win32WindowContext(window, delegate);
+            new Win32WindowContext(window, delegate)
 #else
-        m_eventHandler = new QtWindowContext(window, delegate);
+            new QtWindowContext(window, delegate)
 #endif
+            ;
+
+        if (!handler->setup()) {
+            delete handler;
+            return false;
+        }
+        m_eventHandler = handler;
+        return true;
     }
 
     CoreWindowAgent::~CoreWindowAgent() {

@@ -47,6 +47,10 @@ namespace QWK {
     QtWindowContext::~QtWindowContext() {
     }
 
+    bool QtWindowContext::setup() {
+        return false;
+    }
+
     bool QtWindowContext::eventFilter(QObject *obj, QEvent *event) {
         return AbstractWindowContext::eventFilter(obj, event);
     }

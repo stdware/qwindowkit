@@ -19,7 +19,7 @@ namespace QWK {
         ~QuickWindowAgent();
 
     public:
-        void setup(QQuickWindow *window);
+        bool setup(QQuickWindow *window);
 
         bool isHitTestVisible(QQuickItem *item) const;
         void setHitTestVisible(QQuickItem *item, bool visible);

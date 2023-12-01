@@ -23,19 +23,22 @@ namespace QWK {
     QuickWindowAgent::~QuickWindowAgent() {
     }
 
-    void QuickWindowAgent::setup(QQuickWindow *window) {
+    bool QuickWindowAgent::setup(QQuickWindow *window) {
         Q_ASSERT(window);
         if (!window) {
-            return;
+            return false;
         }
 
         Q_D(QuickWindowAgent);
         if (d->host) {
-            return;
+            return false;
+        }
+
+        if (!d->setup(window, new QuickItemDelegate())) {
+            return true;
         }
         d->host = window;
-
-        d->setup(window, new QuickItemDelegate());
+        return true;
     }
 
     bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const {

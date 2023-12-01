@@ -19,6 +19,8 @@ namespace QWK {
         ~AbstractWindowContext();
 
     public:
+        virtual bool setup() = 0;
+
         inline QWindow *window() const;
         void setupWindow(QWindow *window);
 

@@ -21,20 +21,23 @@ namespace QWK {
     WidgetWindowAgent::~WidgetWindowAgent() {
     }
 
-    void WidgetWindowAgent::setup(QWidget *w) {
+    bool WidgetWindowAgent::setup(QWidget *w) {
         Q_ASSERT(w);
         if (!w) {
-            return;
+            return false;
         }
 
         Q_D(WidgetWindowAgent);
         if (d->host) {
-            return;
+            return false;
         }
-        d->host = w;
 
         std::ignore = w->winId(); // Make sure the window handle is created
-        d->setup(w->windowHandle(), new WidgetItemDelegate());
+        if (!d->setup(w->windowHandle(), new WidgetItemDelegate())) {
+            return true;
+        }
+        d->host = w;
+        return true;
     }
 
     bool WidgetWindowAgent::isHitTestVisible(QWidget *w) const {

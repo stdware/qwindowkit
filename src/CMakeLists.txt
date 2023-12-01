@@ -1,5 +1,4 @@
-qm_import(Filesystem Preprocess)
-qm_init_directories()
+qm_import(Preprocess)
 
 set(QWINDOWKIT_PROJECT_DESCRIPTION "Cross-platform window customization framework")
 set(QWINDOWKIT_PROJECT_COPYRIGHT "Copyright 2023 Stdware Collections")
@@ -106,7 +105,7 @@ function(qwk_add_library _target)
     if(NOT FUNC_NO_SYNC_INCLUDE)
         # Generate a standard include directory in build directory
         qm_sync_include(. "${QWINDOWKIT_GENERATED_INCLUDE_DIR}/${_inc_name}" ${_install_options}
-            ${FUNC_SYNC_INCLUDE_OPTIONS}
+            ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
         )
         target_include_directories(${_target} PUBLIC
             "$<BUILD_INTERFACE:${QWINDOWKIT_GENERATED_INCLUDE_DIR}>"

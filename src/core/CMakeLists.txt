@@ -9,20 +9,21 @@ set(_src
     corewindowagent_p.h
     corewindowagent.cpp
     windowitemdelegate.h
-    handler/abstractwindowcontext_p.h
-    handler/abstractwindowcontext.cpp
+    contexts/abstractwindowcontext_p.h
+    contexts/abstractwindowcontext.cpp
 )
 
 if(WIN32)
     list(APPEND _src
         qwindowkit_windows.h
-        handler/win32windowcontext_p.h
-        handler/win32windowcontext.cpp
+        qwindowkit_windows.cpp
+        contexts/win32windowcontext_p.h
+        contexts/win32windowcontext.cpp
     )
 else()
     list(APPEND _src
-        handler/qtwindowcontext_p.h
-        handler/qtwindowcontext.cpp
+        contexts/qtwindowcontext_p.h
+        contexts/qtwindowcontext.cpp
     )
     if(APPLE)
         # add files
@@ -38,6 +39,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
+    INCLUDE_PRIVATE contexts
     PREFIX QWK_CORE
 )
 

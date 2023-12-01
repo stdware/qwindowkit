@@ -39,7 +39,7 @@ set(QWINDOWKIT_VERSION ${PROJECT_VERSION})
 set(QWINDOWKIT_INSTALL_NAME ${PROJECT_NAME})
 
 # ----------------------------------
-# Main Project
+# Find basic dependencies
 # ----------------------------------
 find_package(qmsetup QUIET)
 
@@ -65,6 +65,12 @@ if(NOT TARGET qmsetup::library)
     set(qmsetup_DIR ${_package_path} CACHE PATH "" FORCE)
 endif()
 
+qm_import(Filesystem)
+qm_init_directories()
+
+# ----------------------------------
+# Add source modules
+# ----------------------------------
 add_subdirectory(src)
 
 if(QWINDOWKIT_BUILD_EXAMPLES)
