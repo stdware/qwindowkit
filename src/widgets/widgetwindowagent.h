@@ -12,9 +12,7 @@ namespace QWK {
 
     class QWK_WIDGETS_EXPORT WidgetWindowAgent : public CoreWindowAgent {
         Q_OBJECT
-        Q_DISABLE_COPY(WidgetWindowAgent)
         Q_DECLARE_PRIVATE(WidgetWindowAgent)
-
     public:
         explicit WidgetWindowAgent(QObject *parent = nullptr);
         ~WidgetWindowAgent() override;

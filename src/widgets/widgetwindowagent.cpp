@@ -33,7 +33,7 @@ namespace QWK {
         }
 
         std::ignore = w->winId(); // Make sure the window handle is created
-        if (!d->setup(w->windowHandle(), std::make_shared<WidgetItemDelegate>())) {
+        if (!d->setup(w->windowHandle(), new WidgetItemDelegate())) {
             return false;
         }
         d->host = w;

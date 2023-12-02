@@ -7,10 +7,8 @@ namespace QWK {
 
     class QWK_CORE_EXPORT QtWindowContext : public AbstractWindowContext {
         Q_OBJECT
-        Q_DISABLE_COPY(QtWindowContext)
-
     public:
-        QtWindowContext(QWindow *window, WindowItemDelegatePtr delegate);
+        QtWindowContext(QWindow *window, WindowItemDelegate *delegate);
         ~QtWindowContext();
 
     public:

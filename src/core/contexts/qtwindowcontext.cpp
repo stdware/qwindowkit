@@ -40,7 +40,7 @@ namespace QWK {
 #endif
     }
 
-    QtWindowContext::QtWindowContext(QWindow *window, WindowItemDelegatePtr delegate)
+    QtWindowContext::QtWindowContext(QWindow *window, WindowItemDelegate *delegate)
         : AbstractWindowContext(window, delegate) {
     }
 

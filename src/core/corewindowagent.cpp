@@ -11,28 +11,31 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), eventHandler(nullptr) {
+    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : eventHandler(nullptr) {
     }
 
-    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
+    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() {
+        delete eventHandler;
+    }
 
     void CoreWindowAgentPrivate::init() {
     }
 
-    bool CoreWindowAgentPrivate::setup(QWindow *window, const WindowItemDelegatePtr &delegate) {
+    bool CoreWindowAgentPrivate::setup(QWindow *window, WindowItemDelegate *delegate) {
         Q_ASSERT(window);
         if (!window) {
             return false;
         }
+
         auto handler =
 #ifdef Q_OS_WINDOWS
-            std::make_shared<Win32WindowContext>(window, delegate)
+            new Win32WindowContext(window, delegate)
 #else
-            std::make_shared<QtWindowContext>(window, delegate)
+            new QtWindowContext(window, delegate)
 #endif
             ;
-
         if (!handler->setup()) {
+            delete handler;
             return false;
         }
         eventHandler = handler;

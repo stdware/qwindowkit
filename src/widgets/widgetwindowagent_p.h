@@ -7,9 +7,7 @@
 namespace QWK {
 
     class WidgetWindowAgentPrivate : public CoreWindowAgentPrivate {
-        Q_DISABLE_COPY(WidgetWindowAgentPrivate)
         Q_DECLARE_PUBLIC(WidgetWindowAgent)
-
     public:
         WidgetWindowAgentPrivate();
         ~WidgetWindowAgentPrivate();

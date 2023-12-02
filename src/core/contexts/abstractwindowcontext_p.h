@@ -1,6 +1,8 @@
 #ifndef ABSTRACTWINDOWCONTEXT_P_H
 #define ABSTRACTWINDOWCONTEXT_P_H
 
+#include <array>
+
 #include <QtCore/QSet>
 #include <QtGui/QWindow>
 #include <QtGui/QPolygon>
@@ -12,12 +14,9 @@ namespace QWK {
 
     class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
-        Q_DISABLE_COPY(AbstractWindowContext)
-
     public:
-        inline AbstractWindowContext(QWindow *window, WindowItemDelegatePtr delegate)
-            : m_windowHandle(window), m_delegate(std::move(delegate))
-        {
+        inline AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate)
+            : m_windowHandle(window), m_delegate(delegate) {
         }
         ~AbstractWindowContext() override;
 
@@ -39,9 +38,11 @@ namespace QWK {
 
         void showSystemMenu(const QPoint &pos);
 
+        QRegion hitTestShape() const;
+
     protected:
         QWindow *m_windowHandle;
-        WindowItemDelegatePtr m_delegate;
+        WindowItemDelegate *m_delegate;
 
         QSet<QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;
@@ -49,8 +50,9 @@ namespace QWK {
         QObject *m_titleBar{};
         std::array<QObject *, CoreWindowAgent::NumSystemButton> m_systemButtons{};
 
+        // Cached shape
         mutable bool hitTestVisibleShapeDirty{};
-        mutable QPolygon hitTestVisibleShape;
+        mutable QRegion hitTestVisibleShape;
     };
 
     inline QWindow *AbstractWindowContext::window() const {
@@ -69,8 +71,6 @@ namespace QWK {
     inline QObject *AbstractWindowContext::titleBar() const {
         return m_titleBar;
     }
-
-    using WindowContextPtr = std::shared_ptr<AbstractWindowContext>;
 
 }
 

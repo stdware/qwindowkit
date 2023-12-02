@@ -11,9 +11,7 @@ namespace QWK {
 
     class QWK_CORE_EXPORT CoreWindowAgent : public QObject {
         Q_OBJECT
-        Q_DISABLE_COPY(CoreWindowAgent)
         Q_DECLARE_PRIVATE(CoreWindowAgent)
-
     public:
         ~CoreWindowAgent() override;
 

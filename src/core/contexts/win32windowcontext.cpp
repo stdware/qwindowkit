@@ -32,8 +32,8 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegatePtr delegate)
-        : AbstractWindowContext(window, std::move(delegate)), windowId(0) {
+    Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegate *delegate)
+        : AbstractWindowContext(window, delegate), windowId(0) {
     }
 
     Win32WindowContext::~Win32WindowContext() {
@@ -69,6 +69,8 @@ namespace QWK {
 
         // TODO: Implement
         // ...
+
+        Q_UNUSED(windowId)
 
         return false; // Not handled
     }

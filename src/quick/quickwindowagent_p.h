@@ -7,9 +7,7 @@
 namespace QWK {
 
     class QuickWindowAgentPrivate : public CoreWindowAgentPrivate {
-        Q_DISABLE_COPY(QuickWindowAgentPrivate)
         Q_DECLARE_PUBLIC(QuickWindowAgent)
-
     public:
         QuickWindowAgentPrivate();
         ~QuickWindowAgentPrivate() override;

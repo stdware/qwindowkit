@@ -2,7 +2,9 @@
 
 namespace QWK {
 
-    AbstractWindowContext::~AbstractWindowContext() = default;
+    AbstractWindowContext::~AbstractWindowContext() {
+        delete m_delegate;
+    }
 
     void AbstractWindowContext::setupWindow(QWindow *window) {
         Q_ASSERT(window);
@@ -37,11 +39,12 @@ namespace QWK {
         } else {
             m_hitTestVisibleRects.removeAll(rect);
         }
+        hitTestVisibleShapeDirty = true;
         return true;
     }
 
     bool AbstractWindowContext::setSystemButton(CoreWindowAgent::SystemButton button,
-                                                     QObject *obj) {
+                                                QObject *obj) {
         Q_ASSERT(obj);
         Q_ASSERT(button != CoreWindowAgent::Unknown);
         if (!obj || (button == CoreWindowAgent::Unknown)) {
@@ -70,6 +73,17 @@ namespace QWK {
 
     void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
         // ?
+    }
+
+    QRegion AbstractWindowContext::hitTestShape() const {
+        if (hitTestVisibleShapeDirty) {
+            hitTestVisibleShape = {};
+            for (const auto &rect : m_hitTestVisibleRects) {
+                hitTestVisibleShape += rect;
+            }
+            hitTestVisibleShapeDirty = false;
+        }
+        return hitTestVisibleShape;
     }
 
 }

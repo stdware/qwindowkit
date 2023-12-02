@@ -13,9 +13,7 @@ namespace QWK {
 
     class QWK_QUICK_EXPORT QuickWindowAgent : public CoreWindowAgent {
         Q_OBJECT
-        Q_DISABLE_COPY(QuickWindowAgent)
         Q_DECLARE_PRIVATE(QuickWindowAgent)
-
     public:
         explicit QuickWindowAgent(QObject *parent = nullptr);
         ~QuickWindowAgent() override;

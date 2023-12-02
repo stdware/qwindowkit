@@ -34,7 +34,7 @@ namespace QWK {
             return false;
         }
 
-        if (!d->setup(window, std::make_shared<QuickItemDelegate>())) {
+        if (!d->setup(window, new QuickItemDelegate())) {
             return true;
         }
         d->host = window;
