@@ -15,8 +15,8 @@ set(_src
 qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
     LINKS QWKCore
-    QT_LINKS Core Quick
-    QT_INCLUDE_PRIVATE Core Quick
+    QT_LINKS Core Gui Quick
+    QT_INCLUDE_PRIVATE Core Gui Quick
     PREFIX QWK_QUICK
 )
 

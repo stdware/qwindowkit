@@ -69,6 +69,7 @@ function(qwk_add_library _target)
 
     # Add include directories
     target_include_directories(${_target} PRIVATE ${QWINDOWKIT_BUILD_INCLUDE_DIR})
+    target_include_directories(${_target} PRIVATE .)
 
     # Library name
     if(${_target} MATCHES "^QWK(.+)")

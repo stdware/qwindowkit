@@ -15,11 +15,10 @@ namespace QWK {
     public:
         bool setup() override;
 
+        bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
+
     protected:
         WId windowId;
-        WNDPROC qtWindowProc; // Original Qt window proc function
-
-        static LRESULT windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     };
 
 }

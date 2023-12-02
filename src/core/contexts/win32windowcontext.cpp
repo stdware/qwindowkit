@@ -4,14 +4,41 @@
 
 namespace QWK {
 
-    using WndProcHash = QHash<HWND, Win32WindowContext *>;
+    using WndProcHash = QHash<HWND, Win32WindowContext *>; // hWnd -> context
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash);
 
+    static WNDPROC g_qtWindowProc = nullptr; // Original Qt window proc function
+
+    extern "C" LRESULT QT_WIN_CALLBACK QWK_WindowsWndProc(HWND hWnd, UINT message, WPARAM wParam,
+                                                          LPARAM lParam) {
+        Q_ASSERT(hWnd);
+        if (!hWnd) {
+            return FALSE;
+        }
+
+        // Search window context
+        auto ctx = g_wndProcHash->value(hWnd);
+        if (!ctx) {
+            return ::DefWindowProcW(hWnd, message, wParam, lParam);
+        }
+
+        // Try hooked procedure
+        LRESULT result;
+        bool handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
+        if (handled) {
+            return result;
+        }
+
+        // Fallback to Qt's procedure
+        return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+    }
+
     Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegate *delegate)
-        : AbstractWindowContext(window, delegate), windowId(0), qtWindowProc(nullptr) {
+        : AbstractWindowContext(window, delegate), windowId(0) {
     }
 
     Win32WindowContext::~Win32WindowContext() {
+        // Remove window handle mapping
         auto hWnd = reinterpret_cast<HWND>(windowId);
         g_wndProcHash->remove(hWnd);
     }
@@ -25,41 +52,40 @@ namespace QWK {
 
         // Install window hook
         auto hWnd = reinterpret_cast<HWND>(winId);
-        auto orgWndProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
-        Q_ASSERT(orgWndProc);
-        if (!orgWndProc) {
+        auto qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
+        Q_ASSERT(qtWindowProc);
+        if (!qtWindowProc) {
             QWK_WARNING << winLastErrorMessage();
             return false;
         }
 
-        if (::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(windowProc)) == 0) {
+        if (::SetWindowLongPtrW(hWnd, GWLP_WNDPROC,
+                                reinterpret_cast<LONG_PTR>(QWK_WindowsWndProc)) == 0) {
             QWK_WARNING << winLastErrorMessage();
             return false;
         }
 
         windowId = winId;
-        qtWindowProc = orgWndProc;         // Store original window proc
-        g_wndProcHash->insert(hWnd, this); // Save window handle mapping
+
+        // Store original window proc
+        if (!g_qtWindowProc) {
+            g_qtWindowProc = qtWindowProc;
+        }
+
+        // Save window handle mapping
+        g_wndProcHash->insert(hWnd, this);
+
         return true;
     }
 
-    LRESULT Win32WindowContext::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-        Q_ASSERT(hWnd);
-        if (!hWnd) {
-            return FALSE;
-        }
+    bool Win32WindowContext::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                                        LRESULT *result) {
+        *result = FALSE;
 
-        const auto *ctx = g_wndProcHash->value(hWnd);
-        if (!ctx) {
-            return ::DefWindowProcW(hWnd, uMsg, wParam, lParam);
-        }
+        // TODO: Implement
+        // ...
 
-        auto winId = reinterpret_cast<WId>(hWnd);
-
-        // Further procedure
-        Q_UNUSED(winId)
-
-        return ::CallWindowProcW(ctx->qtWindowProc, hWnd, uMsg, wParam, lParam);
+        return false; // Not handled
     }
 
 }
