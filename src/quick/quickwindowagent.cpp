@@ -34,7 +34,7 @@ namespace QWK {
             return false;
         }
 
-        if (!d->setup(window, new QuickItemDelegate())) {
+        if (!d->setup(window, std::make_shared<QuickItemDelegate>())) {
             return true;
         }
         d->host = window;
@@ -43,27 +43,27 @@ namespace QWK {
 
     bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const {
         Q_D(const QuickWindowAgent);
-        return d->m_eventHandler->isHitTestVisible(item);
+        return d->eventHandler->isHitTestVisible(item);
     }
 
     void QuickWindowAgent::setHitTestVisible(QQuickItem *item, bool visible) {
         Q_D(QuickWindowAgent);
-        d->m_eventHandler->setHitTestVisible(item, visible);
+        d->eventHandler->setHitTestVisible(item, visible);
     }
 
     void QuickWindowAgent::setHitTestVisible(const QRect &rect, bool visible) {
         Q_D(QuickWindowAgent);
-        d->m_eventHandler->setHitTestVisible(rect, visible);
+        d->eventHandler->setHitTestVisible(rect, visible);
     }
 
     QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
         Q_D(const QuickWindowAgent);
-        return static_cast<QQuickItem *>(d->m_eventHandler->systemButton(button));
+        return qobject_cast<QQuickItem *>(d->eventHandler->systemButton(button));
     }
 
     void QuickWindowAgent::setSystemButton(SystemButton button, QQuickItem *item) {
         Q_D(QuickWindowAgent);
-        if (!d->m_eventHandler->setSystemButton(button, item)) {
+        if (!d->eventHandler->setSystemButton(button, item)) {
             return;
         }
         Q_EMIT systemButtonChanged(button, item);
@@ -71,12 +71,12 @@ namespace QWK {
 
     QQuickItem *QuickWindowAgent::titleBar() const {
         Q_D(const QuickWindowAgent);
-        return static_cast<QQuickItem *>(d->m_eventHandler->titleBar());
+        return qobject_cast<QQuickItem *>(d->eventHandler->titleBar());
     }
 
     void QuickWindowAgent::setTitleBar(QQuickItem *item) {
         Q_D(QuickWindowAgent);
-        if (!d->m_eventHandler->setTitleBar(item)) {
+        if (!d->eventHandler->setTitleBar(item)) {
             return;
         }
         Q_EMIT titleBarWidgetChanged(item);

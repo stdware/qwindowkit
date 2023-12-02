@@ -10,9 +10,11 @@
 namespace QWK {
 
     class QWK_WIDGETS_EXPORT WidgetItemDelegate : public WindowItemDelegate {
+        Q_DISABLE_COPY(WidgetItemDelegate)
+
     public:
         WidgetItemDelegate();
-        ~WidgetItemDelegate();
+        ~WidgetItemDelegate() override;
 
     public:
         QWindow *window(QObject *obj) const override;

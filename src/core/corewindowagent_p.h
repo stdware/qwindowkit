@@ -7,7 +7,9 @@
 namespace QWK {
 
     class QWK_CORE_EXPORT CoreWindowAgentPrivate {
+        Q_DISABLE_COPY(CoreWindowAgentPrivate)
         Q_DECLARE_PUBLIC(CoreWindowAgent)
+
     public:
         CoreWindowAgentPrivate();
         virtual ~CoreWindowAgentPrivate();
@@ -16,9 +18,9 @@ namespace QWK {
 
         CoreWindowAgent *q_ptr; // no need to initialize
 
-        bool setup(QWindow *window, WindowItemDelegate *delegate);
+        bool setup(QWindow *window, const WindowItemDelegatePtr &delegate);
 
-        AbstractWindowContext *m_eventHandler;
+        WindowContextPtr eventHandler;
     };
 
 }

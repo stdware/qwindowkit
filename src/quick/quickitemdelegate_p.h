@@ -10,9 +10,11 @@
 namespace QWK {
 
     class QWK_QUICK_EXPORT QuickItemDelegate : public WindowItemDelegate {
+        Q_DISABLE_COPY(QuickItemDelegate)
+
     public:
         QuickItemDelegate();
-        ~QuickItemDelegate();
+        ~QuickItemDelegate() override;
 
     public:
         QWindow *window(QObject *obj) const override;

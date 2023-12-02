@@ -12,11 +12,14 @@ namespace QWK {
 
     class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
+        Q_DISABLE_COPY(AbstractWindowContext)
+
     public:
-        inline AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate)
-            : m_windowHandle(window), m_delegate(delegate) {
+        inline AbstractWindowContext(QWindow *window, WindowItemDelegatePtr delegate)
+            : m_windowHandle(window), m_delegate(std::move(delegate))
+        {
         }
-        ~AbstractWindowContext();
+        ~AbstractWindowContext() override;
 
     public:
         virtual bool setup() = 0;
@@ -38,13 +41,13 @@ namespace QWK {
 
     protected:
         QWindow *m_windowHandle;
-        WindowItemDelegate *m_delegate;
+        WindowItemDelegatePtr m_delegate;
 
         QSet<QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;
 
         QObject *m_titleBar{};
-        QObject *m_systemButtons[CoreWindowAgent::NumSystemButton]{};
+        std::array<QObject *, CoreWindowAgent::NumSystemButton> m_systemButtons{};
 
         mutable bool hitTestVisibleShapeDirty{};
         mutable QPolygon hitTestVisibleShape;
@@ -66,6 +69,8 @@ namespace QWK {
     inline QObject *AbstractWindowContext::titleBar() const {
         return m_titleBar;
     }
+
+    using WindowContextPtr = std::shared_ptr<AbstractWindowContext>;
 
 }
 

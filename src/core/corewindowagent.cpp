@@ -11,44 +11,44 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : m_eventHandler(nullptr) {
+    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), eventHandler(nullptr) {
     }
 
-    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() {
-        delete m_eventHandler;
-    }
+    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
 
     void CoreWindowAgentPrivate::init() {
     }
 
-    bool CoreWindowAgentPrivate::setup(QWindow *window, WindowItemDelegate *delegate) {
+    bool CoreWindowAgentPrivate::setup(QWindow *window, const WindowItemDelegatePtr &delegate) {
+        Q_ASSERT(window);
+        if (!window) {
+            return false;
+        }
         auto handler =
 #ifdef Q_OS_WINDOWS
-            new Win32WindowContext(window, delegate)
+            std::make_shared<Win32WindowContext>(window, delegate)
 #else
-            new QtWindowContext(window, delegate)
+            std::make_shared<QtWindowContext>(window, delegate)
 #endif
             ;
 
         if (!handler->setup()) {
-            delete handler;
             return false;
         }
-        m_eventHandler = handler;
+        eventHandler = handler;
         return true;
     }
 
-    CoreWindowAgent::~CoreWindowAgent() {
-    }
+    CoreWindowAgent::~CoreWindowAgent() = default;
 
     void CoreWindowAgent::showSystemMenu(const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        d->m_eventHandler->showSystemMenu(pos);
+        d->eventHandler->showSystemMenu(pos);
     }
 
     void CoreWindowAgent::startSystemMove(const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        auto win = d->m_eventHandler->window();
+        auto win = d->eventHandler->window();
         if (!win) {
             return;
         }
@@ -59,7 +59,7 @@ namespace QWK {
 
     void CoreWindowAgent::startSystemResize(Qt::Edges edges, const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        auto win = d->m_eventHandler->window();
+        auto win = d->eventHandler->window();
         if (!win) {
             return;
         }

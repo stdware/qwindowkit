@@ -24,8 +24,7 @@ namespace QWK {
 
         // Try hooked procedure
         LRESULT result;
-        bool handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
-        if (handled) {
+        if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
             return result;
         }
 
@@ -33,8 +32,8 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegate *delegate)
-        : AbstractWindowContext(window, delegate), windowId(0) {
+    Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegatePtr delegate)
+        : AbstractWindowContext(window, std::move(delegate)), windowId(0) {
     }
 
     Win32WindowContext::~Win32WindowContext() {
@@ -45,25 +44,11 @@ namespace QWK {
 
     bool Win32WindowContext::setup() {
         auto winId = m_windowHandle->winId();
-        Q_ASSERT(winId);
-        if (!winId) {
-            return false;
-        }
 
         // Install window hook
         auto hWnd = reinterpret_cast<HWND>(winId);
         auto qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
-        Q_ASSERT(qtWindowProc);
-        if (!qtWindowProc) {
-            QWK_WARNING << winLastErrorMessage();
-            return false;
-        }
-
-        if (::SetWindowLongPtrW(hWnd, GWLP_WNDPROC,
-                                reinterpret_cast<LONG_PTR>(QWK_WindowsWndProc)) == 0) {
-            QWK_WARNING << winLastErrorMessage();
-            return false;
-        }
+        ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWK_WindowsWndProc));
 
         windowId = winId;
 

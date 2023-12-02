@@ -5,22 +5,21 @@
 
 namespace QWK {
 
-    QuickItemDelegate::QuickItemDelegate() {
+    QuickItemDelegate::QuickItemDelegate() : WindowItemDelegate() {
     }
 
-    QuickItemDelegate::~QuickItemDelegate() {
-    }
+    QuickItemDelegate::~QuickItemDelegate() = default;
 
     QWindow *QuickItemDelegate::window(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->window();
+        return qobject_cast<QQuickItem *>(obj)->window();
     }
 
     bool QuickItemDelegate::isEnabled(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->isEnabled();
+        return qobject_cast<QQuickItem *>(obj)->isEnabled();
     }
 
     bool QuickItemDelegate::isVisible(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->isVisible();
+        return qobject_cast<QQuickItem *>(obj)->isVisible();
     }
 
 }

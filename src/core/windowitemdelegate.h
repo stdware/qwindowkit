@@ -9,7 +9,10 @@
 namespace QWK {
 
     class WindowItemDelegate {
+        Q_DISABLE_COPY(WindowItemDelegate)
+
     public:
+        WindowItemDelegate() = default;
         virtual ~WindowItemDelegate() = default;
 
     public:
@@ -18,6 +21,8 @@ namespace QWK {
         virtual bool isEnabled(QObject *obj) const = 0;
         virtual bool isVisible(QObject *obj) const = 0;
     };
+
+    using WindowItemDelegatePtr = std::shared_ptr<WindowItemDelegate>;
 
 }
 

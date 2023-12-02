@@ -11,15 +11,15 @@ namespace QWK {
     }
 
     QWindow *WidgetItemDelegate::window(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->windowHandle();
+        return qobject_cast<QWidget *>(obj)->windowHandle();
     }
 
     bool WidgetItemDelegate::isEnabled(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->isEnabled();
+        return qobject_cast<QWidget *>(obj)->isEnabled();
     }
 
     bool WidgetItemDelegate::isVisible(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->isVisible();
+        return qobject_cast<QWidget *>(obj)->isVisible();
     }
 
 }

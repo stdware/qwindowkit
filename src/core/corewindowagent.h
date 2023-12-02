@@ -11,9 +11,11 @@ namespace QWK {
 
     class QWK_CORE_EXPORT CoreWindowAgent : public QObject {
         Q_OBJECT
+        Q_DISABLE_COPY(CoreWindowAgent)
         Q_DECLARE_PRIVATE(CoreWindowAgent)
+
     public:
-        ~CoreWindowAgent();
+        ~CoreWindowAgent() override;
 
         enum SystemButton {
             Unknown,
@@ -34,9 +36,9 @@ namespace QWK {
         void raise();
 
     protected:
-        CoreWindowAgent(CoreWindowAgentPrivate &d, QObject *parent = nullptr);
+        explicit CoreWindowAgent(CoreWindowAgentPrivate &d, QObject *parent = nullptr);
 
-        QScopedPointer<CoreWindowAgentPrivate> d_ptr;
+        const std::unique_ptr<CoreWindowAgentPrivate> d_ptr;
     };
 
 }
