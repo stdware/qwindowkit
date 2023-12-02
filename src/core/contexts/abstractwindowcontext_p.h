@@ -2,6 +2,7 @@
 #define ABSTRACTWINDOWCONTEXT_P_H
 
 #include <array>
+#include <memory>
 
 #include <QtCore/QSet>
 #include <QtGui/QWindow>
@@ -42,7 +43,7 @@ namespace QWK {
 
     protected:
         QWindow *m_windowHandle;
-        WindowItemDelegate *m_delegate;
+        std::unique_ptr<WindowItemDelegate> m_delegate;
 
         QSet<QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;

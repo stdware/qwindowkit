@@ -1,6 +1,8 @@
 #include "corewindowagent.h"
 #include "corewindowagent_p.h"
 
+#include "qwkcoreglobal_p.h"
+
 #ifdef Q_OS_WINDOWS
 #  include "win32windowcontext_p.h"
 #else
@@ -11,12 +13,10 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : eventHandler(nullptr) {
+    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), eventHandler(nullptr) {
     }
 
-    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() {
-        delete eventHandler;
-    }
+    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
 
     void CoreWindowAgentPrivate::init() {
     }
@@ -38,7 +38,7 @@ namespace QWK {
             delete handler;
             return false;
         }
-        eventHandler = handler;
+        eventHandler.reset(handler);
         return true;
     }
 

@@ -1,8 +1,6 @@
 #ifndef WINDOWITEMDELEGATE_H
 #define WINDOWITEMDELEGATE_H
 
-#include <memory>
-
 #include <QtCore/QObject>
 #include <QtGui/QWindow>
 

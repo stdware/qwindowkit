@@ -5,6 +5,7 @@ project(QWKCore
 
 set(_src
     qwkcoreglobal.h
+    qwkcoreglobal_p.h
     corewindowagent.h
     corewindowagent_p.h
     corewindowagent.cpp
