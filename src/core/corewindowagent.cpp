@@ -13,7 +13,7 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), eventHandler(nullptr) {
+    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), context(nullptr) {
     }
 
     CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
@@ -38,7 +38,7 @@ namespace QWK {
             delete handler;
             return false;
         }
-        eventHandler.reset(handler);
+        context.reset(handler);
         return true;
     }
 
@@ -46,12 +46,12 @@ namespace QWK {
 
     void CoreWindowAgent::showSystemMenu(const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        d->eventHandler->showSystemMenu(pos);
+        d->context->showSystemMenu(pos);
     }
 
     void CoreWindowAgent::startSystemMove(const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        auto win = d->eventHandler->window();
+        auto win = d->context->window();
         if (!win) {
             return;
         }
@@ -62,7 +62,7 @@ namespace QWK {
 
     void CoreWindowAgent::startSystemResize(Qt::Edges edges, const QPoint &pos) {
         Q_D(CoreWindowAgent);
-        auto win = d->eventHandler->window();
+        auto win = d->context->window();
         if (!win) {
             return;
         }

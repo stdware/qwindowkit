@@ -18,7 +18,7 @@ namespace QWK {
 
         bool setup(QWindow *window, WindowItemDelegate *delegate);
 
-        std::unique_ptr<AbstractWindowContext> eventHandler;
+        std::unique_ptr<AbstractWindowContext> context;
 
         Q_DISABLE_COPY_MOVE(CoreWindowAgentPrivate)
     };

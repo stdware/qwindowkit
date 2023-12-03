@@ -17,24 +17,6 @@ namespace QWK {
 
     static WNDPROC g_qtWindowProc = nullptr; // Original Qt window proc function
 
-    static bool g_lastMessageHandled = false;
-
-    static LRESULT g_lastMessageResult = false;
-
-    class WindowsNativeEventFilter : public QAbstractNativeEventFilter {
-    public:
-        bool nativeEventFilter(const QByteArray &eventType, void *message,
-                               QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            if (g_lastMessageHandled) {
-                *result = static_cast<QT_NATIVE_EVENT_RESULT_TYPE>(g_lastMessageResult);
-                return true;
-            }
-            return false;
-        }
-    };
-
-    static WindowsNativeEventFilter *g_nativeFilter = nullptr;
-
     static inline QPoint fromNativeLocalPosition(const QWindow *window, const QPoint &point) {
 #if 1
         return QHighDpi::fromNativeLocalPosition(point, window);
@@ -105,6 +87,44 @@ namespace QWK {
         return true;
     }
 
+    // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1556
+    // In QWindowsContext::windowsProc(), the messages will be passed to all global native event
+    // filters, but because we have already filtered the messages in the hook WndProc function for
+    // convenience, Qt does not know we may have already process the messages and thus will call
+    // DefWindowProc(). Consequently, we have to add a global native filter that forwards the result
+    // of the hook function, telling Qt whether we have filtered the events before. Since Qt only
+    // handles Windows window messages in the main thread, it is safe to do so.
+    class WindowsNativeEventFilter : public QAbstractNativeEventFilter {
+    public:
+        bool nativeEventFilter(const QByteArray &eventType, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *result) override {
+            if (lastMessageHandled) {
+                *result = static_cast<QT_NATIVE_EVENT_RESULT_TYPE>(lastMessageResult);
+                return true;
+            }
+            return false;
+        }
+
+        static bool lastMessageHandled;
+        static LRESULT lastMessageResult;
+        static WindowsNativeEventFilter *instance;
+
+        static inline void install() {
+            instance = new WindowsNativeEventFilter();
+            qApp->installNativeEventFilter(instance);
+        }
+
+        static inline void uninstall() {
+            qApp->removeNativeEventFilter(instance);
+            delete instance;
+            instance = nullptr;
+        }
+    };
+
+    bool WindowsNativeEventFilter::lastMessageHandled = false;
+    LRESULT WindowsNativeEventFilter::lastMessageResult = 0;
+    WindowsNativeEventFilter *WindowsNativeEventFilter::instance = nullptr;
+
     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1025
     // We can see from the source code that Qt will filter out some messages first and then send the
     // unfiltered messages to the event dispatcher. To activate the Snap Layout feature on Windows
@@ -171,7 +191,9 @@ namespace QWK {
         }
 
         // Try hooked procedure and save result
-        g_lastMessageHandled = ctx->windowProc(hWnd, message, wParam, lParam, &g_lastMessageResult);
+        auto &handled = WindowsNativeEventFilter::lastMessageHandled;
+        auto &result = WindowsNativeEventFilter::lastMessageResult;
+        handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
 
         // TODO: Determine whether to show system menu
         // ...
@@ -190,11 +212,9 @@ namespace QWK {
         if (auto hWnd = reinterpret_cast<HWND>(windowId); hWnd) {
             g_wndProcHash->remove(hWnd);
 
-            // Remove event filter if the last window is destroyed
+            // Remove event filter if the all windows has been destroyed
             if (g_wndProcHash->empty()) {
-                qApp->removeNativeEventFilter(g_nativeFilter);
-                delete g_nativeFilter;
-                g_nativeFilter = nullptr;
+                WindowsNativeEventFilter::uninstall();
             }
         }
     }
@@ -214,9 +234,8 @@ namespace QWK {
         ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
 
         // Install global native event filter
-        if (!g_nativeFilter) {
-            g_nativeFilter = new WindowsNativeEventFilter();
-            qApp->installNativeEventFilter(g_nativeFilter);
+        if (!WindowsNativeEventFilter::instance) {
+            WindowsNativeEventFilter::install();
         }
 
         // Cache window ID
@@ -411,7 +430,7 @@ namespace QWK {
     }
 
     bool Win32WindowContext::snapLayoutHandler(HWND hWnd, UINT message, WPARAM wParam,
-                                                     LPARAM lParam, LRESULT *result) {
+                                               LPARAM lParam, LRESULT *result) {
         switch (message) {
             case WM_MOUSELEAVE: {
                 if (!isTaggedMessage(wParam)) {
@@ -429,6 +448,9 @@ namespace QWK {
                                                                        GET_Y_LPARAM(dwScreenPos)));
                     auto dummy = CoreWindowAgent::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
+                        // We must record whether the last WM_MOUSELEAVE was filtered, because if
+                        // Qt does not receive this message it will not call TrackMouseEvent()
+                        // again, resulting in the client area not responding to any mouse event.
                         mouseLeaveBlocked = true;
                         *result = FALSE;
                         return true;
@@ -439,7 +461,10 @@ namespace QWK {
             }
 
             case WM_MOUSEMOVE: {
-                if ((lastHitTestResult != WindowPart::ChromeButton) && mouseLeaveBlocked) {
+                // At appropriate time, we will call TrackMouseEvent() for Qt. Simultaneously,
+                // we unset `mouseLeaveBlocked` mark and pretend as if Qt has received
+                // WM_MOUSELEAVE.
+                if (lastHitTestResult != WindowPart::ChromeButton && mouseLeaveBlocked) {
                     mouseLeaveBlocked = false;
                     std::ignore = requestForMouseLeaveMessage(hWnd, false);
                 }
@@ -479,7 +504,7 @@ namespace QWK {
                     // comes, so we reset it when we receive a WM_NCMOUSEMOVE.
 
                     // If the mouse is entering the client area, there must be a WM_NCHITTEST
-                    // setting it to `Client` before the WM_NCMOUSELEAVE comes; If the mouse is
+                    // setting it to `Client` before the WM_NCMOUSELEAVE comes; if the mouse is
                     // leaving the window, current window part remains as `Outside`.
                     lastHitTestResult = WindowPart::Outside;
                 }

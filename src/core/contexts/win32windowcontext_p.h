@@ -25,17 +25,22 @@ namespace QWK {
         bool setup() override;
 
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
+
+        // In order to perfectly apply Windows 11 Snap Layout into the Qt window, we need to
+        // intercept and simulate most of the  mouse events, so that the processing logic
+        // is quite complex. Simultaneously, in order to make the handling code of other
+        // Windows messages clearer, we have separated them into this function.
         bool snapLayoutHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                LRESULT *result);
 
     protected:
         WId windowId = 0;
 
-        // Store the last hit test result, it's helpful to handle WM_MOUSEMOVE and WM_NCMOUSELEAVE.
+        // The last hit test result, helpful to handle WM_MOUSEMOVE and WM_NCMOUSELEAVE.
         WindowPart lastHitTestResult = WindowPart::Outside;
 
-        // True if we blocked a WM_MOUSELEAVE when mouse moves on chrome button, false when a
-        // WM_MOUSELEAVE comes or we manually call TrackMouseEvent().
+        // Whether the last mouse leave message is blocked, mainly for handling the unexpected
+        // WM_MOUSELEAVE.
         bool mouseLeaveBlocked = false;
     };
 
