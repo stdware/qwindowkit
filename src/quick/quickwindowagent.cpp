@@ -30,14 +30,14 @@ namespace QWK {
         }
 
         Q_D(QuickWindowAgent);
-        if (d->host) {
+        if (d->hostWindow) {
             return false;
         }
 
         if (!d->setup(window, new QuickItemDelegate())) {
             return true;
         }
-        d->host = window;
+        d->hostWindow = window;
         return true;
     }
 
@@ -58,7 +58,7 @@ namespace QWK {
 
     QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
         Q_D(const QuickWindowAgent);
-        return qobject_cast<QQuickItem *>(d->eventHandler->systemButton(button));
+        return static_cast<QQuickItem *>(d->eventHandler->systemButton(button));
     }
 
     void QuickWindowAgent::setSystemButton(SystemButton button, QQuickItem *item) {
@@ -71,7 +71,7 @@ namespace QWK {
 
     QQuickItem *QuickWindowAgent::titleBar() const {
         Q_D(const QuickWindowAgent);
-        return qobject_cast<QQuickItem *>(d->eventHandler->titleBar());
+        return static_cast<QQuickItem *>(d->eventHandler->titleBar());
     }
 
     void QuickWindowAgent::setTitleBar(QQuickItem *item) {

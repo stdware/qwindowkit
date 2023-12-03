@@ -19,6 +19,9 @@ namespace QWK {
 
         bool isEnabled(QObject *obj) const override;
         bool isVisible(QObject *obj) const override;
+        QRect mapGeometryToScene(const QObject *obj) const override;
+
+        bool resetQtGrabbedControl() const override;
     };
 
 }

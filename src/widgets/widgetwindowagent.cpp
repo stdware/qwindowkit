@@ -28,7 +28,7 @@ namespace QWK {
         }
 
         Q_D(WidgetWindowAgent);
-        if (d->host) {
+        if (d->hostWidget) {
             return false;
         }
 
@@ -36,7 +36,7 @@ namespace QWK {
         if (!d->setup(w->windowHandle(), new WidgetItemDelegate())) {
             return false;
         }
-        d->host = w;
+        d->hostWidget = w;
         return true;
     }
 
@@ -57,7 +57,7 @@ namespace QWK {
 
     QWidget *WidgetWindowAgent::systemButton(CoreWindowAgent::SystemButton button) const {
         Q_D(const WidgetWindowAgent);
-        return qobject_cast<QWidget *>(d->eventHandler->systemButton(button));
+        return static_cast<QWidget *>(d->eventHandler->systemButton(button));
     }
 
     void WidgetWindowAgent::setSystemButton(CoreWindowAgent::SystemButton button, QWidget *w) {
@@ -70,7 +70,7 @@ namespace QWK {
 
     QWidget *WidgetWindowAgent::titleBar() const {
         Q_D(const WidgetWindowAgent);
-        return qobject_cast<QWidget *>(d->eventHandler->titleBar());
+        return static_cast<QWidget *>(d->eventHandler->titleBar());
     }
 
     void WidgetWindowAgent::setTitleBar(QWidget *w) {

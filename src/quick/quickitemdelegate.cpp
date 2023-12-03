@@ -11,15 +11,26 @@ namespace QWK {
     QuickItemDelegate::~QuickItemDelegate() = default;
 
     QWindow *QuickItemDelegate::window(QObject *obj) const {
-        return qobject_cast<QQuickItem *>(obj)->window();
+        return static_cast<QQuickItem *>(obj)->window();
     }
 
     bool QuickItemDelegate::isEnabled(QObject *obj) const {
-        return qobject_cast<QQuickItem *>(obj)->isEnabled();
+        return static_cast<QQuickItem *>(obj)->isEnabled();
     }
 
     bool QuickItemDelegate::isVisible(QObject *obj) const {
-        return qobject_cast<QQuickItem *>(obj)->isVisible();
+        return static_cast<QQuickItem *>(obj)->isVisible();
+    }
+
+    QRect QuickItemDelegate::mapGeometryToScene(const QObject *obj) const {
+        auto item = static_cast<const QQuickItem *>(obj);
+        const QPointF originPoint = item->mapToScene(QPointF(0.0, 0.0));
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+        const QSizeF size = item->size();
+#else
+        const QSizeF size = {item->width(), item->height()};
+#endif
+        return QRectF(originPoint, size).toRect();
     }
 
 }

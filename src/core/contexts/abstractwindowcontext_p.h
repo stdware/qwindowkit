@@ -40,6 +40,7 @@ namespace QWK {
         void showSystemMenu(const QPoint &pos);
 
         QRegion hitTestShape() const;
+        bool isInSystemButtons(const QPoint &pos, CoreWindowAgent::SystemButton *button) const;
 
     protected:
         QWindow *m_windowHandle;

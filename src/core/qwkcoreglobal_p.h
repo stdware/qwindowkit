@@ -24,13 +24,4 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 #  define QWK_FATAL qCFatal(qWindowKitLog)
 #endif
 
-// MOC can't handle C++ attributes before 5.15.
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-#  define Q_NODISCARD    [[nodiscard]]
-#  define Q_MAYBE_UNUSED [[maybe_unused]]
-#else
-#  define Q_NODISCARD
-#  define Q_MAYBE_UNUSED
-#endif
-
 #endif // QWKCOREGLOBAL_P_H

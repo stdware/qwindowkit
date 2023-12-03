@@ -84,4 +84,21 @@ namespace QWK {
         return hitTestVisibleShape;
     }
 
+    bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
+                                                  CoreWindowAgent::SystemButton *button) const {
+        *button = CoreWindowAgent::Unknown;
+        for (int i = CoreWindowAgent::WindowIcon; i <= CoreWindowAgent::Close; ++i) {
+            auto currentButton = m_systemButtons[i];
+            if (!currentButton || !m_delegate->isVisible(currentButton) ||
+                !m_delegate->isEnabled(currentButton)) {
+                continue;
+            }
+            if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
+                *button = CoreWindowAgent::WindowIcon;
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

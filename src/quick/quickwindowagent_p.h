@@ -15,7 +15,7 @@ namespace QWK {
         void init();
 
         // Host
-        QQuickWindow *host{};
+        QQuickWindow *hostWindow{};
     };
 
 }

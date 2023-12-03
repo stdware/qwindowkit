@@ -15,7 +15,7 @@ namespace QWK {
         void init();
 
         // Host
-        QWidget *host{};
+        QWidget *hostWidget{};
     };
 
 }

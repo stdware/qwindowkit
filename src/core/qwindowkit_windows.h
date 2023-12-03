@@ -21,4 +21,13 @@
 #  define GET_Y_LPARAM(lp) (static_cast<int>(static_cast<short>(HIWORD(lp))))
 #endif
 
+// Maybe undocumented Windows messages
+#ifndef WM_UAHDESTROYWINDOW
+#  define WM_UAHDESTROYWINDOW (0x0090)
+#endif
+
+#ifndef WM_UNREGISTER_WINDOW_SERVICES
+#  define WM_UNREGISTER_WINDOW_SERVICES (0x0272)
+#endif
+
 #endif // QWINDOWKIT_WINDOWS_H

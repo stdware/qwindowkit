@@ -10,6 +10,7 @@ set(_src
     corewindowagent_p.h
     corewindowagent.cpp
     windowitemdelegate.h
+    windowitemdelegate.cpp
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
 )
