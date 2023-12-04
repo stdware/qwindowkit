@@ -914,8 +914,7 @@ namespace QWK {
                 // still find the right monitor even when we're restoring from
                 // minimized.
                 if (max || full) {
-                    APPBARDATA abd;
-                    SecureZeroMemory(&abd, sizeof(abd));
+                    APPBARDATA abd{};
                     abd.cbSize = sizeof(abd);
                     const UINT taskbarState = ::SHAppBarMessage(ABM_GETSTATE, &abd);
                     // First, check if we have an auto-hide taskbar at all:
