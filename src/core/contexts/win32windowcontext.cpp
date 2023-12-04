@@ -17,10 +17,11 @@
 
 namespace QWK {
 
-    static constexpr const auto kAutoHideTaskBarThickness = quint8{ 2 }; // The thickness of an auto-hide taskbar in pixels.
+    static constexpr const auto kAutoHideTaskBarThickness =
+        quint8{2}; // The thickness of an auto-hide taskbar in pixels.
 
     using WndProcHash = QHash<HWND, Win32WindowContext *>; // hWnd -> context
-    Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash);
+    Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
 
     static WNDPROC g_qtWindowProc = nullptr; // Original Qt window proc function
 
@@ -32,11 +33,14 @@ namespace QWK {
 
         DynamicApis() {
             QSystemLibrary user32(QStringLiteral("user32.dll"));
-            pGetDpiForWindow = reinterpret_cast<decltype(pGetDpiForWindow)>(user32.resolve("GetDpiForWindow"));
-            pGetSystemMetricsForDpi = reinterpret_cast<decltype(pGetSystemMetricsForDpi)>(user32.resolve("GetSystemMetricsForDpi"));
+            pGetDpiForWindow =
+                reinterpret_cast<decltype(pGetDpiForWindow)>(user32.resolve("GetDpiForWindow"));
+            pGetSystemMetricsForDpi = reinterpret_cast<decltype(pGetSystemMetricsForDpi)>(
+                user32.resolve("GetSystemMetricsForDpi"));
 
             QSystemLibrary shcore(QStringLiteral("shcore.dll"));
-            pGetDpiForMonitor = reinterpret_cast<decltype(pGetDpiForMonitor)>(shcore.resolve("GetDpiForMonitor"));
+            pGetDpiForMonitor =
+                reinterpret_cast<decltype(pGetDpiForMonitor)>(shcore.resolve("GetDpiForMonitor"));
 
             QSystemLibrary dwmapi(QStringLiteral("dwmapi.dll"));
             pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
@@ -53,124 +57,114 @@ namespace QWK {
         Q_DISABLE_COPY_MOVE(DynamicApis)
     };
 
-    static inline constexpr bool operator==(const POINT &lhs, const POINT &rhs) noexcept
-    {
+    static inline constexpr bool operator==(const POINT &lhs, const POINT &rhs) noexcept {
         return ((lhs.x == rhs.x) && (lhs.y == rhs.y));
     }
 
-    static inline constexpr bool operator!=(const POINT &lhs, const POINT &rhs) noexcept
-    {
+    static inline constexpr bool operator!=(const POINT &lhs, const POINT &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr bool operator==(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator==(const SIZE &lhs, const SIZE &rhs) noexcept {
         return ((lhs.cx == rhs.cx) && (lhs.cy == rhs.cy));
     }
 
-    static inline constexpr bool operator!=(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator!=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr bool operator>(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator>(const SIZE &lhs, const SIZE &rhs) noexcept {
         return ((lhs.cx * lhs.cy) > (rhs.cx * rhs.cy));
     }
 
-    static inline constexpr bool operator>=(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator>=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator>(lhs, rhs) || operator==(lhs, rhs));
     }
 
-    static inline constexpr bool operator<(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator<(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator!=(lhs, rhs) && !operator>(lhs, rhs));
     }
 
-    static inline constexpr bool operator<=(const SIZE &lhs, const SIZE &rhs) noexcept
-    {
+    static inline constexpr bool operator<=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator<(lhs, rhs) || operator==(lhs, rhs));
     }
 
-    static inline constexpr bool operator==(const RECT &lhs, const RECT &rhs) noexcept
-    {
-        return ((lhs.left == rhs.left) && (lhs.top == rhs.top) && (lhs.right == rhs.right) && (lhs.bottom == rhs.bottom));
+    static inline constexpr bool operator==(const RECT &lhs, const RECT &rhs) noexcept {
+        return ((lhs.left == rhs.left) && (lhs.top == rhs.top) && (lhs.right == rhs.right) &&
+                (lhs.bottom == rhs.bottom));
     }
 
-    static inline constexpr bool operator!=(const RECT &lhs, const RECT &rhs) noexcept
-    {
+    static inline constexpr bool operator!=(const RECT &lhs, const RECT &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr QPoint point2qpoint(const POINT &point)
-    {
-        return QPoint{ int(point.x), int(point.y) };
+    static inline constexpr QPoint point2qpoint(const POINT &point) {
+        return QPoint{int(point.x), int(point.y)};
     }
 
-    static inline constexpr POINT qpoint2point(const QPoint &point)
-    {
-        return POINT{ LONG(point.x()), LONG(point.y()) };
+    static inline constexpr POINT qpoint2point(const QPoint &point) {
+        return POINT{LONG(point.x()), LONG(point.y())};
     }
 
-    static inline constexpr QSize size2qsize(const SIZE &size)
-    {
-        return QSize{ int(size.cx), int(size.cy) };
+    static inline constexpr QSize size2qsize(const SIZE &size) {
+        return QSize{int(size.cx), int(size.cy)};
     }
 
-    static inline constexpr SIZE qsize2size(const QSize &size)
-    {
-        return SIZE{ LONG(size.width()), LONG(size.height()) };
+    static inline constexpr SIZE qsize2size(const QSize &size) {
+        return SIZE{LONG(size.width()), LONG(size.height())};
     }
 
-    static inline constexpr QRect rect2qrect(const RECT &rect)
-    {
-        return QRect{ QPoint{ int(rect.left), int(rect.top) }, QSize{ int(RECT_WIDTH(rect)), int(RECT_HEIGHT(rect)) } };
+    static inline constexpr QRect rect2qrect(const RECT &rect) {
+        return QRect{
+            QPoint{int(rect.left),        int(rect.top)         },
+            QSize{int(RECT_WIDTH(rect)), int(RECT_HEIGHT(rect))}
+        };
     }
 
-    static inline constexpr RECT qrect2rect(const QRect &qrect)
-    {
-        return RECT{ LONG(qrect.left()), LONG(qrect.top()), LONG(qrect.right()), LONG(qrect.bottom()) };
+    static inline constexpr RECT qrect2rect(const QRect &qrect) {
+        return RECT{LONG(qrect.left()), LONG(qrect.top()), LONG(qrect.right()),
+                    LONG(qrect.bottom())};
     }
 
-    static inline /*constexpr*/ QString hwnd2str(const WId windowId)
-    {
+    static inline /*constexpr*/ QString hwnd2str(const WId windowId) {
         // NULL handle is allowed here.
-        return QLatin1String("0x") + QString::number(windowId, 16).toUpper().rightJustified(8, u'0');
+        return QLatin1String("0x") +
+               QString::number(windowId, 16).toUpper().rightJustified(8, u'0');
     }
 
-    static inline /*constexpr*/ QString hwnd2str(const HWND hwnd)
-    {
+    static inline /*constexpr*/ QString hwnd2str(HWND hwnd) {
         // NULL handle is allowed here.
         return hwnd2str(reinterpret_cast<WId>(hwnd));
     }
 
     static inline bool isWin8Point1OrGreater() {
-        static const bool result = QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8_1;
+        static const bool result =
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8_1;
         return result;
     }
 
     static inline bool isWin10OrGreater() {
-        static const bool result = QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows10;
+        static const bool result =
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows10;
         return result;
     }
 
-    static inline quint32 getDpiForWindow(const HWND hwnd) {
+    static inline quint32 getDpiForWindow(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
             return USER_DEFAULT_SCREEN_DPI;
         }
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) { // Win10
+        if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
-            const HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            UINT dpiX{ USER_DEFAULT_SCREEN_DPI };
-            UINT dpiY{ USER_DEFAULT_SCREEN_DPI };
+             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            UINT dpiX{USER_DEFAULT_SCREEN_DPI};
+            UINT dpiY{USER_DEFAULT_SCREEN_DPI};
             apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
             return dpiX;
         } else { // Win2K
-            const HDC hdc = ::GetDC(nullptr);
+             HDC hdc = ::GetDC(nullptr);
             const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
             const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
             ::ReleaseDC(nullptr, hdc);
@@ -178,7 +172,7 @@ namespace QWK {
         }
     }
 
-    static inline quint32 getResizeBorderThickness(const HWND hwnd) {
+    static inline quint32 getResizeBorderThickness(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
             return 0;
@@ -186,28 +180,28 @@ namespace QWK {
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetSystemMetricsForDpi) {
             const quint32 dpi = getDpiForWindow(hwnd);
-            return apis.pGetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + apis.pGetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+            return apis.pGetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+                   apis.pGetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
         } else {
             return ::GetSystemMetrics(SM_CXSIZEFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER);
         }
     }
 
-    static inline std::optional<MONITORINFOEXW> getMonitorForWindow(const HWND hwnd)
-    {
+    static inline std::optional<MONITORINFOEXW> getMonitorForWindow(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
             return std::nullopt;
         }
         // Use "MONITOR_DEFAULTTONEAREST" here so that we can still get the correct
         // monitor even if the window is minimized.
-        const HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+         HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFOEXW monitorInfo{};
         monitorInfo.cbSize = sizeof(monitorInfo);
         ::GetMonitorInfoW(monitor, &monitorInfo);
         return monitorInfo;
     };
 
-    static inline bool isFullScreen(const HWND hwnd) {
+    static inline bool isFullScreen(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
             return false;
@@ -260,33 +254,32 @@ namespace QWK {
         return Win32WindowContext::Outside;
     }
 
-    static bool isValidWindow(WId windowId, bool checkVisible, bool checkTopLevel) {
-        const auto hwnd = reinterpret_cast<HWND>(windowId);
-        if (::IsWindow(hwnd) == FALSE) {
+    static bool isValidWindow(HWND hWnd, bool checkVisible, bool checkTopLevel) {
+        if (::IsWindow(hWnd) == FALSE) {
             return false;
         }
-        const LONG_PTR styles = ::GetWindowLongPtrW(hwnd, GWL_STYLE);
+        const LONG_PTR styles = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
         if (styles & WS_DISABLED) {
             return false;
         }
-        const LONG_PTR exStyles = ::GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        const LONG_PTR exStyles = ::GetWindowLongPtrW(hWnd, GWL_EXSTYLE);
         if (exStyles & WS_EX_TOOLWINDOW) {
             return false;
         }
         RECT rect = {0, 0, 0, 0};
-        if (::GetWindowRect(hwnd, &rect) == FALSE) {
+        if (::GetWindowRect(hWnd, &rect) == FALSE) {
             return false;
         }
         if ((rect.left >= rect.right) || (rect.top >= rect.bottom)) {
             return false;
         }
         if (checkVisible) {
-            if (::IsWindowVisible(hwnd) == FALSE) {
+            if (::IsWindowVisible(hWnd) == FALSE) {
                 return false;
             }
         }
         if (checkTopLevel) {
-            if (::GetAncestor(hwnd, GA_ROOT) != hwnd) {
+            if (::GetAncestor(hWnd, GA_ROOT) != hWnd) {
                 return false;
             }
         }
@@ -296,7 +289,7 @@ namespace QWK {
     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1556
     // In QWindowsContext::windowsProc(), the messages will be passed to all global native event
     // filters, but because we have already filtered the messages in the hook WndProc function for
-    // convenience, Qt does not know we may have already process the messages and thus will call
+    // convenience, Qt does not know we may have already processed the messages and thus will call
     // DefWindowProc(). Consequently, we have to add a global native filter that forwards the result
     // of the hook function, telling Qt whether we have filtered the events before. Since Qt only
     // handles Windows window messages in the main thread, it is safe to do so.
@@ -304,8 +297,8 @@ namespace QWK {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            // It has been observed that the pointer that Qt gives us is sometimes null on some machines.
-            // We need to guard against it in such scenarios.
+            // It has been observed that the pointer that Qt gives us is sometimes null on some
+            // machines. We need to guard against it in such scenarios.
             if (!result) {
                 return false;
             }
@@ -476,7 +469,7 @@ namespace QWK {
                 break;
         }
 
-        if (!isValidWindow(windowId, false, true)) {
+        if (!isValidWindow(hWnd, false, true)) {
             return false;
         }
 
@@ -772,8 +765,7 @@ namespace QWK {
     }
 
     bool Win32WindowContext::customWindowHandler(HWND hWnd, UINT message, WPARAM wParam,
-                                                 LPARAM lParam, LRESULT *result)
-    {
+                                                 LPARAM lParam, LRESULT *result) {
         switch (message) {
             case WM_NCCALCSIZE: {
                 // Windows是根据这个消息的返回值来设置窗口的客户区（窗口中真正显示的内容）
@@ -824,7 +816,7 @@ namespace QWK {
                 // bar, the four window borders, the frame shadow, the menu bar, the
                 // status bar, the scroll bar, etc. But for Qt, it draws most of the
                 // window area (client + non-client) itself. We now know that the
-                // title bar and the window frame is in the non-client area and we
+                // title bar and the window frame is in the non-client area, and we
                 // can set the scope of the client area in this message, so we can
                 // remove the title bar and the window frame by let the non-client
                 // area be covered by the client area (because we can't really get
@@ -861,30 +853,35 @@ namespace QWK {
                 // implement an elaborate client-area preservation technique, and
                 // simply return 0, which means "preserve the entire old client area
                 // and align it with the upper-left corner of our new client area".
-                const auto clientRect = ((wParam == FALSE) ? reinterpret_cast<LPRECT>(lParam) : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]);
+                const auto clientRect =
+                    ((wParam == FALSE) ? reinterpret_cast<LPRECT>(lParam)
+                                       : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]);
                 if (isWin10OrGreater()) {
-                    // Store the original top margin before the default window procedure applies the default frame.
+                    // Store the original top margin before the default window procedure applies the
+                    // default frame.
                     const LONG originalTop = clientRect->top;
-                    // Apply the default frame because we don't want to remove the whole window frame,
-                    // we still need the standard window frame (the resizable frame border and the frame
-                    // shadow) for the left, bottom and right edges.
-                    // If we return 0 here directly, the whole window frame will be removed (which means
-                    // there will be no resizable frame border and the frame shadow will also disappear),
-                    // and that's also how most applications customize their title bars on Windows. It's
-                    // totally OK but since we want to preserve as much original frame as possible, we
-                    // can't use that solution.
-                    const LRESULT hitTestResult = ::DefWindowProcW(hWnd, WM_NCCALCSIZE, wParam, lParam);
+                    // Apply the default frame because we don't want to remove the whole window
+                    // frame, we still need the standard window frame (the resizable frame border
+                    // and the frame shadow) for the left, bottom and right edges. If we return 0
+                    // here directly, the whole window frame will be removed (which means there will
+                    // be no resizable frame border and the frame shadow will also disappear), and
+                    // that's also how most applications customize their title bars on Windows. It's
+                    // totally OK but since we want to preserve as much original frame as possible,
+                    // we can't use that solution.
+                    const LRESULT hitTestResult =
+                        ::DefWindowProcW(hWnd, WM_NCCALCSIZE, wParam, lParam);
                     if ((hitTestResult != HTERROR) && (hitTestResult != HTNOWHERE)) {
                         *result = hitTestResult;
                         return true;
                     }
-                    // Re-apply the original top from before the size of the default frame was applied,
-                    // and the whole top frame (the title bar and the top border) is gone now.
-                    // For the top frame, we only has 2 choices: (1) remove the top frame entirely, or
-                    // (2) don't touch it at all. We can't preserve the top border by adjusting the top
-                    // margin here. If we try to modify the top margin, the original title bar will
-                    // always be painted by DWM regardless what margin we set, so here we can only remove
-                    // the top frame entirely and use some special technique to bring the top border back.
+                    // Re-apply the original top from before the size of the default frame was
+                    // applied, and the whole top frame (the title bar and the top border) is gone
+                    // now. For the top frame, we only has 2 choices: (1) remove the top frame
+                    // entirely, or (2) don't touch it at all. We can't preserve the top border by
+                    // adjusting the top margin here. If we try to modify the top margin, the
+                    // original title bar will always be painted by DWM regardless what margin we
+                    // set, so here we can only remove the top frame entirely and use some special
+                    // technique to bring the top border back.
                     clientRect->top = originalTop;
                 }
                 const bool max = IsMaximized(hWnd);
@@ -924,7 +921,8 @@ namespace QWK {
                         // we have to use another way to judge this if we are running
                         // on Windows 7 or Windows 8.
                         if (isWin8Point1OrGreater()) {
-                            const std::optional<MONITORINFOEXW> monitorInfo = getMonitorForWindow(hWnd);
+                            const std::optional<MONITORINFOEXW> monitorInfo =
+                                getMonitorForWindow(hWnd);
                             const RECT monitorRect = monitorInfo.value().rcMonitor;
                             // This helper can be used to determine if there's an
                             // auto-hide taskbar on the given edge of the monitor
@@ -934,7 +932,8 @@ namespace QWK {
                                 abd2.cbSize = sizeof(abd2);
                                 abd2.uEdge = edge;
                                 abd2.rc = monitorRect;
-                                const auto hTaskbar = reinterpret_cast<HWND>(::SHAppBarMessage(ABM_GETAUTOHIDEBAREX, &abd2));
+                                const auto hTaskbar = reinterpret_cast<HWND>(
+                                    ::SHAppBarMessage(ABM_GETAUTOHIDEBAREX, &abd2));
                                 return (hTaskbar != nullptr);
                             };
                             top = hasAutohideTaskbar(ABE_TOP);
@@ -946,11 +945,13 @@ namespace QWK {
                             APPBARDATA abd2{};
                             abd2.cbSize = sizeof(abd2);
                             abd2.hWnd = ::FindWindowW(L"Shell_TrayWnd", nullptr);
-                            const HMONITOR windowMonitor = ::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-                            const HMONITOR taskbarMonitor = ::MonitorFromWindow(abd2.hWnd, MONITOR_DEFAULTTOPRIMARY);
+                             HMONITOR windowMonitor =
+                                ::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+                             HMONITOR taskbarMonitor =
+                                ::MonitorFromWindow(abd2.hWnd, MONITOR_DEFAULTTOPRIMARY);
                             if (taskbarMonitor == windowMonitor) {
                                 ::SHAppBarMessage(ABM_GETTASKBARPOS, &abd2);
-                                edge = abd2.uEdge;
+                                edge = int(abd2.uEdge);
                             }
                             top = (edge == ABE_TOP);
                             bottom = (edge == ABE_BOTTOM);
@@ -979,9 +980,10 @@ namespace QWK {
                         }
                     }
                 }
-                // ### TODO: std::ignore = Utils::syncWmPaintWithDwm(); // This should be executed at the very last.
-                // By returning WVR_REDRAW we can make the window resizing look less broken.
-                // But we must return 0 if wParam is FALSE, according to Microsoft Docs.
+                // ### TODO: std::ignore = Utils::syncWmPaintWithDwm(); // This should be executed
+                // at the very last. By returning WVR_REDRAW we can make the window resizing look
+                // less broken. But we must return 0 if wParam is FALSE, according to Microsoft
+                // Docs.
                 // **IMPORTANT NOTE**:
                 // If you are drawing something manually through D3D in your window, don't
                 // try to return WVR_REDRAW here, otherwise Windows exhibits bugs where
