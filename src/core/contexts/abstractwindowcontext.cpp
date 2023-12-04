@@ -129,22 +129,22 @@ namespace QWK {
             if (currentButton && m_delegate->isVisible(currentButton) &&
                 m_delegate->isEnabled(currentButton) &&
                 m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
-                return true;
+                return false;
             }
         }
 
         for (auto widget : m_hitTestVisibleItems) {
             if (widget && m_delegate->isVisible(widget) && m_delegate->isEnabled(widget) &&
                 m_delegate->mapGeometryToScene(widget).contains(pos)) {
-                return true;
+                return false;
             }
         }
 
         if (hitTestShape().contains(pos)) {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
 
 }

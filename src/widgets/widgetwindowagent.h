@@ -27,8 +27,8 @@ namespace QWK {
         void setSystemButton(SystemButton button, QWidget *w);
 
         bool isHitTestVisible(QWidget *w) const;
-        void setHitTestVisible(QWidget *w, bool visible);
-        void setHitTestVisible(const QRect &rect, bool visible);
+        void setHitTestVisible(QWidget *w, bool visible = true);
+        void setHitTestVisible(const QRect &rect, bool visible = true);
 
     Q_SIGNALS:
         void titleBarWidgetChanged(QWidget *w);

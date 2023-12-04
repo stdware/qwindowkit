@@ -1,4 +1,4 @@
-project(QWKExample_MainWindow)
+project(WidgetFrame)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -6,10 +6,11 @@ set(CMAKE_AUTORCC ON)
 
 file(GLOB _src *.h *.cpp)
 
-add_executable(${PROJECT_NAME})
+add_library(${PROJECT_NAME} STATIC)
 
 qm_configure_target(${PROJECT_NAME}
     SOURCES ${_src}
     QT_LINKS Core Gui Widgets
-    LINKS QWKWidgets WidgetFrame
 )
+
+target_include_directories(${PROJECT_NAME} PUBLIC . ..)

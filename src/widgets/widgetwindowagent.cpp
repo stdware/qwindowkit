@@ -53,12 +53,12 @@ namespace QWK {
         Q_EMIT titleBarWidgetChanged(w);
     }
 
-    QWidget *WidgetWindowAgent::systemButton(CoreWindowAgent::SystemButton button) const {
+    QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
         Q_D(const WidgetWindowAgent);
         return static_cast<QWidget *>(d->context->systemButton(button));
     }
 
-    void WidgetWindowAgent::setSystemButton(CoreWindowAgent::SystemButton button, QWidget *w) {
+    void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
         Q_D(WidgetWindowAgent);
         if (!d->context->setSystemButton(button, w)) {
             return;
