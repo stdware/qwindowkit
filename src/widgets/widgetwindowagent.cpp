@@ -40,19 +40,17 @@ namespace QWK {
         return true;
     }
 
-    bool WidgetWindowAgent::isHitTestVisible(QWidget *w) const {
+    QWidget *WidgetWindowAgent::titleBar() const {
         Q_D(const WidgetWindowAgent);
-        return d->context->isHitTestVisible(w);
+        return static_cast<QWidget *>(d->context->titleBar());
     }
 
-    void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
+    void WidgetWindowAgent::setTitleBar(QWidget *w) {
         Q_D(WidgetWindowAgent);
-        d->context->setHitTestVisible(w, visible);
-    }
-
-    void WidgetWindowAgent::setHitTestVisible(const QRect &rect, bool visible) {
-        Q_D(WidgetWindowAgent);
-        d->context->setHitTestVisible(rect, visible);
+        if (!d->context->setTitleBar(w)) {
+            return;
+        }
+        Q_EMIT titleBarWidgetChanged(w);
     }
 
     QWidget *WidgetWindowAgent::systemButton(CoreWindowAgent::SystemButton button) const {
@@ -68,17 +66,19 @@ namespace QWK {
         Q_EMIT systemButtonChanged(button, w);
     }
 
-    QWidget *WidgetWindowAgent::titleBar() const {
+    bool WidgetWindowAgent::isHitTestVisible(QWidget *w) const {
         Q_D(const WidgetWindowAgent);
-        return static_cast<QWidget *>(d->context->titleBar());
+        return d->context->isHitTestVisible(w);
     }
 
-    void WidgetWindowAgent::setTitleBar(QWidget *w) {
+    void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
         Q_D(WidgetWindowAgent);
-        if (!d->context->setTitleBar(w)) {
-            return;
-        }
-        Q_EMIT titleBarWidgetChanged(w);
+        d->context->setHitTestVisible(w, visible);
+    }
+
+    void WidgetWindowAgent::setHitTestVisible(const QRect &rect, bool visible) {
+        Q_D(WidgetWindowAgent);
+        d->context->setHitTestVisible(rect, visible);
     }
 
     WidgetWindowAgent::WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent)

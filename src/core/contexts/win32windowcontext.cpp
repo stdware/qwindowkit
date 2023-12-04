@@ -266,7 +266,7 @@ namespace QWK {
             case HTBORDER:
                 return Win32WindowContext::FixedBorder;
             default:
-                break;
+                break; // unreachable
         }
         return Win32WindowContext::Outside;
     }
@@ -1165,6 +1165,8 @@ namespace QWK {
                                 break;
                             case CoreWindowAgent::Unknown:
                                 break;
+                            default:
+                                break; // unreachable
                         }
                     }
                     if (*result == HTNOWHERE) {

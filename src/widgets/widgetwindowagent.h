@@ -20,15 +20,15 @@ namespace QWK {
     public:
         bool setup(QWidget *w);
 
-        bool isHitTestVisible(QWidget *w) const;
-        void setHitTestVisible(QWidget *w, bool visible);
-        void setHitTestVisible(const QRect &rect, bool visible);
+        QWidget *titleBar() const;
+        void setTitleBar(QWidget *w);
 
         QWidget *systemButton(SystemButton button) const;
         void setSystemButton(SystemButton button, QWidget *w);
 
-        QWidget *titleBar() const;
-        void setTitleBar(QWidget *w);
+        bool isHitTestVisible(QWidget *w) const;
+        void setHitTestVisible(QWidget *w, bool visible);
+        void setHitTestVisible(const QRect &rect, bool visible);
 
     Q_SIGNALS:
         void titleBarWidgetChanged(QWidget *w);
