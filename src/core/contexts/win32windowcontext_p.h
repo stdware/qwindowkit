@@ -33,6 +33,9 @@ namespace QWK {
         bool snapLayoutHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                LRESULT *result);
 
+        bool customWindowHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                                 LRESULT *result);
+
     protected:
         WId windowId = 0;
 

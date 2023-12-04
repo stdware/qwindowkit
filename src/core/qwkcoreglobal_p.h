@@ -3,6 +3,7 @@
 
 #include <QtCore/QEvent>
 #include <QtCore/QLoggingCategory>
+#include <QtGui/QtEvents>
 
 #include <QWKCore/qwkcoreglobal.h>
 
@@ -21,7 +22,7 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 #define QWK_WARNING  qCWarning(qWindowKitLog)
 #define QWK_CRITICAL qCCritical(qWindowKitLog)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-#  define QWK_FATAL qCFatal(qWindowKitLog)
+#  define QWK_FATAL  qCFatal(qWindowKitLog)
 #endif
 
 #endif // QWKCOREGLOBAL_P_H
