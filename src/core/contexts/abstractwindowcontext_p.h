@@ -16,9 +16,7 @@ namespace QWK {
     class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
     public:
-        inline AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate)
-            : m_windowHandle(window), m_delegate(delegate) {
-        }
+        AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate);
         ~AbstractWindowContext() override;
 
     public:

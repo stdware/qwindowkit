@@ -6,6 +6,7 @@
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QOperatingSystemVersion>
+#include <QtCore/QScopeGuard>
 
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
@@ -213,8 +214,7 @@ namespace QWK {
         return (windowRect == mi.value_or(MONITORINFOEXW{}).rcMonitor);
     }
 
-    static inline bool isWindowNoState(HWND hwnd)
-    {
+    static inline bool isWindowNoState(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
             return false;
@@ -332,11 +332,11 @@ namespace QWK {
 
         static inline void install() {
             instance = new WindowsNativeEventFilter();
-            qApp->installNativeEventFilter(instance);
+            installNativeEventFilter(instance);
         }
 
         static inline void uninstall() {
-            qApp->removeNativeEventFilter(instance);
+            removeNativeEventFilter(instance);
             delete instance;
             instance = nullptr;
         }
@@ -1093,39 +1093,44 @@ namespace QWK {
                 // color, our homemade top border can almost have exactly the same
                 // appearance with the system's one.
 
-                const auto nativeGlobalPos = POINT{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                [[maybe_unused]] const auto &hitTestRecorder = qScopeGuard([this, result]() {
+                    lastHitTestResult = getHitWindowPart(int(*result)); //
+                });
+
+                POINT nativeGlobalPos{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 POINT nativeLocalPos = nativeGlobalPos;
                 ::ScreenToClient(hWnd, &nativeLocalPos);
 
-                auto clientRect = RECT{ 0, 0, 0, 0 };
+                RECT clientRect{0, 0, 0, 0};
                 ::GetClientRect(hWnd, &clientRect);
-                const auto clientWidth = RECT_WIDTH(clientRect);
-                const auto clientHeight = RECT_HEIGHT(clientRect);
+                auto clientWidth = RECT_WIDTH(clientRect);
+                auto clientHeight = RECT_HEIGHT(clientRect);
 
-                const QPoint qtScenePos = fromNativeLocalPosition(m_windowHandle, QPoint(nativeLocalPos.x, nativeLocalPos.y));
+                QPoint qtScenePos = fromNativeLocalPosition(
+                    m_windowHandle, QPoint(nativeLocalPos.x, nativeLocalPos.y));
 
-                const bool isFixedSize = /*isWindowFixedSize()*/false; // ### FIXME
-                const bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
-                const bool dontOverrideCursor = false; // ### TODO
+                bool isFixedSize = /*isWindowFixedSize()*/ false; // ### FIXME
+                bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
+                bool dontOverrideCursor = false;                  // ### TODO
 
                 CoreWindowAgent::SystemButton sysButtonType = CoreWindowAgent::Unknown;
                 if (!isFixedSize && isInSystemButtons(qtScenePos, &sysButtonType)) {
-                    // Firstly, we set the hit test result to a default value to be able to detect whether we
-                    // have changed it or not afterwards.
+                    // Firstly, we set the hit test result to a default value to be able to detect
+                    // whether we have changed it or not afterwards.
                     *result = HTNOWHERE;
-                    // Even if the mouse is inside the chrome button area now, we should still allow the user
-                    // to be able to resize the window with the top or right window border, this is also the
-                    // normal behavior of a native Win32 window (but only when the window is not maximized/
-                    // fullscreened/minimized, of course).
+                    // Even if the mouse is inside the chrome button area now, we should still allow
+                    // the user to be able to resize the window with the top or right window border,
+                    // this is also the normal behavior of a native Win32 window (but only when the
+                    // window is not maximized/fullscreen/minimized, of course).
                     if (isWindowNoState(hWnd)) {
                         static constexpr const int kBorderSize = 2;
-                        const bool isTop = (nativeLocalPos.y <= kBorderSize);
-                        const bool isRight = (nativeLocalPos.x >= (clientWidth - kBorderSize));
+                        bool isTop = (nativeLocalPos.y <= kBorderSize);
+                        bool isRight = (nativeLocalPos.x >= (clientWidth - kBorderSize));
                         if (isTop || isRight) {
                             if (dontOverrideCursor) {
-                                // The user doesn't want the window to be resized, so we tell Windows we are
-                                // in the client area so that the controls beneath the mouse cursor can still
-                                // be hovered or clicked.
+                                // The user doesn't want the window to be resized, so we tell
+                                // Windows we are in the client area so that the controls beneath
+                                // the mouse cursor can still be hovered or clicked.
                                 *result = (isTitleBar ? HTCAPTION : HTCLIENT);
                             } else {
                                 if (isTop && isRight) {
@@ -1139,8 +1144,9 @@ namespace QWK {
                         }
                     }
                     if (*result == HTNOWHERE) {
-                        // OK, we are now really inside one of the chrome buttons, tell Windows the exact role of our button.
-                        // The Snap Layout feature introduced in Windows 11 won't work without this.
+                        // OK, we are now really inside one of the chrome buttons, tell Windows the
+                        // exact role of our button. The Snap Layout feature introduced in Windows
+                        // 11 won't work without this.
                         switch (sysButtonType) {
                             case CoreWindowAgent::WindowIcon:
                                 *result = HTSYSMENU;
@@ -1162,30 +1168,33 @@ namespace QWK {
                         }
                     }
                     if (*result == HTNOWHERE) {
-                        // OK, it seems we are not inside the window resize area, nor inside the chrome buttons,
-                        // tell Windows we are in the client area to let Qt handle this event.
+                        // OK, it seems we are not inside the window resize area, nor inside the
+                        // chrome buttons, tell Windows we are in the client area to let Qt handle
+                        // this event.
                         *result = HTCLIENT;
                     }
                     return true;
                 }
-                // OK, we are not inside any chrome buttons, try to find out which part of the window
-                // are we hitting.
+                // OK, we are not inside any chrome buttons, try to find out which part of the
+                // window are we hitting.
 
-                const bool max = IsMaximized(hWnd);
-                const bool full = isFullScreen(hWnd);
-                const int frameSize = getResizeBorderThickness(hWnd);
-                const bool isTop = (nativeLocalPos.y < frameSize);
+                bool max = IsMaximized(hWnd);
+                bool full = isFullScreen(hWnd);
+                int frameSize = getResizeBorderThickness(hWnd);
+                bool isTop = (nativeLocalPos.y < frameSize);
 
                 if (isWin10OrGreater()) {
                     // This will handle the left, right and bottom parts of the frame
                     // because we didn't change them.
-                    const LRESULT originalHitTestResult = ::DefWindowProcW(hWnd, WM_NCHITTEST, 0, lParam);
+                    LRESULT originalHitTestResult = ::DefWindowProcW(hWnd, WM_NCHITTEST, 0, lParam);
                     if (originalHitTestResult != HTCLIENT) {
-                        // Even if the window is not resizable, we still can't return HTCLIENT here because
-                        // when we enter this code path, it means the mouse cursor is outside the window,
-                        // that is, the three transparent window resize area. Returning HTCLIENT will confuse
-                        // Windows, we can't put our controls there anyway.
-                        *result = ((isFixedSize || dontOverrideCursor) ? HTBORDER : originalHitTestResult);
+                        // Even if the window is not resizable, we still can't return HTCLIENT here
+                        // because when we enter this code path, it means the mouse cursor is
+                        // outside the window, that is, the three transparent window resize area.
+                        // Returning HTCLIENT will confuse Windows, we can't put our controls there
+                        // anyway.
+                        *result = ((isFixedSize || dontOverrideCursor) ? HTBORDER
+                                                                       : originalHitTestResult);
                         return true;
                     }
                     if (full) {
@@ -1205,7 +1214,9 @@ namespace QWK {
                         // Return HTCLIENT instead of HTBORDER here, because the mouse is
                         // inside our homemade title bar now, return HTCLIENT to let our
                         // title bar can still capture mouse events.
-                        *result = ((isFixedSize || dontOverrideCursor) ? (isTitleBar ? HTCAPTION : HTCLIENT) : HTTOP);
+                        *result = ((isFixedSize || dontOverrideCursor)
+                                       ? (isTitleBar ? HTCAPTION : HTCLIENT)
+                                       : HTTOP);
                         return true;
                     }
                     if (isTitleBar) {

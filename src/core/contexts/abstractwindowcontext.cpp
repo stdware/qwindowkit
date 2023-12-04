@@ -2,7 +2,12 @@
 
 namespace QWK {
 
-    AbstractWindowContext::~AbstractWindowContext() = default;
+    AbstractWindowContext::AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate)
+        : m_windowHandle(window), m_delegate(delegate) {
+    }
+
+    AbstractWindowContext::~AbstractWindowContext() {
+    }
 
     void AbstractWindowContext::setupWindow(QWindow *window) {
         Q_ASSERT(window);
