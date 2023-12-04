@@ -158,13 +158,13 @@ namespace QWK {
         if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
-             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
             UINT dpiX{USER_DEFAULT_SCREEN_DPI};
             UINT dpiY{USER_DEFAULT_SCREEN_DPI};
             apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
             return dpiX;
         } else { // Win2K
-             HDC hdc = ::GetDC(nullptr);
+            HDC hdc = ::GetDC(nullptr);
             const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
             const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
             ::ReleaseDC(nullptr, hdc);
@@ -194,7 +194,7 @@ namespace QWK {
         }
         // Use "MONITOR_DEFAULTTONEAREST" here so that we can still get the correct
         // monitor even if the window is minimized.
-         HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFOEXW monitorInfo{};
         monitorInfo.cbSize = sizeof(monitorInfo);
         ::GetMonitorInfoW(monitor, &monitorInfo);
@@ -945,9 +945,9 @@ namespace QWK {
                             APPBARDATA abd2{};
                             abd2.cbSize = sizeof(abd2);
                             abd2.hWnd = ::FindWindowW(L"Shell_TrayWnd", nullptr);
-                             HMONITOR windowMonitor =
+                            HMONITOR windowMonitor =
                                 ::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-                             HMONITOR taskbarMonitor =
+                            HMONITOR taskbarMonitor =
                                 ::MonitorFromWindow(abd2.hWnd, MONITOR_DEFAULTTOPRIMARY);
                             if (taskbarMonitor == windowMonitor) {
                                 ::SHAppBarMessage(ABM_GETTASKBARPOS, &abd2);

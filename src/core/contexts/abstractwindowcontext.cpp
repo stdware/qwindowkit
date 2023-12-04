@@ -101,4 +101,45 @@ namespace QWK {
         return false;
     }
 
+    bool AbstractWindowContext::isInTitleBarDraggableArea(const QPoint &pos) const {
+        if (!m_titleBar) {
+            // There's no title bar at all, the mouse will always be in the client area.
+            return false;
+        }
+        if (!m_delegate->isVisible(m_titleBar) || !m_delegate->isEnabled(m_titleBar)) {
+            // The title bar is hidden or disabled for some reason, treat it as there's
+            // no title bar.
+            return false;
+        }
+        QRect windowRect = {QPoint(0, 0), m_windowHandle->size()};
+        QRect titleBarRect = m_delegate->mapGeometryToScene(m_titleBar);
+        if (!titleBarRect.intersects(windowRect)) {
+            // The title bar is totally outside the window for some reason,
+            // also treat it as there's no title bar.
+            return false;
+        }
+
+        for (int i = CoreWindowAgent::WindowIcon; i <= CoreWindowAgent::Close; ++i) {
+            auto currentButton = m_systemButtons[i];
+            if (currentButton && m_delegate->isVisible(currentButton) &&
+                m_delegate->isEnabled(currentButton) &&
+                m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
+                return true;
+            }
+        }
+
+        for (auto widget : m_hitTestVisibleItems) {
+            if (widget && m_delegate->isVisible(widget) && m_delegate->isEnabled(widget) &&
+                m_delegate->mapGeometryToScene(widget).contains(pos)) {
+                return true;
+            }
+        }
+
+        if (hitTestShape().contains(pos)) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

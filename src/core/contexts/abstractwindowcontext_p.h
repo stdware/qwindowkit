@@ -41,6 +41,7 @@ namespace QWK {
 
         QRegion hitTestShape() const;
         bool isInSystemButtons(const QPoint &pos, CoreWindowAgent::SystemButton *button) const;
+        bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
     protected:
         QWindow *m_windowHandle;
