@@ -18,7 +18,7 @@ namespace QWK {
     void WindowBarPrivate::init() {
         Q_Q(WindowBar);
         layout = new QHBoxLayout();
-        layout->setMargin(0);
+        layout->setContentsMargins(QMargins());
         layout->setSpacing(0);
         for (int i = IconButton; i <= CloseButton; ++i) {
             insertDefaultSpace(i);

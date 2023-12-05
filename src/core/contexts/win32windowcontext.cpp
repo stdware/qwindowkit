@@ -28,6 +28,7 @@ namespace QWK {
 
     struct DynamicApis {
         decltype(&::DwmFlush) pDwmFlush = nullptr;
+        decltype(&::DwmIsCompositionEnabled) pDwmIsCompositionEnabled = nullptr;
         decltype(&::GetDpiForWindow) pGetDpiForWindow = nullptr;
         decltype(&::GetSystemMetricsForDpi) pGetSystemMetricsForDpi = nullptr;
         decltype(&::GetDpiForMonitor) pGetDpiForMonitor = nullptr;
@@ -45,6 +46,7 @@ namespace QWK {
 
             QSystemLibrary dwmapi(QStringLiteral("dwmapi.dll"));
             pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
+            pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(dwmapi.resolve("DwmIsCompositionEnabled"));
         }
 
         ~DynamicApis() = default;
@@ -138,6 +140,12 @@ namespace QWK {
         return hwnd2str(reinterpret_cast<WId>(hwnd));
     }
 
+    static inline bool isWin8OrGreater() {
+        static const bool result =
+            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8;
+        return result;
+    }
+
     static inline bool isWin8Point1OrGreater() {
         static const bool result =
             QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8_1;
@@ -148,6 +156,26 @@ namespace QWK {
         static const bool result =
             QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows10;
         return result;
+    }
+
+    static inline bool isDwmCompositionEnabled() {
+        if (isWin8OrGreater()) {
+            return true;
+        }
+        const DynamicApis &apis = DynamicApis::instance();
+        if (!apis.pDwmIsCompositionEnabled) {
+            return false;
+        }
+        BOOL enabled = FALSE;
+        return SUCCEEDED(apis.pDwmIsCompositionEnabled(&enabled)) && enabled;
+    }
+
+    static inline void triggerFrameChange(HWND hwnd) {
+        Q_ASSERT(hwnd);
+        if (!hwnd) {
+            return;
+        }
+        ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
@@ -1087,7 +1115,7 @@ namespace QWK {
                 // window can behave just like a normal Win32 window even if we now
                 // doesn't have a title bar at all. Most importantly, the flicker and
                 // jitter during window resizing is totally gone now. The disadvantage
-                // is we have to draw a top frame border ourself. Previously I thought
+                // is we have to draw a top frame border ourselves. Previously I thought
                 // we have to do the black magic in WM_PAINT just like what Windows
                 // Terminal does, however, later I found that if we choose a proper
                 // color, our homemade top border can almost have exactly the same
@@ -1292,6 +1320,66 @@ namespace QWK {
             }
             default:
                 break;
+        }
+        if (!isWin10OrGreater()) {
+            switch (message) {
+                case WM_NCUAHDRAWCAPTION:
+                case WM_NCUAHDRAWFRAME: {
+                    // These undocumented messages are sent to draw themed window
+                    // borders. Block them to prevent drawing borders over the client
+                    // area.
+                    *result = FALSE;
+                    return true;
+                }
+                case WM_NCPAINT: {
+                    // 边框阴影处于非客户区的范围，因此如果直接阻止非客户区的绘制，会导致边框阴影丢失
+
+                    if (!isDwmCompositionEnabled()) {
+                        // Only block WM_NCPAINT when DWM composition is disabled. If
+                        // it's blocked when DWM composition is enabled, the frame
+                        // shadow won't be drawn.
+                        *result = FALSE;
+                        return true;
+                    } else {
+                        break;
+                    }
+                }
+                case WM_NCACTIVATE: {
+                    if (isDwmCompositionEnabled()) {
+                        // DefWindowProc won't repaint the window border if lParam (normally a HRGN)
+                        // is -1. See the following link's "lParam" section:
+                        // https://docs.microsoft.com/en-us/windows/win32/winmsg/wm-ncactivate
+                        // Don't use "*result = 0" here, otherwise the window won't respond to the
+                        // window activation state change.
+                        *result = ::DefWindowProcW(hWnd, WM_NCACTIVATE, wParam, -1);
+                    } else {
+                        if (wParam == FALSE) {
+                            *result = TRUE;
+                        } else {
+                            *result = FALSE;
+                        }
+                    }
+                    return true;
+                }
+                case WM_SETICON:
+                case WM_SETTEXT: {
+                    // Disable painting while these messages are handled to prevent them
+                    // from drawing a window caption over the client area.
+                    const auto oldStyle = static_cast<DWORD>(::GetWindowLongPtrW(hWnd, GWL_STYLE));
+                    // Prevent Windows from drawing the default title bar by temporarily
+                    // toggling the WS_VISIBLE style.
+                    const DWORD newStyle = (oldStyle & ~WS_VISIBLE);
+                    ::SetWindowLongPtrW(hWnd, GWL_STYLE, static_cast<LONG_PTR>(newStyle));
+                    triggerFrameChange(hWnd);
+                    const LRESULT originalResult = ::DefWindowProcW(hWnd, message, wParam, lParam);
+                    ::SetWindowLongPtrW(hWnd, GWL_STYLE, static_cast<LONG_PTR>(oldStyle));
+                    triggerFrameChange(hWnd);
+                    *result = originalResult;
+                    return true;
+                }
+                default:
+                    break;
+            }
         }
         return false;
     }

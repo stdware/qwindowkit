@@ -54,11 +54,17 @@ void MainWindow::installWindowAgent() {
         return menuBar;
     }();
 
+    static const auto buttonStyleSheet = QLatin1String{ "QPushButton{color:black;};QPushButton:hover{background-color:black;color:white;}" };
+
     auto iconButton = new QPushButton("I");
+    iconButton->setStyleSheet(buttonStyleSheet);
     auto minButton = new QPushButton("—");
+    minButton->setStyleSheet(buttonStyleSheet);
     auto maxButton = new QPushButton("🗖");
+    maxButton->setStyleSheet(buttonStyleSheet);
     maxButton->setCheckable(true);
     auto closeButton = new QPushButton("✖");
+    closeButton->setStyleSheet(buttonStyleSheet);
 
     auto windowBar = new QWK::WindowBar();
     windowBar->setIconButton(iconButton);
