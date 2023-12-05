@@ -36,6 +36,23 @@ namespace QWK {
     }
 
     bool WidgetItemDelegate::isHostSizeFixed(QObject *host) const {
+        const auto widget = static_cast<QWidget *>(host);
+        // "Qt::MSWindowsFixedSizeDialogHint" is used cross-platform actually.
+        if (widget->windowFlags() & Qt::MSWindowsFixedSizeDialogHint) {
+            return true;
+        }
+        // Caused by setFixedWidth/Height/Size().
+        const QSize minSize = widget->minimumSize();
+        const QSize maxSize = widget->maximumSize();
+        if (!minSize.isEmpty() && !maxSize.isEmpty() && (minSize == maxSize)) {
+            return true;
+        }
+        // Usually set by the user.
+        const QSizePolicy sizePolicy = widget->sizePolicy();
+        if ((sizePolicy.horizontalPolicy() == QSizePolicy::Fixed)
+            && (sizePolicy.verticalPolicy() == QSizePolicy::Fixed)) {
+            return true;
+        }
         return false;
     }
 

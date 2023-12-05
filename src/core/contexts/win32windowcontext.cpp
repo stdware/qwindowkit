@@ -1143,7 +1143,7 @@ namespace QWK {
                 QPoint qtScenePos = fromNativeLocalPosition(
                     m_windowHandle, QPoint(nativeLocalPos.x, nativeLocalPos.y));
 
-                bool isFixedSize = /*isWindowFixedSize()*/ false; // ### FIXME
+                bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
                 bool dontOverrideCursor = false;                  // ### TODO
 
