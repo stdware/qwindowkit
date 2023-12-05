@@ -8,7 +8,7 @@ namespace QWK {
     class QWK_CORE_EXPORT QtWindowContext : public AbstractWindowContext {
         Q_OBJECT
     public:
-        QtWindowContext(QWindow *window, WindowItemDelegate *delegate);
+        QtWindowContext(QObject *host, WindowItemDelegate *delegate);
         ~QtWindowContext();
 
     public:

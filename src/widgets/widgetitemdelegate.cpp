@@ -31,6 +31,14 @@ namespace QWK {
         return {originPoint, size};
     }
 
+    QWindow *WidgetItemDelegate::hostWindow(QObject *host) const {
+        return static_cast<QWidget *>(host)->windowHandle();
+    }
+
+    bool WidgetItemDelegate::isHostSizeFixed(QObject *host) const {
+        return false;
+    }
+
     bool WidgetItemDelegate::resetQtGrabbedControl() const {
         if (qt_button_down) {
             static constexpr const auto invalidPos = QPoint{-99999, -99999};

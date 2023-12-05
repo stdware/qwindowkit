@@ -2,20 +2,11 @@
 
 namespace QWK {
 
-    AbstractWindowContext::AbstractWindowContext(QWindow *window, WindowItemDelegate *delegate)
-        : m_windowHandle(window), m_delegate(delegate) {
+    AbstractWindowContext::AbstractWindowContext(QObject *host, WindowItemDelegate *delegate)
+        : m_host(host), m_delegate(delegate), m_windowHandle(delegate->hostWindow(host)) {
     }
 
-    AbstractWindowContext::~AbstractWindowContext() {
-    }
-
-    void AbstractWindowContext::setupWindow(QWindow *window) {
-        Q_ASSERT(window);
-        if (!window) {
-            return;
-        }
-        m_windowHandle = window;
-    }
+    AbstractWindowContext::~AbstractWindowContext() = default;
 
     bool AbstractWindowContext::setHitTestVisible(QObject *obj, bool visible) {
         Q_ASSERT(obj);
@@ -140,7 +131,7 @@ namespace QWK {
             }
         }
 
-        if (hitTestShape().contains(pos)) {
+        if (!m_hitTestVisibleRects.isEmpty() && hitTestShape().contains(pos)) {
             return false;
         }
 

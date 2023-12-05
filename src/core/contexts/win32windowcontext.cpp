@@ -46,7 +46,8 @@ namespace QWK {
 
             QSystemLibrary dwmapi(QStringLiteral("dwmapi.dll"));
             pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
-            pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(dwmapi.resolve("DwmIsCompositionEnabled"));
+            pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(
+                dwmapi.resolve("DwmIsCompositionEnabled"));
         }
 
         ~DynamicApis() = default;
@@ -175,7 +176,9 @@ namespace QWK {
         if (!hwnd) {
             return;
         }
-        ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                       SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
+                           SWP_FRAMECHANGED);
     }
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
@@ -452,8 +455,8 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    Win32WindowContext::Win32WindowContext(QWindow *window, WindowItemDelegate *delegate)
-        : AbstractWindowContext(window, delegate) {
+    Win32WindowContext::Win32WindowContext(QObject *host, WindowItemDelegate *delegate)
+        : AbstractWindowContext(host, delegate) {
     }
 
     Win32WindowContext::~Win32WindowContext() {
@@ -469,9 +472,12 @@ namespace QWK {
     }
 
     bool Win32WindowContext::setup() {
-        auto winId = m_windowHandle->winId();
+        if (!m_windowHandle) {
+            return false;
+        }
 
         // Install window hook
+        auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
         // Store original window proc

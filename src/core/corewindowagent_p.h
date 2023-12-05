@@ -16,7 +16,7 @@ namespace QWK {
 
         CoreWindowAgent *q_ptr; // no need to initialize
 
-        bool setup(QWindow *window, WindowItemDelegate *delegate);
+        bool setup(QObject *host, WindowItemDelegate *delegate);
 
         std::unique_ptr<AbstractWindowContext> context;
 

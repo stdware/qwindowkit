@@ -33,4 +33,12 @@ namespace QWK {
         return QRectF(originPoint, size).toRect();
     }
 
+    QWindow *QuickItemDelegate::hostWindow(QObject *host) const {
+        return static_cast<QQuickWindow *>(host);
+    }
+
+    bool QuickItemDelegate::isHostSizeFixed(QObject *host) const {
+        return false;
+    }
+
 }
