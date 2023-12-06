@@ -2,7 +2,7 @@
 
 namespace QWK {
 
-    AbstractWindowContext::AbstractWindowContext(QObject *host, WindowItemDelegate *delegate)
+    AbstractWindowContext::AbstractWindowContext(const QObject *host, const WindowItemDelegate *delegate)
         : m_host(host), m_delegate(delegate), m_windowHandle(delegate->hostWindow(host)) {
     }
 
