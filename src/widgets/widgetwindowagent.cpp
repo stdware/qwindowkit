@@ -42,12 +42,12 @@ namespace QWK {
         return true;
     }
 
-    QWidget *WidgetWindowAgent::titleBar() const {
+    const QWidget *WidgetWindowAgent::titleBar() const {
         Q_D(const WidgetWindowAgent);
-        return static_cast<QWidget *>(d->context->titleBar());
+        return static_cast<const QWidget *>(d->context->titleBar());
     }
 
-    void WidgetWindowAgent::setTitleBar(QWidget *w) {
+    void WidgetWindowAgent::setTitleBar(const QWidget *w) {
         Q_D(WidgetWindowAgent);
         if (!d->context->setTitleBar(w)) {
             return;
@@ -55,12 +55,12 @@ namespace QWK {
         Q_EMIT titleBarWidgetChanged(w);
     }
 
-    QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
+    const QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
         Q_D(const WidgetWindowAgent);
-        return static_cast<QWidget *>(d->context->systemButton(button));
+        return static_cast<const QWidget *>(d->context->systemButton(button));
     }
 
-    void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
+    void WidgetWindowAgent::setSystemButton(SystemButton button, const QWidget *w) {
         Q_D(WidgetWindowAgent);
         if (!d->context->setSystemButton(button, w)) {
             return;
@@ -68,12 +68,12 @@ namespace QWK {
         Q_EMIT systemButtonChanged(button, w);
     }
 
-    bool WidgetWindowAgent::isHitTestVisible(QWidget *w) const {
+    bool WidgetWindowAgent::isHitTestVisible(const QWidget *w) const {
         Q_D(const WidgetWindowAgent);
         return d->context->isHitTestVisible(w);
     }
 
-    void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
+    void WidgetWindowAgent::setHitTestVisible(const QWidget *w, bool visible) {
         Q_D(WidgetWindowAgent);
         d->context->setHitTestVisible(w, visible);
     }

@@ -53,16 +53,41 @@ void MainWindow::installWindowAgent() {
         return menuBar;
     }();
 
-    static const auto buttonStyleSheet = QLatin1String{ "QPushButton{color:black;};QPushButton:hover{background-color:black;color:white;}" };
+    static const auto buttonStyleSheet = QLatin1String{ R"(
+QPushButton {
+    background-color:white;
+    color:black;
+}
+QPushButton:hover {
+    background-color:black;
+    color:white;
+}
+QPushButton:pressed {
+    background-color:red;
+    color:white;
+}
+)" };
 
     auto iconButton = new QPushButton("I");
+    iconButton->setFlat(true);
+    iconButton->setAttribute(Qt::WA_Hover);
+    iconButton->setMouseTracking(true);
     iconButton->setStyleSheet(buttonStyleSheet);
     auto minButton = new QPushButton("—");
+    minButton->setFlat(true);
+    minButton->setAttribute(Qt::WA_Hover);
+    minButton->setMouseTracking(true);
     minButton->setStyleSheet(buttonStyleSheet);
     auto maxButton = new QPushButton("🗖");
-    maxButton->setStyleSheet(buttonStyleSheet);
     maxButton->setCheckable(true);
+    maxButton->setFlat(true);
+    maxButton->setAttribute(Qt::WA_Hover);
+    maxButton->setMouseTracking(true);
+    maxButton->setStyleSheet(buttonStyleSheet);
     auto closeButton = new QPushButton("✖");
+    closeButton->setFlat(true);
+    closeButton->setAttribute(Qt::WA_Hover);
+    closeButton->setMouseTracking(true);
     closeButton->setStyleSheet(buttonStyleSheet);
 
     auto windowBar = new QWK::WindowBar();
@@ -97,5 +122,5 @@ void MainWindow::installWindowAgent() {
     setMenuWidget(windowBar);
     setCentralWidget(clockWidget);
     setWindowTitle("Example MainWindow");
-    resize(1024, 768);
+    resize(640, 480);
 }

@@ -41,12 +41,12 @@ namespace QWK {
         return true;
     }
 
-    QQuickItem *QuickWindowAgent::titleBar() const {
+    const QQuickItem *QuickWindowAgent::titleBar() const {
         Q_D(const QuickWindowAgent);
-        return static_cast<QQuickItem *>(d->context->titleBar());
+        return static_cast<const QQuickItem *>(d->context->titleBar());
     }
 
-    void QuickWindowAgent::setTitleBar(QQuickItem *item) {
+    void QuickWindowAgent::setTitleBar(const QQuickItem *item) {
         Q_D(QuickWindowAgent);
         if (!d->context->setTitleBar(item)) {
             return;
@@ -54,12 +54,12 @@ namespace QWK {
         Q_EMIT titleBarWidgetChanged(item);
     }
 
-    QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
+    const QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
         Q_D(const QuickWindowAgent);
-        return static_cast<QQuickItem *>(d->context->systemButton(button));
+        return static_cast<const QQuickItem *>(d->context->systemButton(button));
     }
 
-    void QuickWindowAgent::setSystemButton(SystemButton button, QQuickItem *item) {
+    void QuickWindowAgent::setSystemButton(SystemButton button, const QQuickItem *item) {
         Q_D(QuickWindowAgent);
         if (!d->context->setSystemButton(button, item)) {
             return;
@@ -67,12 +67,12 @@ namespace QWK {
         Q_EMIT systemButtonChanged(button, item);
     }
 
-    bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const {
+    bool QuickWindowAgent::isHitTestVisible(const QQuickItem *item) const {
         Q_D(const QuickWindowAgent);
         return d->context->isHitTestVisible(item);
     }
 
-    void QuickWindowAgent::setHitTestVisible(QQuickItem *item, bool visible) {
+    void QuickWindowAgent::setHitTestVisible(const QQuickItem *item, bool visible) {
         Q_D(QuickWindowAgent);
         d->context->setHitTestVisible(item, visible);
     }

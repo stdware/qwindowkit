@@ -8,7 +8,7 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
-    bool AbstractWindowContext::setHitTestVisible(QObject *obj, bool visible) {
+    bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);
         if (!obj) {
             return false;
@@ -38,7 +38,7 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::setSystemButton(CoreWindowAgent::SystemButton button,
-                                                QObject *obj) {
+                                                const QObject *obj) {
         Q_ASSERT(obj);
         Q_ASSERT(button != CoreWindowAgent::Unknown);
         if (!obj || (button == CoreWindowAgent::Unknown)) {
@@ -52,7 +52,7 @@ namespace QWK {
         return true;
     }
 
-    bool AbstractWindowContext::setTitleBar(QObject *item) {
+    bool AbstractWindowContext::setTitleBar(const QObject *item) {
         Q_ASSERT(item);
         if (!item) {
             return false;
@@ -90,7 +90,7 @@ namespace QWK {
                 continue;
             }
             if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
-                *button = CoreWindowAgent::WindowIcon;
+                *button = static_cast<CoreWindowAgent::SystemButton>(i);
                 return true;
             }
         }

@@ -25,15 +25,15 @@ namespace QWK {
         inline QObject *host() const;
         inline QWindow *window() const;
 
-        inline bool isHitTestVisible(QObject *obj) const;
-        bool setHitTestVisible(QObject *obj, bool visible);
+        inline bool isHitTestVisible(const QObject *obj) const;
+        bool setHitTestVisible(const QObject *obj, bool visible);
         bool setHitTestVisible(const QRect &rect, bool visible);
 
-        inline QObject *systemButton(CoreWindowAgent::SystemButton button) const;
-        bool setSystemButton(CoreWindowAgent::SystemButton button, QObject *obj);
+        inline const QObject *systemButton(CoreWindowAgent::SystemButton button) const;
+        bool setSystemButton(CoreWindowAgent::SystemButton button, const QObject *obj);
 
-        inline QObject *titleBar() const;
-        bool setTitleBar(QObject *obj);
+        inline const QObject *titleBar() const;
+        bool setTitleBar(const QObject *obj);
 
         void showSystemMenu(const QPoint &pos);
 
@@ -46,11 +46,11 @@ namespace QWK {
         std::unique_ptr<WindowItemDelegate> m_delegate;
         QWindow *m_windowHandle;
 
-        QSet<QObject *> m_hitTestVisibleItems;
+        QSet<const QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;
 
-        QObject *m_titleBar{};
-        std::array<QObject *, CoreWindowAgent::NumSystemButton> m_systemButtons{};
+        const QObject *m_titleBar{};
+        std::array<const QObject *, CoreWindowAgent::NumSystemButton> m_systemButtons{};
 
         // Cached shape
         mutable bool hitTestVisibleShapeDirty{};
@@ -65,16 +65,16 @@ namespace QWK {
         return m_windowHandle;
     }
 
-    inline bool AbstractWindowContext::isHitTestVisible(QObject *obj) const {
+    inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {
         return m_hitTestVisibleItems.contains(obj);
     }
 
-    inline QObject *
+    inline const QObject *
         AbstractWindowContext::systemButton(CoreWindowAgent::SystemButton button) const {
         return m_systemButtons[button];
     }
 
-    inline QObject *AbstractWindowContext::titleBar() const {
+    inline const QObject *AbstractWindowContext::titleBar() const {
         return m_titleBar;
     }
 
