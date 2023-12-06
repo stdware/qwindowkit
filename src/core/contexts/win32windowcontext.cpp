@@ -262,10 +262,10 @@ namespace QWK {
         const auto margins = [hwnd]() -> QMargins {
             const int titleBarHeight = getTitleBarHeight(hwnd);
             if (isWin10OrGreater()) {
-                return { 0, -titleBarHeight, 0, 0 };
+                return {0, -titleBarHeight, 0, 0};
             } else {
                 const int frameSize = getResizeBorderThickness(hwnd);
-                return { -frameSize, -titleBarHeight, -frameSize, -frameSize };
+                return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
             }
         }();
         const QVariant marginsVar = QVariant::fromValue(margins);
@@ -273,11 +273,13 @@ namespace QWK {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
             if (const auto ni = QGuiApplication::platformNativeInterface()) {
-                ni->setWindowProperty(platformWindow, QStringLiteral("_q_windowsCustomMargins"), marginsVar);
+                ni->setWindowProperty(platformWindow, QStringLiteral("_q_windowsCustomMargins"),
+                                      marginsVar);
             }
         }
 #else
-        if (const auto platformWindow = dynamic_cast<QNativeInterface::Private::QWindowsWindow *>(window->handle())) {
+        if (const auto platformWindow =
+                dynamic_cast<QNativeInterface::Private::QWindowsWindow *>(window->handle())) {
             platformWindow->setCustomMargins(margins);
         }
 #endif
@@ -409,11 +411,14 @@ namespace QWK {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
+            Q_UNUSED(eventType);
+
             // It has been observed that the pointer that Qt gives us is sometimes null on some
             // machines. We need to guard against it in such scenarios.
             if (!result) {
                 return false;
             }
+
             if (lastMessageHandled) {
                 *result = static_cast<QT_NATIVE_EVENT_RESULT_TYPE>(lastMessageResult);
                 return true;
@@ -514,8 +519,11 @@ namespace QWK {
         // TODO: Determine whether to show system menu
         // ...
 
-        // Since Qt does the necessary processing of the message afterward, we still need to
+        // Since Qt does the necessary processing of the WM_NCCALCSIZE afterward, we still need to
         // continue dispatching it.
+        if (message != WM_NCCALCSIZE && handled) {
+            return result;
+        }
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
@@ -566,7 +574,7 @@ namespace QWK {
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, this);
 
-        QTimer::singleShot(0, m_windowHandle, [hWnd](){ triggerFrameChange(hWnd); });
+        QTimer::singleShot(0, m_windowHandle, [hWnd]() { triggerFrameChange(hWnd); });
 
         return true;
     }
@@ -760,9 +768,10 @@ namespace QWK {
                     // actually lost the hover state. So we filter out these superfluous mouse leave
                     // events here to avoid this issue.
                     DWORD dwScreenPos = ::GetMessagePos();
+                    POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
+                    ::ScreenToClient(hWnd, &screenPoint);
                     QPoint qtScenePos =
-                        fromNativeLocalPosition(m_windowHandle, QPoint(GET_X_LPARAM(dwScreenPos),
-                                                                       GET_Y_LPARAM(dwScreenPos)));
+                        fromNativeLocalPosition(m_windowHandle, {screenPoint.x, screenPoint.y});
                     auto dummy = CoreWindowAgent::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
@@ -1214,7 +1223,7 @@ namespace QWK {
 
                 bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
-                bool dontOverrideCursor = false;                  // ### TODO
+                bool dontOverrideCursor = false; // ### TODO
 
                 CoreWindowAgent::SystemButton sysButtonType = CoreWindowAgent::Unknown;
                 if (!isFixedSize && isInSystemButtons(qtScenePos, &sysButtonType)) {
