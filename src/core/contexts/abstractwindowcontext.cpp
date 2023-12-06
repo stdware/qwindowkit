@@ -115,7 +115,7 @@ namespace QWK {
             return false;
         }
 
-        if (!m_delegate->mapGeometryToScene(m_titleBar).contains(pos)) {
+        if (!titleBarRect.contains(pos)) {
             return false;
         }
 
