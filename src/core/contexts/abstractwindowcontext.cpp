@@ -6,7 +6,11 @@ namespace QWK {
         : m_host(host), m_delegate(delegate), m_windowHandle(delegate->hostWindow(host)) {
     }
 
-    AbstractWindowContext::~AbstractWindowContext() = default;
+    AbstractWindowContext::~AbstractWindowContext() {
+        if (m_delegate) {
+            delete m_delegate;
+        }
+    }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);
