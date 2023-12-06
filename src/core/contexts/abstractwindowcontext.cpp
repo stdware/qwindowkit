@@ -115,6 +115,10 @@ namespace QWK {
             return false;
         }
 
+        if (!m_delegate->mapGeometryToScene(m_titleBar).contains(pos)) {
+            return false;
+        }
+
         for (int i = CoreWindowAgent::WindowIcon; i <= CoreWindowAgent::Close; ++i) {
             auto currentButton = m_systemButtons[i];
             if (currentButton && m_delegate->isVisible(currentButton) &&
@@ -134,7 +138,6 @@ namespace QWK {
         if (!m_hitTestVisibleRects.isEmpty() && hitTestShape().contains(pos)) {
             return false;
         }
-
         return true;
     }
 

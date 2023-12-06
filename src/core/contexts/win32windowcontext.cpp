@@ -5,10 +5,10 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QAbstractNativeEventFilter>
-#include <QtCore/QCoreApplication>
 #include <QtCore/QOperatingSystemVersion>
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTimer>
+#include <QtGui/QGuiApplication>
 
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
