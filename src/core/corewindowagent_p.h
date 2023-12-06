@@ -16,11 +16,10 @@ namespace QWK {
 
         CoreWindowAgent *q_ptr; // no need to initialize
 
-        bool setup(const QObject *host, const WindowItemDelegate *delegate);
+        bool setup(QObject *host, WindowItemDelegate *delegate);
 
-        AbstractWindowContext *context;
+        std::unique_ptr<AbstractWindowContext> context;
 
-    private:
         Q_DISABLE_COPY_MOVE(CoreWindowAgentPrivate)
     };
 

@@ -16,30 +16,23 @@ namespace QWK {
     CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), context(nullptr) {
     }
 
-    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() {
-        if (context) {
-            delete context;
-            context = nullptr;
-        }
-    }
+    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
 
     void CoreWindowAgentPrivate::init() {
     }
 
-    bool CoreWindowAgentPrivate::setup(const QObject *host, const WindowItemDelegate *delegate) {
+    bool CoreWindowAgentPrivate::setup(QObject *host, WindowItemDelegate *delegate) {
         auto ctx =
 #ifdef Q_OS_WINDOWS
-            new Win32WindowContext(host, delegate)
+            std::make_unique<Win32WindowContext>(host, delegate)
 #else
-            new QtWindowContext(host, window, delegate)
+            std::make_unique<QtWindowContext>(host, window, delegate)
 #endif
             ;
         if (!ctx->setup()) {
-            delete ctx;
-            ctx = nullptr;
             return false;
         }
-        context = ctx;
+        context = std::move(ctx);
         return true;
     }
 

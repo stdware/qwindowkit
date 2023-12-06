@@ -9,7 +9,7 @@ namespace QWK {
     class QWK_CORE_EXPORT Win32WindowContext : public AbstractWindowContext {
         Q_OBJECT
     public:
-        Win32WindowContext(const QObject *host, const WindowItemDelegate *delegate);
+        Win32WindowContext(QObject *host, WindowItemDelegate *delegate);
         ~Win32WindowContext() override;
 
         enum WindowPart {

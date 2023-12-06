@@ -443,17 +443,11 @@ namespace QWK {
         static WindowsNativeEventFilter *instance;
 
         static inline void install() {
-            if (instance) {
-                return;
-            }
             instance = new WindowsNativeEventFilter();
             installNativeEventFilter(instance);
         }
 
         static inline void uninstall() {
-            if (!instance) {
-                return;
-            }
             removeNativeEventFilter(instance);
             delete instance;
             instance = nullptr;
@@ -545,7 +539,7 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    Win32WindowContext::Win32WindowContext(const QObject *host, const WindowItemDelegate *delegate)
+    Win32WindowContext::Win32WindowContext(QObject *host, WindowItemDelegate *delegate)
         : AbstractWindowContext(host, delegate) {
     }
 
@@ -582,7 +576,9 @@ namespace QWK {
         ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
 
         // Install global native event filter
-        WindowsNativeEventFilter::install();
+        if (!WindowsNativeEventFilter::instance) {
+            WindowsNativeEventFilter::install();
+        }
 
         // Cache window ID
         windowId = winId;

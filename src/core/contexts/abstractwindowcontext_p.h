@@ -16,13 +16,13 @@ namespace QWK {
     class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
     public:
-        AbstractWindowContext(const QObject *host, const WindowItemDelegate *delegate);
+        AbstractWindowContext(QObject *host, WindowItemDelegate *delegate);
         ~AbstractWindowContext() override;
 
     public:
         virtual bool setup() = 0;
 
-        inline const QObject *host() const;
+        inline QObject *host() const;
         inline QWindow *window() const;
 
         inline bool isHitTestVisible(const QObject *obj) const;
@@ -42,8 +42,8 @@ namespace QWK {
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
     protected:
-        const QObject *m_host;
-        const WindowItemDelegate *m_delegate;
+        QObject *m_host;
+        std::unique_ptr<WindowItemDelegate> m_delegate;
         QWindow *m_windowHandle;
 
         QSet<const QObject *> m_hitTestVisibleItems;
@@ -57,7 +57,7 @@ namespace QWK {
         mutable QRegion hitTestVisibleShape;
     };
 
-    inline const QObject *AbstractWindowContext::host() const {
+    inline QObject *AbstractWindowContext::host() const {
         return m_host;
     }
 
