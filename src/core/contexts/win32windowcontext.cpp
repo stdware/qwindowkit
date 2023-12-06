@@ -7,7 +7,6 @@
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QOperatingSystemVersion>
 #include <QtCore/QScopeGuard>
-#include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
 
 #include <QtCore/private/qsystemlibrary_p.h>
@@ -285,10 +284,10 @@ namespace QWK {
 #endif
     }
 
-    static inline std::optional<MONITORINFOEXW> getMonitorForWindow(HWND hwnd) {
+    static inline MONITORINFOEXW getMonitorForWindow(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
-            return std::nullopt;
+            return {};
         }
         // Use "MONITOR_DEFAULTTONEAREST" here so that we can still get the correct
         // monitor even if the window is minimized.
@@ -299,6 +298,19 @@ namespace QWK {
         return monitorInfo;
     };
 
+    static inline void moveToDesktopCenter(HWND hwnd) {
+        Q_ASSERT(hwnd);
+        if (!hwnd) {
+            return;
+        }
+        const auto monitorInfo = getMonitorForWindow(hwnd);
+        RECT windowRect{};
+        ::GetWindowRect(hwnd, &windowRect);
+        const auto newX = (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
+        const auto newY = (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
+        ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
     static inline bool isFullScreen(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
@@ -306,9 +318,8 @@ namespace QWK {
         }
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
-        const std::optional<MONITORINFOEXW> mi = getMonitorForWindow(hwnd);
         // Compare to the full area of the screen, not the work area.
-        return (windowRect == mi.value_or(MONITORINFOEXW{}).rcMonitor);
+        return (windowRect == getMonitorForWindow(hwnd).rcMonitor);
     }
 
     static inline bool isWindowNoState(HWND hwnd) {
@@ -369,7 +380,7 @@ namespace QWK {
     }
 
     static bool isValidWindow(HWND hWnd, bool checkVisible, bool checkTopLevel) {
-        if (::IsWindow(hWnd) == FALSE) {
+        if (!::IsWindow(hWnd)) {
             return false;
         }
         const LONG_PTR styles = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
@@ -380,15 +391,15 @@ namespace QWK {
         if (exStyles & WS_EX_TOOLWINDOW) {
             return false;
         }
-        RECT rect = {0, 0, 0, 0};
-        if (::GetWindowRect(hWnd, &rect) == FALSE) {
+        RECT rect{};
+        if (!::GetWindowRect(hWnd, &rect)) {
             return false;
         }
         if ((rect.left >= rect.right) || (rect.top >= rect.bottom)) {
             return false;
         }
         if (checkVisible) {
-            if (::IsWindowVisible(hWnd) == FALSE) {
+            if (!::IsWindowVisible(hWnd)) {
                 return false;
             }
         }
@@ -521,7 +532,7 @@ namespace QWK {
 
         // Since Qt does the necessary processing of the WM_NCCALCSIZE afterward, we still need to
         // continue dispatching it.
-        if (message != WM_NCCALCSIZE && handled) {
+        if (handled && message != WM_NCCALCSIZE) {
             return result;
         }
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
@@ -574,8 +585,6 @@ namespace QWK {
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, this);
 
-        QTimer::singleShot(0, m_windowHandle, [hWnd]() { triggerFrameChange(hWnd); });
-
         return true;
     }
 
@@ -625,7 +634,7 @@ namespace QWK {
         const auto &get = [](const int virtualKey) -> bool {
             return (::GetAsyncKeyState(virtualKey) < 0);
         };
-        const bool buttonSwapped = (::GetSystemMetrics(SM_SWAPBUTTON) != FALSE);
+        const bool buttonSwapped = ::GetSystemMetrics(SM_SWAPBUTTON);
         if (get(VK_LBUTTON)) {
             result |= (buttonSwapped ? MK_RBUTTON : MK_LBUTTON);
         }
@@ -896,6 +905,17 @@ namespace QWK {
     bool Win32WindowContext::customWindowHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                  LPARAM lParam, LRESULT *result) {
         switch (message) {
+            case WM_SHOWWINDOW: {
+                if (!centered) {
+                    // If wParam is TRUE, the window is being shown.
+                    // If lParam is zero, the message was sent because of a call to the ShowWindow function.
+                    if (wParam && lParam == 0) {
+                        centered = true;
+                        moveToDesktopCenter(hWnd);
+                    }
+                }
+                break;
+            }
             case WM_NCCALCSIZE: {
                 // Windows是根据这个消息的返回值来设置窗口的客户区（窗口中真正显示的内容）
                 // 和非客户区（标题栏、窗口边框、菜单栏和状态栏等Windows系统自行提供的部分
@@ -983,8 +1003,8 @@ namespace QWK {
                 // simply return 0, which means "preserve the entire old client area
                 // and align it with the upper-left corner of our new client area".
                 const auto clientRect =
-                    ((wParam == FALSE) ? reinterpret_cast<LPRECT>(lParam)
-                                       : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]);
+                    wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
+                                       : reinterpret_cast<LPRECT>(lParam);
                 if (isWin10OrGreater()) {
                     // Store the original top margin before the default window procedure applies the
                     // default frame.
@@ -1050,9 +1070,7 @@ namespace QWK {
                         // we have to use another way to judge this if we are running
                         // on Windows 7 or Windows 8.
                         if (isWin8Point1OrGreater()) {
-                            const std::optional<MONITORINFOEXW> monitorInfo =
-                                getMonitorForWindow(hWnd);
-                            const RECT monitorRect = monitorInfo.value().rcMonitor;
+                            const RECT monitorRect = getMonitorForWindow(hWnd).rcMonitor;
                             // This helper can be used to determine if there's an
                             // auto-hide taskbar on the given edge of the monitor
                             // we're currently on.
@@ -1120,7 +1138,7 @@ namespace QWK {
                 // of the upper-left non-client area. It's confirmed that this issue exists
                 // from Windows 7 to Windows 10. Not tested on Windows 11 yet. Don't know
                 // whether it exists on Windows XP to Windows Vista or not.
-                *result = wParam == FALSE ? FALSE : WVR_REDRAW;
+                *result = wParam ? WVR_REDRAW : FALSE;
                 return true;
             }
             case WM_NCHITTEST: {
@@ -1438,10 +1456,10 @@ namespace QWK {
                         // window activation state change.
                         *result = ::DefWindowProcW(hWnd, WM_NCACTIVATE, wParam, -1);
                     } else {
-                        if (wParam == FALSE) {
-                            *result = TRUE;
-                        } else {
+                        if (wParam) {
                             *result = FALSE;
+                        } else {
+                            *result = TRUE;
                         }
                     }
                     return true;
