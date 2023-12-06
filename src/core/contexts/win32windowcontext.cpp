@@ -1,4 +1,5 @@
 #include "win32windowcontext_p.h"
+#include "qwkcoreglobal_p.h"
 
 #include <optional>
 
@@ -7,14 +8,24 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QOperatingSystemVersion>
 #include <QtCore/QScopeGuard>
+#include <QtCore/QTimer>
 
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
-
-#include "qwkcoreglobal_p.h"
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#  include <QtGui/private/qguiapplication_p.h>
+#endif
+#include <QtGui/qpa/qplatformwindow.h>
+#if QT_VERSION < QT_VERSION_CHECK(6, 2, 0)
+#  include <QtGui/qpa/qplatformnativeinterface.h>
+#else
+#  include <QtGui/qpa/qplatformwindow_p.h>
+#endif
 
 #include <shellscalingapi.h>
 #include <dwmapi.h>
+
+Q_DECLARE_METATYPE(QMargins)
 
 namespace QWK {
 
@@ -25,6 +36,12 @@ namespace QWK {
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
 
     static WNDPROC g_qtWindowProc = nullptr; // Original Qt window proc function
+
+    static struct QWK_Hook {
+        QWK_Hook() {
+            qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
+        }
+    } g_hook{};
 
     struct DynamicApis {
         decltype(&::DwmFlush) pDwmFlush = nullptr;
@@ -184,7 +201,7 @@ namespace QWK {
     static inline quint32 getDpiForWindow(HWND hwnd) {
         Q_ASSERT(hwnd);
         if (!hwnd) {
-            return USER_DEFAULT_SCREEN_DPI;
+            return 0;
         }
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetDpiForWindow) {         // Win10
@@ -217,6 +234,53 @@ namespace QWK {
         } else {
             return ::GetSystemMetrics(SM_CXSIZEFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER);
         }
+    }
+
+    static inline quint32 getTitleBarHeight(HWND hwnd) {
+        Q_ASSERT(hwnd);
+        if (!hwnd) {
+            return 0;
+        }
+        const auto captionHeight = [hwnd]() -> int {
+            const DynamicApis &apis = DynamicApis::instance();
+            if (apis.pGetSystemMetricsForDpi) {
+                const quint32 dpi = getDpiForWindow(hwnd);
+                return apis.pGetSystemMetricsForDpi(SM_CYCAPTION, dpi);
+            } else {
+                return ::GetSystemMetrics(SM_CYCAPTION);
+            }
+        }();
+        return captionHeight + getResizeBorderThickness(hwnd);
+    }
+
+    static inline void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
+        Q_ASSERT(hwnd);
+        Q_ASSERT(window);
+        if (!hwnd || !window) {
+            return;
+        }
+        const auto margins = [hwnd]() -> QMargins {
+            const int titleBarHeight = getTitleBarHeight(hwnd);
+            if (isWin10OrGreater()) {
+                return { 0, -titleBarHeight, 0, 0 };
+            } else {
+                const int frameSize = getResizeBorderThickness(hwnd);
+                return { -frameSize, -titleBarHeight, -frameSize, -frameSize };
+            }
+        }();
+        const QVariant marginsVar = QVariant::fromValue(margins);
+        window->setProperty("_q_windowsCustomMargins", marginsVar);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        if (QPlatformWindow *platformWindow = window->handle()) {
+            if (const auto ni = QGuiApplication::platformNativeInterface()) {
+                ni->setWindowProperty(platformWindow, QStringLiteral("_q_windowsCustomMargins"), marginsVar);
+            }
+        }
+#else
+        if (const auto platformWindow = dynamic_cast<QNativeInterface::Private::QWindowsWindow *>(window->handle())) {
+            platformWindow->setCustomMargins(margins);
+        }
+#endif
     }
 
     static inline std::optional<MONITORINFOEXW> getMonitorForWindow(HWND hwnd) {
@@ -480,6 +544,9 @@ namespace QWK {
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
+        // Inform Qt we want and have set custom margins
+        updateInternalWindowFrameMargins(hWnd, m_windowHandle);
+
         // Store original window proc
         if (!g_qtWindowProc) {
             g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
@@ -498,6 +565,8 @@ namespace QWK {
 
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, this);
+
+        QTimer::singleShot(0, m_windowHandle, [hWnd](){ triggerFrameChange(hWnd); });
 
         return true;
     }

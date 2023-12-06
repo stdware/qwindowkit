@@ -32,7 +32,9 @@ namespace QWK {
             return false;
         }
 
-        std::ignore = w->winId(); // Make sure the window handle is created
+        w->setAttribute(Qt::WA_DontCreateNativeAncestors);
+        w->setAttribute(Qt::WA_NativeWindow);
+
         if (!d->setup(w, new WidgetItemDelegate())) {
             return false;
         }
