@@ -13,15 +13,15 @@ namespace QWK {
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
     QWindow *WidgetItemDelegate::window(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->windowHandle();
+        return static_cast<const QWidget *>(obj)->windowHandle();
     }
 
     bool WidgetItemDelegate::isEnabled(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->isEnabled();
+        return static_cast<const QWidget *>(obj)->isEnabled();
     }
 
     bool WidgetItemDelegate::isVisible(QObject *obj) const {
-        return static_cast<QWidget *>(obj)->isVisible();
+        return static_cast<const QWidget *>(obj)->isVisible();
     }
 
     QRect WidgetItemDelegate::mapGeometryToScene(const QObject *obj) const {
@@ -32,11 +32,11 @@ namespace QWK {
     }
 
     QWindow *WidgetItemDelegate::hostWindow(QObject *host) const {
-        return static_cast<QWidget *>(host)->windowHandle();
+        return static_cast<const QWidget *>(host)->windowHandle();
     }
 
     bool WidgetItemDelegate::isHostSizeFixed(QObject *host) const {
-        const auto widget = static_cast<QWidget *>(host);
+        const auto widget = static_cast<const QWidget *>(host);
         // "Qt::MSWindowsFixedSizeDialogHint" is used cross-platform actually.
         if (widget->windowFlags() & Qt::MSWindowsFixedSizeDialogHint) {
             return true;
@@ -58,7 +58,7 @@ namespace QWK {
 
     bool WidgetItemDelegate::resetQtGrabbedControl() const {
         if (qt_button_down) {
-            static constexpr const auto invalidPos = QPoint{-99999, -99999};
+            static constexpr const auto invalidPos = QPoint{std::numeric_limits<int>::lowest(), std::numeric_limits<int>::lowest()};
             const auto event =
                 new QMouseEvent(QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos,
                                 Qt::LeftButton, QGuiApplication::mouseButtons() ^ Qt::LeftButton,
