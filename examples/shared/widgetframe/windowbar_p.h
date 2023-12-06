@@ -9,6 +9,7 @@ namespace QWK {
 
     class WindowBarPrivate {
         Q_DECLARE_PUBLIC(WindowBar)
+        Q_DISABLE_COPY(WindowBarPrivate)
     public:
         WindowBarPrivate();
         virtual ~WindowBarPrivate();

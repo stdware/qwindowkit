@@ -32,8 +32,7 @@ MainWindow::~MainWindow() {
 void MainWindow::installWindowAgent() {
     auto agent = new QWK::WidgetWindowAgent(this);
     if (!agent->setup(this)) {
-        qDebug() << "Frameless handle failed to initialize.";
-        return;
+        qFatal("Frameless handle failed to initialize.");
     }
 
     auto titleLabel = new QLabel();

@@ -25,11 +25,7 @@ namespace QWK {
     QRect QuickItemDelegate::mapGeometryToScene(const QObject *obj) const {
         auto item = static_cast<const QQuickItem *>(obj);
         const QPointF originPoint = item->mapToScene(QPointF(0.0, 0.0));
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
         const QSizeF size = item->size();
-#else
-        const QSizeF size = {item->width(), item->height()};
-#endif
         return QRectF(originPoint, size).toRect();
     }
 

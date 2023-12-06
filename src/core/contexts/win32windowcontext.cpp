@@ -1329,6 +1329,7 @@ namespace QWK {
                         return true;
                     }
                     *result = HTCLIENT;
+                    return true;
                 } else {
                     if (full) {
                         *result = HTCLIENT;
@@ -1390,8 +1391,8 @@ namespace QWK {
                         return true;
                     }
                     *result = HTCLIENT;
+                    return true;
                 }
-                return true;
             }
             default:
                 break;
