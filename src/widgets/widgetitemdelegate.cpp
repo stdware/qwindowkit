@@ -12,15 +12,15 @@ namespace QWK {
 
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
-    QWindow *WidgetItemDelegate::window(QObject *obj) const {
+    QWindow *WidgetItemDelegate::window(const QObject *obj) const {
         return static_cast<const QWidget *>(obj)->windowHandle();
     }
 
-    bool WidgetItemDelegate::isEnabled(QObject *obj) const {
+    bool WidgetItemDelegate::isEnabled(const QObject *obj) const {
         return static_cast<const QWidget *>(obj)->isEnabled();
     }
 
-    bool WidgetItemDelegate::isVisible(QObject *obj) const {
+    bool WidgetItemDelegate::isVisible(const QObject *obj) const {
         return static_cast<const QWidget *>(obj)->isVisible();
     }
 
@@ -31,11 +31,11 @@ namespace QWK {
         return {originPoint, size};
     }
 
-    QWindow *WidgetItemDelegate::hostWindow(QObject *host) const {
+    QWindow *WidgetItemDelegate::hostWindow(const QObject *host) const {
         return static_cast<const QWidget *>(host)->windowHandle();
     }
 
-    bool WidgetItemDelegate::isHostSizeFixed(QObject *host) const {
+    bool WidgetItemDelegate::isHostSizeFixed(const QObject *host) const {
         const auto widget = static_cast<const QWidget *>(host);
         // "Qt::MSWindowsFixedSizeDialogHint" is used cross-platform actually.
         if (widget->windowFlags() & Qt::MSWindowsFixedSizeDialogHint) {

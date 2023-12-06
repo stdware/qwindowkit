@@ -10,16 +10,16 @@ namespace QWK {
 
     QuickItemDelegate::~QuickItemDelegate() = default;
 
-    QWindow *QuickItemDelegate::window(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->window();
+    QWindow *QuickItemDelegate::window(const QObject *obj) const {
+        return static_cast<const QQuickItem *>(obj)->window();
     }
 
-    bool QuickItemDelegate::isEnabled(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->isEnabled();
+    bool QuickItemDelegate::isEnabled(const QObject *obj) const {
+        return static_cast<const QQuickItem *>(obj)->isEnabled();
     }
 
-    bool QuickItemDelegate::isVisible(QObject *obj) const {
-        return static_cast<QQuickItem *>(obj)->isVisible();
+    bool QuickItemDelegate::isVisible(const QObject *obj) const {
+        return static_cast<const QQuickItem *>(obj)->isVisible();
     }
 
     QRect QuickItemDelegate::mapGeometryToScene(const QObject *obj) const {
@@ -33,11 +33,12 @@ namespace QWK {
         return QRectF(originPoint, size).toRect();
     }
 
-    QWindow *QuickItemDelegate::hostWindow(QObject *host) const {
-        return static_cast<QQuickWindow *>(host);
+    QWindow *QuickItemDelegate::hostWindow(const QObject *host) const {
+        return static_cast<QQuickWindow *>(const_cast<QObject *>(host));
     }
 
-    bool QuickItemDelegate::isHostSizeFixed(QObject *host) const {
+    bool QuickItemDelegate::isHostSizeFixed(const QObject *host) const {
+        // ### TOOD
         return false;
     }
 
