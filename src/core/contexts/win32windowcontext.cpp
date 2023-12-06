@@ -203,7 +203,7 @@ namespace QWK {
             return 0;
         }
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) {         // Win10
+        if (apis.pGetDpiForWindow) { // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -308,7 +308,8 @@ namespace QWK {
         ::GetWindowRect(hwnd, &windowRect);
         const auto newX = (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
         const auto newY = (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
-        ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0,
+                       SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
 
     static inline bool isFullScreen(HWND hwnd) {
@@ -908,7 +909,8 @@ namespace QWK {
             case WM_SHOWWINDOW: {
                 if (!centered) {
                     // If wParam is TRUE, the window is being shown.
-                    // If lParam is zero, the message was sent because of a call to the ShowWindow function.
+                    // If lParam is zero, the message was sent because of a call to the ShowWindow
+                    // function.
                     if (wParam && lParam == 0) {
                         centered = true;
                         moveToDesktopCenter(hWnd);
@@ -1004,7 +1006,7 @@ namespace QWK {
                 // and align it with the upper-left corner of our new client area".
                 const auto clientRect =
                     wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
-                                       : reinterpret_cast<LPRECT>(lParam);
+                           : reinterpret_cast<LPRECT>(lParam);
                 if (isWin10OrGreater()) {
                     // Store the original top margin before the default window procedure applies the
                     // default frame.
