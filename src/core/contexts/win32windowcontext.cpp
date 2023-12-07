@@ -23,6 +23,7 @@
 
 #include <shellscalingapi.h>
 #include <dwmapi.h>
+#include <timeapi.h>
 
 Q_DECLARE_METATYPE(QMargins)
 
@@ -45,9 +46,13 @@ namespace QWK {
     struct DynamicApis {
         decltype(&::DwmFlush) pDwmFlush = nullptr;
         decltype(&::DwmIsCompositionEnabled) pDwmIsCompositionEnabled = nullptr;
+        decltype(&::DwmGetCompositionTimingInfo) pDwmGetCompositionTimingInfo = nullptr;
         decltype(&::GetDpiForWindow) pGetDpiForWindow = nullptr;
         decltype(&::GetSystemMetricsForDpi) pGetSystemMetricsForDpi = nullptr;
         decltype(&::GetDpiForMonitor) pGetDpiForMonitor = nullptr;
+        decltype(&::timeGetDevCaps) ptimeGetDevCaps = nullptr;
+        decltype(&::timeBeginPeriod) ptimeBeginPeriod = nullptr;
+        decltype(&::timeEndPeriod) ptimeEndPeriod = nullptr;
 
         DynamicApis() {
             QSystemLibrary user32(QStringLiteral("user32.dll"));
@@ -64,6 +69,12 @@ namespace QWK {
             pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
             pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(
                 dwmapi.resolve("DwmIsCompositionEnabled"));
+            pDwmGetCompositionTimingInfo = reinterpret_cast<decltype(pDwmGetCompositionTimingInfo)>(dwmapi.resolve("DwmGetCompositionTimingInfo"));
+
+            QSystemLibrary winmm(QStringLiteral("winmm.dll"));
+            ptimeGetDevCaps = reinterpret_cast<decltype(ptimeGetDevCaps)>(winmm.resolve("timeGetDevCaps"));
+            ptimeBeginPeriod = reinterpret_cast<decltype(ptimeBeginPeriod)>(winmm.resolve("timeBeginPeriod"));
+            ptimeEndPeriod = reinterpret_cast<decltype(ptimeEndPeriod)>(winmm.resolve("timeEndPeriod"));
         }
 
         ~DynamicApis() = default;
@@ -308,6 +319,53 @@ namespace QWK {
         const auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE));
         return (!(style & (WS_MINIMIZE | WS_MAXIMIZE)));
 #endif
+    }
+
+    static inline void syncPaintEventWithDwm() {
+        // No need to sync with DWM if DWM composition is disabled.
+        if (!isDwmCompositionEnabled()) {
+            return;
+        }
+        const DynamicApis &apis = DynamicApis::instance();
+        // Dirty hack to workaround the resize flicker caused by DWM.
+        LARGE_INTEGER freq{};
+        ::QueryPerformanceFrequency(&freq);
+        TIMECAPS tc{};
+        apis.ptimeGetDevCaps(&tc, sizeof(tc));
+        const UINT ms_granularity = tc.wPeriodMin;
+        apis.ptimeBeginPeriod(ms_granularity);
+        LARGE_INTEGER now0{};
+        ::QueryPerformanceCounter(&now0);
+        // ask DWM where the vertical blank falls
+        DWM_TIMING_INFO dti{};
+        dti.cbSize = sizeof(dti);
+        apis.pDwmGetCompositionTimingInfo(nullptr, &dti);
+        LARGE_INTEGER now1{};
+        ::QueryPerformanceCounter(&now1);
+        // - DWM told us about SOME vertical blank
+        //   - past or future, possibly many frames away
+        // - convert that into the NEXT vertical blank
+        const auto period = qreal(dti.qpcRefreshPeriod);
+        const auto dt = qreal(dti.qpcVBlank - now1.QuadPart);
+        const qreal ratio = (dt / period);
+        auto w = qreal(0);
+        auto m = qreal(0);
+        if ((dt > qreal(0)) || qFuzzyIsNull(dt)) {
+            w = ratio;
+        } else {
+            // reach back to previous period
+            // - so m represents consistent position within phase
+            w = (ratio - qreal(1));
+        }
+        m = (dt - (period * w));
+        //Q_ASSERT((m > qreal(0)) || qFuzzyIsNull(m));
+        //Q_ASSERT(m < period);
+        if ((m < qreal(0)) || qFuzzyCompare(m, period) || (m > period)) {
+            return;
+        }
+        const qreal m_ms = (qreal(1000) * m / qreal(freq.QuadPart));
+        ::Sleep(static_cast<DWORD>(std::round(m_ms)));
+        apis.ptimeEndPeriod(ms_granularity);
     }
 
     static inline QPoint fromNativeLocalPosition(const QWindow *window, const QPoint &point) {
@@ -1455,8 +1513,9 @@ namespace QWK {
                 }
             }
         }
-        // ### TODO: std::ignore = Utils::syncWmPaintWithDwm(); // This should be executed
-        // at the very last. By returning WVR_REDRAW we can make the window resizing look
+        // We should call this function only before the function returns.
+        syncPaintEventWithDwm();
+        // By returning WVR_REDRAW we can make the window resizing look
         // less broken. But we must return 0 if wParam is FALSE, according to Microsoft
         // Docs.
         // **IMPORTANT NOTE**:
