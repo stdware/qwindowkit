@@ -37,6 +37,9 @@ namespace QWK {
         bool customWindowHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                  LRESULT *result);
 
+        static bool nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                                             LRESULT *result);
+
     protected:
         WId windowId = 0;
 
