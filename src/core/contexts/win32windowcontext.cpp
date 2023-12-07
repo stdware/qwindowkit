@@ -188,22 +188,14 @@ namespace QWK {
     }
 
     static inline void triggerFrameChange(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return;
-        }
         ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
                            SWP_FRAMECHANGED);
     }
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return 0;
-        }
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) { // Win10
+        if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -221,10 +213,6 @@ namespace QWK {
     }
 
     static inline quint32 getResizeBorderThickness(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return 0;
-        }
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetSystemMetricsForDpi) {
             const quint32 dpi = getDpiForWindow(hwnd);
@@ -236,10 +224,6 @@ namespace QWK {
     }
 
     static inline quint32 getTitleBarHeight(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return 0;
-        }
         const auto captionHeight = [hwnd]() -> int {
             const DynamicApis &apis = DynamicApis::instance();
             if (apis.pGetSystemMetricsForDpi) {
@@ -253,11 +237,6 @@ namespace QWK {
     }
 
     static inline void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
-        Q_ASSERT(hwnd);
-        Q_ASSERT(window);
-        if (!hwnd || !window) {
-            return;
-        }
         const auto margins = [hwnd]() -> QMargins {
             const int titleBarHeight = getTitleBarHeight(hwnd);
             if (isWin10OrGreater()) {
@@ -285,10 +264,6 @@ namespace QWK {
     }
 
     static inline MONITORINFOEXW getMonitorForWindow(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return {};
-        }
         // Use "MONITOR_DEFAULTTONEAREST" here so that we can still get the correct
         // monitor even if the window is minimized.
         HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -299,10 +274,6 @@ namespace QWK {
     };
 
     static inline void moveToDesktopCenter(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return;
-        }
         const auto monitorInfo = getMonitorForWindow(hwnd);
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
@@ -539,8 +510,7 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    Win32WindowContext::Win32WindowContext(QObject *host, WindowItemDelegate *delegate)
-        : AbstractWindowContext(host, delegate) {
+    Win32WindowContext::Win32WindowContext() : AbstractWindowContext() {
     }
 
     Win32WindowContext::~Win32WindowContext() {
@@ -555,8 +525,8 @@ namespace QWK {
         }
     }
 
-    bool Win32WindowContext::setup() {
-        if (!m_windowHandle) {
+    bool Win32WindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
+        if (!AbstractWindowContext::setup(host, delegate)) {
             return false;
         }
 
@@ -1294,8 +1264,6 @@ namespace QWK {
                                 break;
                             case CoreWindowAgent::Close:
                                 *result = HTCLOSE;
-                                break;
-                            case CoreWindowAgent::Unknown:
                                 break;
                             default:
                                 break; // unreachable

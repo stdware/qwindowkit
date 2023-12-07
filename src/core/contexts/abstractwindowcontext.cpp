@@ -2,11 +2,27 @@
 
 namespace QWK {
 
-    AbstractWindowContext::AbstractWindowContext(QObject *host, WindowItemDelegate *delegate)
-        : m_host(host), m_delegate(delegate), m_windowHandle(delegate->hostWindow(host)) {
+    AbstractWindowContext::AbstractWindowContext()
+        : m_host(nullptr), m_delegate(nullptr), m_windowHandle(nullptr) {
     }
 
     AbstractWindowContext::~AbstractWindowContext() = default;
+
+    bool AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
+        if (!host || !delegate) {
+            return false;
+        }
+
+        auto windowHandle = delegate->hostWindow(host);
+        if (!windowHandle) {
+            return false;
+        }
+
+        m_host = host;
+        m_delegate.reset(delegate);
+        m_windowHandle = windowHandle;
+        return true;
+    }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);

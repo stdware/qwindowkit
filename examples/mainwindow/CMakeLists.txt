@@ -13,3 +13,5 @@ qm_configure_target(${PROJECT_NAME}
     QT_LINKS Core Gui Widgets
     LINKS QWKWidgets WidgetFrame
 )
+
+qm_add_win_manifest(${PROJECT_NAME})

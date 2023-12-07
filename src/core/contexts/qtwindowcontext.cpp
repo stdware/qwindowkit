@@ -40,15 +40,14 @@ namespace QWK {
 #endif
     }
 
-    QtWindowContext::QtWindowContext(QObject *host, WindowItemDelegate *delegate)
-        : AbstractWindowContext(host, delegate) {
+    QtWindowContext::QtWindowContext() : AbstractWindowContext() {
     }
 
     QtWindowContext::~QtWindowContext() {
     }
 
-    bool QtWindowContext::setup() {
-        if (!m_windowHandle) {
+    bool QtWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
+        if (!AbstractWindowContext::setup(host, delegate)) {
             return false;
         }
         return false;

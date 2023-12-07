@@ -16,11 +16,11 @@ namespace QWK {
     class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
     public:
-        AbstractWindowContext(QObject *host, WindowItemDelegate *delegate);
+        AbstractWindowContext();
         ~AbstractWindowContext() override;
 
     public:
-        virtual bool setup() = 0;
+        virtual bool setup(QObject *host, WindowItemDelegate *delegate);
 
         inline QObject *host() const;
         inline QWindow *window() const;

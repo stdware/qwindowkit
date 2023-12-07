@@ -8,11 +8,11 @@ namespace QWK {
     class QWK_CORE_EXPORT QtWindowContext : public AbstractWindowContext {
         Q_OBJECT
     public:
-        QtWindowContext(QObject *host, WindowItemDelegate *delegate);
+        QtWindowContext();
         ~QtWindowContext();
 
     public:
-        bool setup() override;
+        bool setup(QObject *host, WindowItemDelegate *delegate) override;
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override;
