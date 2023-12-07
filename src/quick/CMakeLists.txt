@@ -10,6 +10,8 @@ set(_src
     quickwindowagent.h
     quickwindowagent_p.h
     quickwindowagent.cpp
+    contexts/quickwindowcontext_p.h
+    contexts/quickwindowcontext.cpp
 )
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN

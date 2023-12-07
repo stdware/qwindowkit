@@ -10,6 +10,8 @@ set(_src
     widgetwindowagent.h
     widgetwindowagent_p.h
     widgetwindowagent.cpp
+    contexts/widgetwindowcontext_p.h
+    contexts/widgetwindowcontext.cpp
 )
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN

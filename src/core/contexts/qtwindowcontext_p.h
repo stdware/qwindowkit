@@ -11,11 +11,9 @@ namespace QWK {
         QtWindowContext();
         ~QtWindowContext();
 
-    public:
-        bool setup(QObject *host, WindowItemDelegate *delegate) override;
-
     protected:
-        bool eventFilter(QObject *obj, QEvent *event) override;
+        bool setupHost() override;
+        bool hostEventFilter(QEvent *event) override;
     };
 
 }

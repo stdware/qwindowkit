@@ -21,9 +21,10 @@ namespace QWK {
             TitleBar,
         };
 
-    public:
-        bool setup(QObject *host, WindowItemDelegate *delegate) override;
+    protected:
+        bool setupHost() override;
 
+    public:
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
 
         // In order to perfectly apply Windows 11 Snap Layout into the Qt window, we need to

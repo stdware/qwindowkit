@@ -8,6 +8,24 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
+    class EventFilterForwarder : public QObject {
+    public:
+        using EventProc = bool (*)(QEvent *, void *);
+
+        EventFilterForwarder(EventProc proc, void *user, QObject *parent = nullptr)
+            : QObject(parent), proc(proc), user(user) {
+        }
+
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
+            return proc(event, user);
+        }
+
+    protected:
+        EventProc proc;
+        void *user;
+    };
+
     bool AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
         if (!host || !delegate) {
             return false;
@@ -21,6 +39,21 @@ namespace QWK {
         m_host = host;
         m_delegate.reset(delegate);
         m_windowHandle = windowHandle;
+
+        if (!setupHost()) {
+            m_host = nullptr;
+            m_delegate = nullptr;
+            m_windowHandle = nullptr;
+            return false;
+        }
+
+        // Install specific event filter
+        host->installEventFilter(new EventFilterForwarder(
+            [](QEvent *event, void *user) {
+                return reinterpret_cast<AbstractWindowContext *>(user)->hostEventFilter(event);
+            },
+            this, this));
+
         return true;
     }
 
@@ -155,6 +188,11 @@ namespace QWK {
             return false;
         }
         return true;
+    }
+
+    bool AbstractWindowContext::hostEventFilter(QEvent *event) {
+        Q_UNUSED(event)
+        return false;
     }
 
 }

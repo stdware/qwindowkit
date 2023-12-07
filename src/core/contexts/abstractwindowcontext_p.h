@@ -20,7 +20,7 @@ namespace QWK {
         ~AbstractWindowContext() override;
 
     public:
-        virtual bool setup(QObject *host, WindowItemDelegate *delegate);
+        bool setup(QObject *host, WindowItemDelegate *delegate);
 
         inline QObject *host() const;
         inline QWindow *window() const;
@@ -40,6 +40,10 @@ namespace QWK {
         QRegion hitTestShape() const;
         bool isInSystemButtons(const QPoint &pos, CoreWindowAgent::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
+
+    protected:
+        virtual bool setupHost() = 0;
+        virtual bool hostEventFilter(QEvent *event);
 
     protected:
         QObject *m_host;

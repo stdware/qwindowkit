@@ -525,11 +525,7 @@ namespace QWK {
         }
     }
 
-    bool Win32WindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
-        if (!AbstractWindowContext::setup(host, delegate)) {
-            return false;
-        }
-
+    bool Win32WindowContext::setupHost() {
         // Install window hook
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);

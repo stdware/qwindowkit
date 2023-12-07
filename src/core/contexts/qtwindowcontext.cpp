@@ -46,15 +46,12 @@ namespace QWK {
     QtWindowContext::~QtWindowContext() {
     }
 
-    bool QtWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
-        if (!AbstractWindowContext::setup(host, delegate)) {
-            return false;
-        }
+    bool QtWindowContext::setupHost() {
         return false;
     }
 
-    bool QtWindowContext::eventFilter(QObject *obj, QEvent *event) {
-        return AbstractWindowContext::eventFilter(obj, event);
+    bool QtWindowContext::hostEventFilter(QEvent *event) {
+        return false;
     }
 
 }
