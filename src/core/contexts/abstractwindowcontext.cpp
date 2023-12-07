@@ -50,7 +50,7 @@ namespace QWK {
         // Install specific event filter
         host->installEventFilter(new EventFilterForwarder(
             [](QEvent *event, void *user) {
-                return reinterpret_cast<AbstractWindowContext *>(user)->hostEventFilter(event);
+                return static_cast<AbstractWindowContext *>(user)->hostEventFilter(event);
             },
             this, this));
 

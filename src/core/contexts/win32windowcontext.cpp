@@ -408,7 +408,7 @@ namespace QWK {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
             // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been processed, so we
             // have to process it after Qt acquired the initial data.
-            auto msg = reinterpret_cast<const MSG *>(message);
+            auto msg = static_cast<const MSG *>(message);
             if (msg->message == WM_NCCALCSIZE && orgLastMessageContext) {
                 LRESULT res;
                 if (Win32WindowContext::nonClientCalcSizeHandler(msg->hwnd, msg->message,
