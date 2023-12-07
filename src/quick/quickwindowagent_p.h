@@ -14,6 +14,8 @@ namespace QWK {
 
         void init();
 
+        AbstractWindowContext * createContext() const override;
+
         // Host
         QQuickWindow *hostWindow{};
     };

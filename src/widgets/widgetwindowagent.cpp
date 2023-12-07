@@ -2,6 +2,7 @@
 #include "widgetwindowagent_p.h"
 
 #include "widgetitemdelegate_p.h"
+#include "widgetwindowcontext_p.h"
 
 namespace QWK {
 
@@ -12,6 +13,10 @@ namespace QWK {
     }
 
     void WidgetWindowAgentPrivate::init() {
+    }
+
+    AbstractWindowContext *WidgetWindowAgentPrivate::createContext() const {
+        return new WidgetWindowContext();
     }
 
     WidgetWindowAgent::WidgetWindowAgent(QObject *parent)

@@ -19,6 +19,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS QWKCore
     QT_LINKS Core Gui Widgets
     QT_INCLUDE_PRIVATE Core Gui Widgets
+    INCLUDE_PRIVATE contexts
     PREFIX QWK_WIDGETS
 )
 

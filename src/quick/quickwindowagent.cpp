@@ -1,9 +1,10 @@
 #include "quickwindowagent.h"
 #include "quickwindowagent_p.h"
 
-#include "quickitemdelegate_p.h"
-
 #include <QtQuick/QQuickWindow>
+
+#include "quickitemdelegate_p.h"
+#include "quickwindowcontext_p.h"
 
 namespace QWK {
 
@@ -14,6 +15,10 @@ namespace QWK {
     }
 
     void QuickWindowAgentPrivate::init() {
+    }
+
+    AbstractWindowContext *QuickWindowAgentPrivate::createContext() const {
+        return new QuickWindowContext();
     }
 
     QuickWindowAgent::QuickWindowAgent(QObject *parent)
