@@ -295,10 +295,6 @@ namespace QWK {
     }
 
     static inline bool isFullScreen(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return false;
-        }
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
         // Compare to the full area of the screen, not the work area.
@@ -306,10 +302,6 @@ namespace QWK {
     }
 
     static inline bool isWindowNoState(HWND hwnd) {
-        Q_ASSERT(hwnd);
-        if (!hwnd) {
-            return false;
-        }
 #if 0
         WINDOWPLACEMENT wp{};
         wp.length = sizeof(wp);
@@ -358,26 +350,12 @@ namespace QWK {
             w = (ratio - qreal(1));
         }
         m = (dt - (period * w));
-        //Q_ASSERT((m > qreal(0)) || qFuzzyIsNull(m));
-        //Q_ASSERT(m < period);
         if ((m < qreal(0)) || qFuzzyCompare(m, period) || (m > period)) {
             return;
         }
         const qreal m_ms = (qreal(1000) * m / qreal(freq.QuadPart));
         ::Sleep(static_cast<DWORD>(std::round(m_ms)));
         apis.ptimeEndPeriod(ms_granularity);
-    }
-
-    static inline QPoint fromNativeLocalPosition(const QWindow *window, const QPoint &point) {
-        Q_ASSERT(window);
-        if (!window) {
-            return point;
-        }
-#if 1
-        return QHighDpi::fromNativeLocalPosition(point, window);
-#else
-        return QPointF(QPointF(point) / window->devicePixelRatio()).toPoint();
-#endif
     }
 
     static inline Win32WindowContext::WindowPart getHitWindowPart(int hitTestResult) {
@@ -821,7 +799,7 @@ namespace QWK {
                     POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
                     ::ScreenToClient(hWnd, &screenPoint);
                     QPoint qtScenePos =
-                        fromNativeLocalPosition(m_windowHandle, {screenPoint.x, screenPoint.y});
+                        QHighDpi::fromNativeLocalPosition(QPoint{screenPoint.x, screenPoint.y}, m_windowHandle);
                     auto dummy = CoreWindowAgent::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
@@ -1053,8 +1031,8 @@ namespace QWK {
                 auto clientWidth = RECT_WIDTH(clientRect);
                 auto clientHeight = RECT_HEIGHT(clientRect);
 
-                QPoint qtScenePos = fromNativeLocalPosition(
-                    m_windowHandle, QPoint(nativeLocalPos.x, nativeLocalPos.y));
+                QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
+                    QPoint(nativeLocalPos.x, nativeLocalPos.y), m_windowHandle);
 
                 bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
