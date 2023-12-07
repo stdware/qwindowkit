@@ -56,18 +56,17 @@ namespace QWK {
         return false;
     }
 
-    bool WidgetItemDelegate::resetQtGrabbedControl() const {
-        if (qt_button_down) {
-            static constexpr const auto invalidPos = QPoint{std::numeric_limits<int>::lowest(), std::numeric_limits<int>::lowest()};
-            const auto event =
-                new QMouseEvent(QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos,
-                                Qt::LeftButton, QGuiApplication::mouseButtons() ^ Qt::LeftButton,
-                                QGuiApplication::keyboardModifiers());
-            QApplication::postEvent(qt_button_down, event);
-            qt_button_down = nullptr;
-            return true;
+    void WidgetItemDelegate::resetQtGrabbedControl() const {
+        if (!qt_button_down) {
+            return;
         }
-        return false;
+        static constexpr const auto invalidPos = QPoint{std::numeric_limits<int>::lowest(), std::numeric_limits<int>::lowest()};
+        const auto event =
+            new QMouseEvent(QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos,
+                            Qt::LeftButton, QGuiApplication::mouseButtons() ^ Qt::LeftButton,
+                            QGuiApplication::keyboardModifiers());
+        QApplication::postEvent(qt_button_down, event);
+        qt_button_down = nullptr;
     }
 
 }

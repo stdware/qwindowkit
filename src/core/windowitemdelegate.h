@@ -26,7 +26,7 @@ namespace QWK {
         virtual bool isHostSizeFixed(const QObject *host) const = 0;
 
         // Callbacks
-        virtual bool resetQtGrabbedControl() const;
+        virtual void resetQtGrabbedControl() const;
 
     private:
         Q_DISABLE_COPY_MOVE(WindowItemDelegate)

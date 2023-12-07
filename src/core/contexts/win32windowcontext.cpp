@@ -869,7 +869,7 @@ namespace QWK {
                 const WindowPart currentWindowPart = lastHitTestResult;
                 if (message == WM_NCMOUSEMOVE) {
                     if (currentWindowPart != WindowPart::ChromeButton) {
-                        std::ignore = m_delegate->resetQtGrabbedControl();
+                        m_delegate->resetQtGrabbedControl();
                         if (mouseLeaveBlocked) {
                             emulateClientAreaMessage(hWnd, message, wParam, lParam,
                                                      WM_NCMOUSELEAVE);
@@ -931,7 +931,7 @@ namespace QWK {
                         // window from client area, which means we will get previous window part as
                         // HTCLIENT if the mouse leaves window from client area and enters window
                         // from non-client area, but it has no bad effect.
-                        std::ignore = m_delegate->resetQtGrabbedControl();
+                        m_delegate->resetQtGrabbedControl();
                     }
                 }
                 break;

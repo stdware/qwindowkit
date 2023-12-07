@@ -23,7 +23,7 @@ namespace QWK {
         QWindow * hostWindow(const QObject *host) const override;
         bool isHostSizeFixed(const QObject *host) const override;
 
-        bool resetQtGrabbedControl() const override;
+        void resetQtGrabbedControl() const override;
     };
 
 }
