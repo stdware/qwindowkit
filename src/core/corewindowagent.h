@@ -1,6 +1,8 @@
 #ifndef COREWINDOWAGENT_H
 #define COREWINDOWAGENT_H
 
+#include <memory>
+
 #include <QtCore/QObject>
 
 #include <QWKCore/qwkcoreglobal.h>

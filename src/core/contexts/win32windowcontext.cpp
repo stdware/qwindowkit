@@ -29,14 +29,20 @@ Q_DECLARE_METATYPE(QMargins)
 
 namespace QWK {
 
-    static constexpr const auto kAutoHideTaskBarThickness =
-        quint8{2}; // The thickness of an auto-hide taskbar in pixels.
+    // The thickness of an auto-hide taskbar in pixels.
+    static constexpr const auto kAutoHideTaskBarThickness = quint8{2};
 
-    using WndProcHash = QHash<HWND, Win32WindowContext *>; // hWnd -> context
+    // hWnd -> context
+    using WndProcHash = QHash<HWND, Win32WindowContext *>;
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
 
-    static WNDPROC g_qtWindowProc = nullptr; // Original Qt window proc function
+    // Original Qt window proc function
+    static WNDPROC g_qtWindowProc = nullptr;
 
+    // ### FIXME FIXME FIXME
+    // ### FIXME: Tell the user to call in the documentation, instead of automatically
+    // calling it directly.
+    // ### FIXME FIXME FIXME
     static struct QWK_Hook {
         QWK_Hook() {
             qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
@@ -44,37 +50,56 @@ namespace QWK {
     } g_hook{};
 
     struct DynamicApis {
-        decltype(&::DwmFlush) pDwmFlush = nullptr;
-        decltype(&::DwmIsCompositionEnabled) pDwmIsCompositionEnabled = nullptr;
-        decltype(&::DwmGetCompositionTimingInfo) pDwmGetCompositionTimingInfo = nullptr;
-        decltype(&::GetDpiForWindow) pGetDpiForWindow = nullptr;
-        decltype(&::GetSystemMetricsForDpi) pGetSystemMetricsForDpi = nullptr;
-        decltype(&::GetDpiForMonitor) pGetDpiForMonitor = nullptr;
-        decltype(&::timeGetDevCaps) ptimeGetDevCaps = nullptr;
-        decltype(&::timeBeginPeriod) ptimeBeginPeriod = nullptr;
-        decltype(&::timeEndPeriod) ptimeEndPeriod = nullptr;
+//        template <typename T>
+//        struct DefaultFunc;
+//
+//        template <typename Return, typename... Args>
+//        struct DefaultFunc<Return(QT_WIN_CALLBACK *)(Args...)> {
+//            static Return STDAPICALLTYPE func(Args...) {
+//                return Return{};
+//            }
+//        };
+//
+// #define DWM_API_DECLARE(NAME) decltype(&::NAME) p##NAME = DefaultFunc<decltype(&::NAME)>::func
+#define DWM_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
+
+        DWM_API_DECLARE(DwmFlush);
+        DWM_API_DECLARE(DwmIsCompositionEnabled);
+        DWM_API_DECLARE(DwmGetCompositionTimingInfo);
+        DWM_API_DECLARE(GetDpiForWindow);
+        DWM_API_DECLARE(GetSystemMetricsForDpi);
+        DWM_API_DECLARE(GetDpiForMonitor);
+        DWM_API_DECLARE(timeGetDevCaps);
+        DWM_API_DECLARE(timeBeginPeriod);
+        DWM_API_DECLARE(timeEndPeriod);
+
+#undef DWM_API_DECLARE
 
         DynamicApis() {
-            QSystemLibrary user32(QStringLiteral("user32.dll"));
+            QSystemLibrary user32(QStringLiteral("user32"));
             pGetDpiForWindow =
                 reinterpret_cast<decltype(pGetDpiForWindow)>(user32.resolve("GetDpiForWindow"));
             pGetSystemMetricsForDpi = reinterpret_cast<decltype(pGetSystemMetricsForDpi)>(
                 user32.resolve("GetSystemMetricsForDpi"));
 
-            QSystemLibrary shcore(QStringLiteral("shcore.dll"));
+            QSystemLibrary shcore(QStringLiteral("shcore"));
             pGetDpiForMonitor =
                 reinterpret_cast<decltype(pGetDpiForMonitor)>(shcore.resolve("GetDpiForMonitor"));
 
-            QSystemLibrary dwmapi(QStringLiteral("dwmapi.dll"));
+            QSystemLibrary dwmapi(QStringLiteral("dwmapi"));
             pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
             pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(
                 dwmapi.resolve("DwmIsCompositionEnabled"));
-            pDwmGetCompositionTimingInfo = reinterpret_cast<decltype(pDwmGetCompositionTimingInfo)>(dwmapi.resolve("DwmGetCompositionTimingInfo"));
+            pDwmGetCompositionTimingInfo = reinterpret_cast<decltype(pDwmGetCompositionTimingInfo)>(
+                dwmapi.resolve("DwmGetCompositionTimingInfo"));
 
-            QSystemLibrary winmm(QStringLiteral("winmm.dll"));
-            ptimeGetDevCaps = reinterpret_cast<decltype(ptimeGetDevCaps)>(winmm.resolve("timeGetDevCaps"));
-            ptimeBeginPeriod = reinterpret_cast<decltype(ptimeBeginPeriod)>(winmm.resolve("timeBeginPeriod"));
-            ptimeEndPeriod = reinterpret_cast<decltype(ptimeEndPeriod)>(winmm.resolve("timeEndPeriod"));
+            QSystemLibrary winmm(QStringLiteral("winmm"));
+            ptimeGetDevCaps =
+                reinterpret_cast<decltype(ptimeGetDevCaps)>(winmm.resolve("timeGetDevCaps"));
+            ptimeBeginPeriod =
+                reinterpret_cast<decltype(ptimeBeginPeriod)>(winmm.resolve("timeBeginPeriod"));
+            ptimeEndPeriod =
+                reinterpret_cast<decltype(ptimeEndPeriod)>(winmm.resolve("timeEndPeriod"));
         }
 
         ~DynamicApis() = default;
@@ -440,7 +465,7 @@ namespace QWK {
 
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
             // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been processed, so we
-            // have to process it after Qt acquired the initial data.
+            // have to process it after Qt acquires the initial data.
             auto msg = static_cast<const MSG *>(message);
             if (msg->message == WM_NCCALCSIZE && lastMessageContext) {
                 LRESULT res;
@@ -799,8 +824,8 @@ namespace QWK {
                     DWORD dwScreenPos = ::GetMessagePos();
                     POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
                     ::ScreenToClient(hWnd, &screenPoint);
-                    QPoint qtScenePos =
-                        QHighDpi::fromNativeLocalPosition(QPoint{screenPoint.x, screenPoint.y}, m_windowHandle);
+                    QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
+                        QPoint{screenPoint.x, screenPoint.y}, m_windowHandle);
                     auto dummy = CoreWindowAgent::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
@@ -1284,6 +1309,7 @@ namespace QWK {
     bool Win32WindowContext::nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                       LPARAM lParam, LRESULT *result) {
         Q_UNUSED(message)
+        Q_UNUSED(this)
 
         // Windows是根据这个消息的返回值来设置窗口的客户区（窗口中真正显示的内容）
         // 和非客户区（标题栏、窗口边框、菜单栏和状态栏等Windows系统自行提供的部分
