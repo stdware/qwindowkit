@@ -553,12 +553,7 @@ namespace QWK {
 
         // Try hooked procedure and save result
         LRESULT result;
-        bool handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
-
-        // TODO: Determine whether to show system menu
-        // ...
-
-        if (handled) {
+        if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
             return result;
         }
 
@@ -629,6 +624,10 @@ namespace QWK {
 
         if (!isValidWindow(hWnd, false, true)) {
             return false;
+        }
+
+        if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
+            return true;
         }
 
         // Test snap layout
