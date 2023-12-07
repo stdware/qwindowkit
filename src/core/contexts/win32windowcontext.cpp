@@ -432,9 +432,6 @@ namespace QWK {
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
 
-            auto orgLastMessageContext = lastMessageContext;
-            lastMessageContext = nullptr;
-
             // It has been observed that the pointer that Qt gives us is sometimes null on some
             // machines. We need to guard against it in such scenarios.
             if (!result) {
@@ -445,9 +442,9 @@ namespace QWK {
             // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been processed, so we
             // have to process it after Qt acquired the initial data.
             auto msg = static_cast<const MSG *>(message);
-            if (msg->message == WM_NCCALCSIZE && orgLastMessageContext) {
+            if (msg->message == WM_NCCALCSIZE && lastMessageContext) {
                 LRESULT res;
-                if (Win32WindowContext::nonClientCalcSizeHandler(msg->hwnd, msg->message,
+                if (lastMessageContext->nonClientCalcSizeHandler(msg->hwnd, msg->message,
                                                                  msg->wParam, msg->lParam, &res)) {
                     *result = decltype(*result)(res);
                     return true;
@@ -549,7 +546,9 @@ namespace QWK {
         // forward it right away and process it in our native event filter.
         if (message == WM_NCCALCSIZE) {
             WindowsNativeEventFilter::lastMessageContext = ctx;
-            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            WindowsNativeEventFilter::lastMessageContext = nullptr;
+            return result;
         }
 
         // Try hooked procedure and save result
@@ -564,7 +563,6 @@ namespace QWK {
         }
 
         // Continue dispatching.
-        WindowsNativeEventFilter::lastMessageContext = ctx;
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
@@ -1509,6 +1507,11 @@ namespace QWK {
         // whether it exists on Windows XP to Windows Vista or not.
         *result = wParam ? WVR_REDRAW : FALSE;
         return true;
+    }
+
+    bool Win32WindowContext::systemMenuHandler(HWND hWnd, UINT message, WPARAM wParam,
+                                               LPARAM lParam, LRESULT *result) {
+        return false;
     }
 
 }

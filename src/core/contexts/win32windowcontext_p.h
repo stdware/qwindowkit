@@ -27,6 +27,9 @@ namespace QWK {
     public:
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
 
+        bool systemMenuHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                               LRESULT *result);
+
         // In order to perfectly apply Windows 11 Snap Layout into the Qt window, we need to
         // intercept and simulate most of the  mouse events, so that the processing logic
         // is quite complex. Simultaneously, in order to make the handling code of other
@@ -37,8 +40,8 @@ namespace QWK {
         bool customWindowHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                  LRESULT *result);
 
-        static bool nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
-                                             LRESULT *result);
+        bool nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                                      LRESULT *result);
 
     protected:
         WId windowId = 0;
