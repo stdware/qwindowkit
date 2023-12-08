@@ -5,7 +5,6 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QAbstractNativeEventFilter>
-#include <QtCore/QOperatingSystemVersion>
 #include <QtCore/QScopeGuard>
 #include <QtGui/QGuiApplication>
 
@@ -24,6 +23,7 @@
 #include <shellscalingapi.h>
 #include <dwmapi.h>
 #include <timeapi.h>
+#include <versionhelpers.h>
 
 Q_DECLARE_METATYPE(QMargins)
 
@@ -194,20 +194,22 @@ namespace QWK {
     }
 
     static inline bool isWin8OrGreater() {
-        static const bool result =
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8;
+        static const bool result = ::IsWindows8OrGreater();
         return result;
     }
 
     static inline bool isWin8Point1OrGreater() {
-        static const bool result =
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows8_1;
+        static const bool result = ::IsWindows8Point1OrGreater();
         return result;
     }
 
     static inline bool isWin10OrGreater() {
-        static const bool result =
-            QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows10;
+        static const bool result = ::IsWindows10OrGreater();
+        return result;
+    }
+
+    static inline bool isWin11OrGreater() {
+        static const bool result = ::IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 22000);
         return result;
     }
 
@@ -235,8 +237,8 @@ namespace QWK {
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            UINT dpiX{USER_DEFAULT_SCREEN_DPI};
-            UINT dpiY{USER_DEFAULT_SCREEN_DPI};
+            UINT dpiX{0};
+            UINT dpiY{0};
             apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
             return dpiX;
         } else { // Win2K
@@ -381,6 +383,117 @@ namespace QWK {
         const qreal m_ms = (qreal(1000) * m / qreal(freq.QuadPart));
         ::Sleep(static_cast<DWORD>(std::round(m_ms)));
         apis.ptimeEndPeriod(ms_granularity);
+    }
+
+    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry)
+    {
+        const HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
+        if (!hMenu) {
+            // The corresponding window doesn't have a system menu, most likely due to the
+            // lack of the "WS_SYSMENU" window style. This situation should not be treated
+            // as an error so just ignore it and return early.
+            return;
+        }
+
+        // Tweak the menu items according to the current window status and user settings.
+        const bool disableClose = /*data->callbacks->getProperty(kSysMenuDisableCloseVar, false).toBool()*/false;
+        const bool disableRestore = /*data->callbacks->getProperty(kSysMenuDisableRestoreVar, false).toBool()*/false;
+        const bool disableMinimize = /*data->callbacks->getProperty(kSysMenuDisableMinimizeVar, false).toBool()*/false;
+        const bool disableMaximize = /*data->callbacks->getProperty(kSysMenuDisableMaximizeVar, false).toBool()*/false;
+        const bool disableSize = /*data->callbacks->getProperty(kSysMenuDisableSizeVar, false).toBool()*/false;
+        const bool disableMove = /*data->callbacks->getProperty(kSysMenuDisableMoveVar, false).toBool()*/false;
+        const bool removeClose = /*data->callbacks->getProperty(kSysMenuRemoveCloseVar, false).toBool()*/false;
+        const bool removeSeparator = /*data->callbacks->getProperty(kSysMenuRemoveSeparatorVar, false).toBool()*/false;
+        const bool removeRestore = /*data->callbacks->getProperty(kSysMenuRemoveRestoreVar, false).toBool()*/false;
+        const bool removeMinimize = /*data->callbacks->getProperty(kSysMenuRemoveMinimizeVar, false).toBool()*/false;
+        const bool removeMaximize = /*data->callbacks->getProperty(kSysMenuRemoveMaximizeVar, false).toBool()*/false;
+        const bool removeSize = /*data->callbacks->getProperty(kSysMenuRemoveSizeVar, false).toBool()*/false;
+        const bool removeMove = /*data->callbacks->getProperty(kSysMenuRemoveMoveVar, false).toBool()*/false;
+        const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
+        const bool fixedSize = /*data->callbacks->isWindowFixedSize()*/false;
+        if (removeClose) {
+            ::DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | (disableClose ? MFS_DISABLED : MFS_ENABLED)));
+        }
+        if (removeSeparator) {
+            // Looks like we must use 0 for the second parameter here, otherwise we can't remove the separator.
+            ::DeleteMenu(hMenu, 0, MFT_SEPARATOR);
+        }
+        if (removeMaximize) {
+            ::DeleteMenu(hMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_MAXIMIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize || disableMaximize) ? MFS_DISABLED : MFS_ENABLED)));
+        }
+        if (removeRestore) {
+            ::DeleteMenu(hMenu, SC_RESTORE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_RESTORE, (MF_BYCOMMAND | ((maxOrFull && !fixedSize && !disableRestore) ? MFS_ENABLED : MFS_DISABLED)));
+            // The first menu item should be selected by default if the menu is brought
+            // up by keyboard. I don't know how to pre-select a menu item but it seems
+            // highlight can do the job. However, there's an annoying issue if we do
+            // this manually: the highlighted menu item is really only highlighted,
+            // not selected, so even if the mouse cursor hovers on other menu items
+            // or the user navigates to other menu items through keyboard, the original
+            // highlight bar will not move accordingly, the OS will generate another
+            // highlight bar to indicate the current selected menu item, which will make
+            // the menu look kind of weird. Currently I don't know how to fix this issue.
+            ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
+        }
+        if (removeMinimize) {
+            ::DeleteMenu(hMenu, SC_MINIMIZE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | (disableMinimize ? MFS_DISABLED : MFS_ENABLED)));
+        }
+        if (removeSize) {
+            ::DeleteMenu(hMenu, SC_SIZE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_SIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize || disableSize || disableMinimize || disableMaximize) ? MFS_DISABLED : MFS_ENABLED)));
+        }
+        if (removeMove) {
+            ::DeleteMenu(hMenu, SC_MOVE, MF_BYCOMMAND);
+        } else {
+            ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | ((maxOrFull || disableMove) ? MFS_DISABLED : MFS_ENABLED)));
+        }
+
+        // The default menu item will appear in bold font. There can only be one default
+        // menu item per menu at most. Set the item ID to "UINT_MAX" (or simply "-1")
+        // can clear the default item for the given menu.
+        std::optional<UINT> defaultItemId = std::nullopt;
+        if (isWin11OrGreater()) {
+            if (maxOrFull) {
+                if (!removeRestore) {
+                    defaultItemId = SC_RESTORE;
+                }
+            } else {
+                if (!removeMaximize) {
+                    defaultItemId = SC_MAXIMIZE;
+                }
+            }
+        }
+        if (!(defaultItemId.has_value() || removeClose)) {
+            defaultItemId = SC_CLOSE;
+        }
+        ::SetMenuDefaultItem(hMenu, defaultItemId.value_or(UINT_MAX), FALSE);
+
+        ::DrawMenuBar(hWnd);
+
+        // Popup the system menu at the required position.
+        const auto result = ::TrackPopupMenu(hMenu, (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN)), pos.x, pos.y, 0, hWnd, nullptr);
+
+        if (!removeRestore) {
+            // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
+            // highlighting until we unhighlight it manually.
+            ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | MFS_UNHILITE));
+        }
+
+        if (!result) {
+            // The user canceled the menu, no need to continue.
+            return;
+        }
+
+        // Send the command that the user chooses to the corresponding window.
+        ::PostMessageW(hWnd, WM_SYSCOMMAND, result, 0);
     }
 
     static inline Win32WindowContext::WindowPart getHitWindowPart(int hitTestResult) {
@@ -1536,6 +1649,86 @@ namespace QWK {
 
     bool Win32WindowContext::systemMenuHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                LPARAM lParam, LRESULT *result) {
+        const auto getNativePosFromMouse = [lParam]() -> POINT {
+            return {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        };
+        const auto getNativeGlobalPosFromKeyboard = [hWnd]() -> POINT {
+            const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
+            const quint32 frameSize = getResizeBorderThickness(hWnd);
+            const quint32 horizontalOffset = ((maxOrFull || !isWin10OrGreater()) ? 0 : frameSize);
+            const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> quint32 {
+                const quint32 titleBarHeight = getTitleBarHeight(hWnd);
+                if (!isWin10OrGreater()) {
+                    return titleBarHeight;
+                }
+                if (isWin11OrGreater()) {
+                    if (maxOrFull) {
+                        return (titleBarHeight + frameSize);
+                    }
+                    return titleBarHeight;
+                }
+                if (maxOrFull) {
+                    return titleBarHeight;
+                }
+                return titleBarHeight - frameSize;
+            }();
+            RECT windowPos{};
+            ::GetWindowRect(hWnd, &windowPos);
+            return {static_cast<LONG>(windowPos.left + horizontalOffset), static_cast<LONG>(windowPos.top + verticalOffset)};
+        };
+        bool shouldShowSystemMenu = false;
+        bool broughtByKeyboard = false;
+        POINT nativeGlobalPos{};
+        switch (message) {
+            case WM_RBUTTONUP: {
+                const POINT nativeLocalPos = getNativePosFromMouse();
+                const QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(QPoint(nativeLocalPos.x, nativeLocalPos.y), m_windowHandle);
+                if (isInTitleBarDraggableArea(qtScenePos)) {
+                    shouldShowSystemMenu = true;
+                    nativeGlobalPos = nativeLocalPos;
+                    ::ClientToScreen(hWnd, &nativeGlobalPos);
+                }
+                break;
+            }
+            case WM_NCRBUTTONUP: {
+                if (wParam == HTCAPTION) {
+                    shouldShowSystemMenu = true;
+                    nativeGlobalPos = getNativePosFromMouse();
+                }
+                break;
+            }
+            case WM_SYSCOMMAND: {
+                const WPARAM filteredWParam = (wParam & 0xFFF0);
+                if ((filteredWParam == SC_KEYMENU) && (lParam == VK_SPACE)) {
+                    shouldShowSystemMenu = true;
+                    broughtByKeyboard = true;
+                    nativeGlobalPos = getNativeGlobalPosFromKeyboard();
+                }
+                break;
+            }
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN: {
+                const bool altPressed = ((wParam == VK_MENU) || (::GetKeyState(VK_MENU) < 0));
+                const bool spacePressed = ((wParam == VK_SPACE) || (::GetKeyState(VK_SPACE) < 0));
+                if (altPressed && spacePressed) {
+                    shouldShowSystemMenu = true;
+                    broughtByKeyboard = true;
+                    nativeGlobalPos = getNativeGlobalPosFromKeyboard();
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        if (shouldShowSystemMenu) {
+            showSystemMenu2(hWnd, nativeGlobalPos, broughtByKeyboard);
+            // QPA's internal code will handle system menu events separately, and its
+            // behavior is not what we would want to see because it doesn't know our
+            // window doesn't have any window frame now, so return early here to avoid
+            // entering Qt's own handling logic.
+            *result = FALSE;
+            return true;
+        }
         return false;
     }
 
