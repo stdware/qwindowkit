@@ -764,10 +764,6 @@ namespace QWK {
             return false;
         }
 
-        if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
-            return true;
-        }
-
         // Test snap layout
         if (snapLayoutHandler(hWnd, message, wParam, lParam, result)) {
             return true;
@@ -775,6 +771,10 @@ namespace QWK {
 
         // Main implementation
         if (customWindowHandler(hWnd, message, wParam, lParam, result)) {
+            return true;
+        }
+
+        if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
             return true;
         }
 
@@ -1187,22 +1187,31 @@ namespace QWK {
                     // this is also the normal behavior of a native Win32 window (but only when the
                     // window is not maximized/fullscreen/minimized, of course).
                     if (isWindowNoState(hWnd)) {
-                        static constexpr const int kBorderSize = 2;
+                        static constexpr const auto kBorderSize = quint8{2};
                         bool isTop = (nativeLocalPos.y <= kBorderSize);
+                        bool isLeft = nativeLocalPos.x <= kBorderSize;
                         bool isRight = (nativeLocalPos.x >= (clientWidth - kBorderSize));
-                        if (isTop || isRight) {
+                        if (isTop || isLeft || isRight) {
                             if (dontOverrideCursor) {
                                 // The user doesn't want the window to be resized, so we tell
                                 // Windows we are in the client area so that the controls beneath
                                 // the mouse cursor can still be hovered or clicked.
                                 *result = (isTitleBar ? HTCAPTION : HTCLIENT);
                             } else {
-                                if (isTop && isRight) {
-                                    *result = HTTOPRIGHT;
-                                } else if (isTop) {
-                                    *result = HTTOP;
+                                if (isTop) {
+                                    if (isLeft) {
+                                        *result = HTTOPLEFT;
+                                    } else if (isRight) {
+                                        *result = HTTOPRIGHT;
+                                    } else {
+                                        *result = HTTOP;
+                                    }
                                 } else {
-                                    *result = HTRIGHT;
+                                    if (isLeft) {
+                                        *result = HTLEFT;
+                                    } else {
+                                        *result = HTRIGHT;
+                                    }
                                 }
                             }
                         }
