@@ -99,5 +99,6 @@ void MainWindow::installWindowAgent() {
     setMenuWidget(windowBar);
     setCentralWidget(clockWidget);
     setWindowTitle("Example MainWindow");
+    // setContentsMargins({0, 1, 0, 0});
     resize(640, 480);
 }

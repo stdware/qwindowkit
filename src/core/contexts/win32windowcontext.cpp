@@ -289,7 +289,7 @@ namespace QWK {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
             if (const auto ni = QGuiApplication::platformNativeInterface()) {
-                ni->setWindowProperty(platformWindow, QStringLiteral("_q_windowsCustomMargins"),
+                ni->setWindowProperty(platformWindow, QStringLiteral("WindowsCustomMargins"),
                                       marginsVar);
             }
         }
