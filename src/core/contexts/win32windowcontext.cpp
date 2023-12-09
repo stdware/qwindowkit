@@ -476,7 +476,7 @@ namespace QWK {
         }
         ::SetMenuDefaultItem(hMenu, defaultItemId.value_or(UINT_MAX), FALSE);
 
-        ::DrawMenuBar(hWnd);
+        //::DrawMenuBar(hWnd);
 
         // Popup the system menu at the required position.
         const auto result = ::TrackPopupMenu(hMenu, (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN)), pos.x, pos.y, 0, hWnd, nullptr);
@@ -1311,9 +1311,9 @@ namespace QWK {
                         const bool isBottom = (nativeLocalPos.y >= (clientHeight - frameSize));
                         // Make the border a little wider to let the user easy to resize on corners.
                         const auto scaleFactor = ((isTop || isBottom) ? qreal(2) : qreal(1));
-                        const int scaledFrameSizeX = std::round(qreal(frameSize) * scaleFactor);
-                        const bool isLeft = (nativeLocalPos.x < scaledFrameSizeX);
-                        const bool isRight = (nativeLocalPos.x >= (clientWidth - scaledFrameSizeX));
+                        const int scaledFrameSize = std::round(qreal(frameSize) * scaleFactor);
+                        const bool isLeft = (nativeLocalPos.x < scaledFrameSize);
+                        const bool isRight = (nativeLocalPos.x >= (clientWidth - scaledFrameSize));
                         if (dontOverrideCursor && (isTop || isBottom || isLeft || isRight)) {
                             // Return HTCLIENT instead of HTBORDER here, because the mouse is
                             // inside the window now, return HTCLIENT to let the controls
