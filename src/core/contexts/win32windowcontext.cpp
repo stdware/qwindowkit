@@ -381,7 +381,7 @@ namespace QWK {
         apis.ptimeEndPeriod(ms_granularity);
     }
 
-    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry)
+    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry, const bool fixedSize)
     {
         const HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
@@ -391,97 +391,46 @@ namespace QWK {
             return;
         }
 
-        // Tweak the menu items according to the current window status and user settings.
-        const bool disableClose = /*data->callbacks->getProperty(kSysMenuDisableCloseVar, false).toBool()*/false;
-        const bool disableRestore = /*data->callbacks->getProperty(kSysMenuDisableRestoreVar, false).toBool()*/false;
-        const bool disableMinimize = /*data->callbacks->getProperty(kSysMenuDisableMinimizeVar, false).toBool()*/false;
-        const bool disableMaximize = /*data->callbacks->getProperty(kSysMenuDisableMaximizeVar, false).toBool()*/false;
-        const bool disableSize = /*data->callbacks->getProperty(kSysMenuDisableSizeVar, false).toBool()*/false;
-        const bool disableMove = /*data->callbacks->getProperty(kSysMenuDisableMoveVar, false).toBool()*/false;
-        const bool removeClose = /*data->callbacks->getProperty(kSysMenuRemoveCloseVar, false).toBool()*/false;
-        const bool removeSeparator = /*data->callbacks->getProperty(kSysMenuRemoveSeparatorVar, false).toBool()*/false;
-        const bool removeRestore = /*data->callbacks->getProperty(kSysMenuRemoveRestoreVar, false).toBool()*/false;
-        const bool removeMinimize = /*data->callbacks->getProperty(kSysMenuRemoveMinimizeVar, false).toBool()*/false;
-        const bool removeMaximize = /*data->callbacks->getProperty(kSysMenuRemoveMaximizeVar, false).toBool()*/false;
-        const bool removeSize = /*data->callbacks->getProperty(kSysMenuRemoveSizeVar, false).toBool()*/false;
-        const bool removeMove = /*data->callbacks->getProperty(kSysMenuRemoveMoveVar, false).toBool()*/false;
         const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
-        const bool fixedSize = /*data->callbacks->isWindowFixedSize()*/false;
-        if (removeClose) {
-            ::DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | (disableClose ? MFS_DISABLED : MFS_ENABLED)));
-        }
-        if (removeSeparator) {
-            // Looks like we must use 0 for the second parameter here, otherwise we can't remove the separator.
-            ::DeleteMenu(hMenu, 0, MFT_SEPARATOR);
-        }
-        if (removeMaximize) {
-            ::DeleteMenu(hMenu, SC_MAXIMIZE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_MAXIMIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize || disableMaximize) ? MFS_DISABLED : MFS_ENABLED)));
-        }
-        if (removeRestore) {
-            ::DeleteMenu(hMenu, SC_RESTORE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_RESTORE, (MF_BYCOMMAND | ((maxOrFull && !fixedSize && !disableRestore) ? MFS_ENABLED : MFS_DISABLED)));
-            // The first menu item should be selected by default if the menu is brought
-            // up by keyboard. I don't know how to pre-select a menu item but it seems
-            // highlight can do the job. However, there's an annoying issue if we do
-            // this manually: the highlighted menu item is really only highlighted,
-            // not selected, so even if the mouse cursor hovers on other menu items
-            // or the user navigates to other menu items through keyboard, the original
-            // highlight bar will not move accordingly, the OS will generate another
-            // highlight bar to indicate the current selected menu item, which will make
-            // the menu look kind of weird. Currently I don't know how to fix this issue.
-            ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
-        }
-        if (removeMinimize) {
-            ::DeleteMenu(hMenu, SC_MINIMIZE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | (disableMinimize ? MFS_DISABLED : MFS_ENABLED)));
-        }
-        if (removeSize) {
-            ::DeleteMenu(hMenu, SC_SIZE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_SIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize || disableSize || disableMinimize || disableMaximize) ? MFS_DISABLED : MFS_ENABLED)));
-        }
-        if (removeMove) {
-            ::DeleteMenu(hMenu, SC_MOVE, MF_BYCOMMAND);
-        } else {
-            ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | ((maxOrFull || disableMove) ? MFS_DISABLED : MFS_ENABLED)));
-        }
+        ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | MFS_ENABLED));
+        ::EnableMenuItem(hMenu, SC_MAXIMIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(hMenu, SC_RESTORE, (MF_BYCOMMAND | ((maxOrFull && !fixedSize) ? MFS_ENABLED : MFS_DISABLED)));
+        // The first menu item should be selected by default if the menu is brought
+        // up by keyboard. I don't know how to pre-select a menu item but it seems
+        // highlight can do the job. However, there's an annoying issue if we do
+        // this manually: the highlighted menu item is really only highlighted,
+        // not selected, so even if the mouse cursor hovers on other menu items
+        // or the user navigates to other menu items through keyboard, the original
+        // highlight bar will not move accordingly, the OS will generate another
+        // highlight bar to indicate the current selected menu item, which will make
+        // the menu look kind of weird. Currently I don't know how to fix this issue.
+        ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
+        ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | MFS_ENABLED));
+        ::EnableMenuItem(hMenu, SC_SIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | (maxOrFull ? MFS_DISABLED : MFS_ENABLED)));
 
         // The default menu item will appear in bold font. There can only be one default
         // menu item per menu at most. Set the item ID to "UINT_MAX" (or simply "-1")
         // can clear the default item for the given menu.
-        std::optional<UINT> defaultItemId = std::nullopt;
+        UINT defaultItemId = UINT_MAX;
         if (isWin11OrGreater()) {
             if (maxOrFull) {
-                if (!removeRestore) {
-                    defaultItemId = SC_RESTORE;
-                }
+                defaultItemId = SC_RESTORE;
             } else {
-                if (!removeMaximize) {
-                    defaultItemId = SC_MAXIMIZE;
-                }
+                defaultItemId = SC_MAXIMIZE;
             }
         }
-        if (!(defaultItemId.has_value() || removeClose)) {
+        if (defaultItemId == UINT_MAX) {
             defaultItemId = SC_CLOSE;
         }
-        ::SetMenuDefaultItem(hMenu, defaultItemId.value_or(UINT_MAX), FALSE);
-
-        //::DrawMenuBar(hWnd);
+        ::SetMenuDefaultItem(hMenu, defaultItemId, FALSE);
 
         // Popup the system menu at the required position.
         const auto result = ::TrackPopupMenu(hMenu, (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN)), pos.x, pos.y, 0, hWnd, nullptr);
 
-        if (!removeRestore) {
-            // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
-            // highlighting until we unhighlight it manually.
-            ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | MFS_UNHILITE));
-        }
+        // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
+        // highlighting until we unhighlight it manually.
+        ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | MFS_UNHILITE));
 
         if (!result) {
             // The user canceled the menu, no need to continue.
@@ -933,8 +882,7 @@ namespace QWK {
                     DWORD dwScreenPos = ::GetMessagePos();
                     POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
                     ::ScreenToClient(hWnd, &screenPoint);
-                    QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
-                        QPoint{screenPoint.x, screenPoint.y}, m_windowHandle);
+                    QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(screenPoint), m_windowHandle);
                     auto dummy = CoreWindowAgent::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
@@ -1166,8 +1114,7 @@ namespace QWK {
                 auto clientWidth = RECT_WIDTH(clientRect);
                 auto clientHeight = RECT_HEIGHT(clientRect);
 
-                QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
-                    QPoint(nativeLocalPos.x, nativeLocalPos.y), m_windowHandle);
+                QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
 
                 bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
@@ -1687,7 +1634,7 @@ namespace QWK {
         switch (message) {
             case WM_RBUTTONUP: {
                 const POINT nativeLocalPos = getNativePosFromMouse();
-                const QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(QPoint(nativeLocalPos.x, nativeLocalPos.y), m_windowHandle);
+                const QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
                 if (isInTitleBarDraggableArea(qtScenePos)) {
                     shouldShowSystemMenu = true;
                     nativeGlobalPos = nativeLocalPos;
@@ -1726,7 +1673,7 @@ namespace QWK {
                 break;
         }
         if (shouldShowSystemMenu) {
-            showSystemMenu2(hWnd, nativeGlobalPos, broughtByKeyboard);
+            showSystemMenu2(hWnd, nativeGlobalPos, broughtByKeyboard, m_delegate->isHostSizeFixed(m_host));
             // QPA's internal code will handle system menu events separately, and its
             // behavior is not what we would want to see because it doesn't know our
             // window doesn't have any window frame now, so return early here to avoid
