@@ -8,12 +8,13 @@
 #include <QtGui/QWindow>
 #include <QtGui/QPolygon>
 
-#include <QWKCore/corewindowagent.h>
-#include <QWKCore/windowitemdelegate.h>
+#include <QWKCore/windowagentbase.h>
+#include <QWKCore/sharedeventfilter.h>
+#include <QWKCore/private/windowitemdelegate_p.h>
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
+    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public SharedEventDispatcher {
         Q_OBJECT
     public:
         AbstractWindowContext();
@@ -29,21 +30,22 @@ namespace QWK {
         bool setHitTestVisible(const QObject *obj, bool visible);
         bool setHitTestVisible(const QRect &rect, bool visible);
 
-        inline const QObject *systemButton(CoreWindowAgent::SystemButton button) const;
-        bool setSystemButton(CoreWindowAgent::SystemButton button, const QObject *obj);
+        inline const QObject *systemButton(WindowAgentBase::SystemButton button) const;
+        bool setSystemButton(WindowAgentBase::SystemButton button, const QObject *obj);
 
         inline const QObject *titleBar() const;
         bool setTitleBar(const QObject *obj);
 
-        void showSystemMenu(const QPoint &pos);
+        virtual void showSystemMenu(const QPoint &pos);
 
         QRegion hitTestShape() const;
-        bool isInSystemButtons(const QPoint &pos, CoreWindowAgent::SystemButton *button) const;
+        bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
     protected:
         virtual bool setupHost() = 0;
-        virtual bool hostEventFilter(QEvent *event);
+
+        QObject *target() const override;
 
     protected:
         QObject *m_host;
@@ -54,7 +56,7 @@ namespace QWK {
         QList<QRect> m_hitTestVisibleRects;
 
         const QObject *m_titleBar{};
-        std::array<const QObject *, CoreWindowAgent::NumSystemButton> m_systemButtons{};
+        std::array<const QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
 
         // Cached shape
         mutable bool hitTestVisibleShapeDirty{};
@@ -74,7 +76,7 @@ namespace QWK {
     }
 
     inline const QObject *
-        AbstractWindowContext::systemButton(CoreWindowAgent::SystemButton button) const {
+        AbstractWindowContext::systemButton(WindowAgentBase::SystemButton button) const {
         return m_systemButtons[button];
     }
 

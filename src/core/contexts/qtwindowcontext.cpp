@@ -50,8 +50,4 @@ namespace QWK {
         return false;
     }
 
-    bool QtWindowContext::hostEventFilter(QEvent *event) {
-        return false;
-    }
-
 }

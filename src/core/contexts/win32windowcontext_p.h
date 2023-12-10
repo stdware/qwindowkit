@@ -21,6 +21,8 @@ namespace QWK {
             TitleBar,
         };
 
+        void showSystemMenu(const QPoint &pos) override;
+
     protected:
         bool setupHost() override;
 

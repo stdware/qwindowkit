@@ -13,7 +13,6 @@ namespace QWK {
 
     protected:
         bool setupHost() override;
-        bool hostEventFilter(QEvent *event) override;
     };
 
 }

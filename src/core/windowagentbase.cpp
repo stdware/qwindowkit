@@ -1,7 +1,7 @@
-#include "corewindowagent.h"
-#include "corewindowagent_p.h"
+#include "windowagentbase.h"
+#include "windowagentbase_p.h"
 
-#include "qwkcoreglobal_p.h"
+#include "qwkglobal_p.h"
 
 #ifdef Q_OS_WINDOWS
 #  include "win32windowcontext_p.h"
@@ -13,15 +13,15 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
-    CoreWindowAgentPrivate::CoreWindowAgentPrivate() : q_ptr(nullptr), context(nullptr) {
+    WindowAgentBasePrivate::WindowAgentBasePrivate() : q_ptr(nullptr), context(nullptr) {
     }
 
-    CoreWindowAgentPrivate::~CoreWindowAgentPrivate() = default;
+    WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 
-    void CoreWindowAgentPrivate::init() {
+    void WindowAgentBasePrivate::init() {
     }
 
-    AbstractWindowContext *CoreWindowAgentPrivate::createContext() const {
+    AbstractWindowContext *WindowAgentBasePrivate::createContext() const {
         return
 #ifdef Q_OS_WINDOWS
             new Win32WindowContext()
@@ -32,7 +32,7 @@ namespace QWK {
     }
 
 
-    bool CoreWindowAgentPrivate::setup(QObject *host, WindowItemDelegate *delegate) {
+    bool WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
         std::unique_ptr<AbstractWindowContext> ctx(createContext());
         if (!ctx->setup(host, delegate)) {
             return false;
@@ -41,15 +41,15 @@ namespace QWK {
         return true;
     }
 
-    CoreWindowAgent::~CoreWindowAgent() = default;
+    WindowAgentBase::~WindowAgentBase() = default;
 
-    void CoreWindowAgent::showSystemMenu(const QPoint &pos) {
-        Q_D(CoreWindowAgent);
+    void WindowAgentBase::showSystemMenu(const QPoint &pos) {
+        Q_D(WindowAgentBase);
         d->context->showSystemMenu(pos);
     }
 
-    void CoreWindowAgent::startSystemMove(const QPoint &pos) {
-        Q_D(CoreWindowAgent);
+    void WindowAgentBase::startSystemMove(const QPoint &pos) {
+        Q_D(WindowAgentBase);
         auto win = d->context->window();
         if (!win) {
             return;
@@ -59,8 +59,8 @@ namespace QWK {
         win->startSystemMove();
     }
 
-    void CoreWindowAgent::startSystemResize(Qt::Edges edges, const QPoint &pos) {
-        Q_D(CoreWindowAgent);
+    void WindowAgentBase::startSystemResize(Qt::Edges edges, const QPoint &pos) {
+        Q_D(WindowAgentBase);
         auto win = d->context->window();
         if (!win) {
             return;
@@ -70,13 +70,13 @@ namespace QWK {
         win->startSystemResize(edges);
     }
 
-    void CoreWindowAgent::centralize() {
+    void WindowAgentBase::centralize() {
     }
 
-    void CoreWindowAgent::raise() {
+    void WindowAgentBase::raise() {
     }
 
-    CoreWindowAgent::CoreWindowAgent(CoreWindowAgentPrivate &d, QObject *parent)
+    WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)
         : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
 
