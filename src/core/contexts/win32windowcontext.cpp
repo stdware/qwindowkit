@@ -60,46 +60,42 @@ namespace QWK {
 //            }
 //        };
 //
-// #define DWM_API_DECLARE(NAME) decltype(&::NAME) p##NAME = DefaultFunc<decltype(&::NAME)>::func
-#define DWM_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
+// #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = DefaultFunc<decltype(&::NAME)>::func
+#define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
 
-        DWM_API_DECLARE(DwmFlush);
-        DWM_API_DECLARE(DwmIsCompositionEnabled);
-        DWM_API_DECLARE(DwmGetCompositionTimingInfo);
-        DWM_API_DECLARE(GetDpiForWindow);
-        DWM_API_DECLARE(GetSystemMetricsForDpi);
-        DWM_API_DECLARE(GetDpiForMonitor);
-        DWM_API_DECLARE(timeGetDevCaps);
-        DWM_API_DECLARE(timeBeginPeriod);
-        DWM_API_DECLARE(timeEndPeriod);
+        DYNAMIC_API_DECLARE(DwmFlush);
+        DYNAMIC_API_DECLARE(DwmIsCompositionEnabled);
+        DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
+        DYNAMIC_API_DECLARE(GetDpiForWindow);
+        DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
+        DYNAMIC_API_DECLARE(GetDpiForMonitor);
+        DYNAMIC_API_DECLARE(timeGetDevCaps);
+        DYNAMIC_API_DECLARE(timeBeginPeriod);
+        DYNAMIC_API_DECLARE(timeEndPeriod);
 
-#undef DWM_API_DECLARE
+#undef DYNAMIC_API_DECLARE
 
         DynamicApis() {
+#define DYNAMIC_API_RESOLVE(DLL, NAME) p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL##.resolve(#NAME))
+
             QSystemLibrary user32(QStringLiteral("user32"));
-            pGetDpiForWindow =
-                reinterpret_cast<decltype(pGetDpiForWindow)>(user32.resolve("GetDpiForWindow"));
-            pGetSystemMetricsForDpi = reinterpret_cast<decltype(pGetSystemMetricsForDpi)>(
-                user32.resolve("GetSystemMetricsForDpi"));
+            DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
+            DYNAMIC_API_RESOLVE(user32, GetSystemMetricsForDpi);
 
             QSystemLibrary shcore(QStringLiteral("shcore"));
-            pGetDpiForMonitor =
-                reinterpret_cast<decltype(pGetDpiForMonitor)>(shcore.resolve("GetDpiForMonitor"));
+            DYNAMIC_API_RESOLVE(shcore, GetDpiForMonitor);
 
             QSystemLibrary dwmapi(QStringLiteral("dwmapi"));
-            pDwmFlush = reinterpret_cast<decltype(pDwmFlush)>(dwmapi.resolve("DwmFlush"));
-            pDwmIsCompositionEnabled = reinterpret_cast<decltype(pDwmIsCompositionEnabled)>(
-                dwmapi.resolve("DwmIsCompositionEnabled"));
-            pDwmGetCompositionTimingInfo = reinterpret_cast<decltype(pDwmGetCompositionTimingInfo)>(
-                dwmapi.resolve("DwmGetCompositionTimingInfo"));
+            DYNAMIC_API_RESOLVE(dwmapi, DwmFlush);
+            DYNAMIC_API_RESOLVE(dwmapi, DwmIsCompositionEnabled);
+            DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
 
             QSystemLibrary winmm(QStringLiteral("winmm"));
-            ptimeGetDevCaps =
-                reinterpret_cast<decltype(ptimeGetDevCaps)>(winmm.resolve("timeGetDevCaps"));
-            ptimeBeginPeriod =
-                reinterpret_cast<decltype(ptimeBeginPeriod)>(winmm.resolve("timeBeginPeriod"));
-            ptimeEndPeriod =
-                reinterpret_cast<decltype(ptimeEndPeriod)>(winmm.resolve("timeEndPeriod"));
+            DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
+            DYNAMIC_API_RESOLVE(winmm, timeBeginPeriod);
+            DYNAMIC_API_RESOLVE(winmm, timeEndPeriod);
+
+#undef DYNAMIC_API_RESOLVE
         }
 
         ~DynamicApis() = default;
