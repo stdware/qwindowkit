@@ -34,6 +34,17 @@ Q_DECLARE_METATYPE(QMargins)
 
 namespace QWK {
 
+    using _DWMWINDOWATTRIBUTE = enum _DWMWINDOWATTRIBUTE
+    {
+        _DWMWA_USE_HOSTBACKDROPBRUSH = 17, // [set] BOOL, Allows the use of host backdrop brushes for the window.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19, // Undocumented, the same with DWMWA_USE_IMMERSIVE_DARK_MODE, but available on systems before Win10 20H1.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE = 20, // [set] BOOL, Allows a window to either use the accent color, or dark, according to the user Color Mode preferences.
+        _DWMWA_WINDOW_CORNER_PREFERENCE = 33, // [set] WINDOW_CORNER_PREFERENCE, Controls the policy that rounds top-level window corners
+        _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37, // [get] UINT, width of the visible border around a thick frame window
+        _DWMWA_SYSTEMBACKDROP_TYPE = 38, // [get, set] SYSTEMBACKDROP_TYPE, Controls the system-drawn backdrop material of a window, including behind the non-client area.
+        _DWMWA_MICA_EFFECT = 1029 // Undocumented, use this value to enable Mica material on Win11 21H2. You should use DWMWA_SYSTEMBACKDROP_TYPE instead on Win11 22H2 and newer.
+    };
+
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const auto kAutoHideTaskBarThickness = quint8{2};
 
@@ -63,6 +74,11 @@ namespace QWK {
     } g_hook{};
 
     struct DynamicApis {
+        static const DynamicApis &instance() {
+            static const DynamicApis inst{};
+            return inst;
+        }
+
 //        template <typename T>
 //        struct DefaultFunc;
 //
@@ -75,11 +91,13 @@ namespace QWK {
 //
 // #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME =
 // DefaultFunc<decltype(&::NAME)>::func
+
 #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
 
         DYNAMIC_API_DECLARE(DwmFlush);
         DYNAMIC_API_DECLARE(DwmIsCompositionEnabled);
         DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
+        DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
         DYNAMIC_API_DECLARE(GetDpiForWindow);
         DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
         DYNAMIC_API_DECLARE(GetDpiForMonitor);
@@ -89,6 +107,7 @@ namespace QWK {
 
 #undef DYNAMIC_API_DECLARE
 
+    private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
     p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
@@ -104,6 +123,7 @@ namespace QWK {
             DYNAMIC_API_RESOLVE(dwmapi, DwmFlush);
             DYNAMIC_API_RESOLVE(dwmapi, DwmIsCompositionEnabled);
             DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
+            DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
 
             QSystemLibrary winmm(QStringLiteral("winmm"));
             DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
@@ -115,12 +135,6 @@ namespace QWK {
 
         ~DynamicApis() = default;
 
-        static const DynamicApis &instance() {
-            static const DynamicApis inst{};
-            return inst;
-        }
-
-    private:
         Q_DISABLE_COPY_MOVE(DynamicApis)
     };
 
@@ -265,6 +279,18 @@ namespace QWK {
 #endif
     }
 
+    static inline bool isDarkWindowFrameEnabled(HWND hwnd) {
+        BOOL enabled = FALSE;
+        const DynamicApis &apis = DynamicApis::instance();
+        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE, &enabled, sizeof(enabled)))) {
+            return enabled;
+        } else if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &enabled, sizeof(enabled)))) {
+            return enabled;
+        } else {
+            return false;
+        }
+    }
+
     static inline QColor getAccentColor() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         return QGuiApplication::palette().color(QPalette::Accent);
@@ -306,9 +332,21 @@ namespace QWK {
         } else { // Win2K
             HDC hdc = ::GetDC(nullptr);
             const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
-            const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
+            //const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
             ::ReleaseDC(nullptr, hdc);
             return quint32(dpiX);
+        }
+    }
+
+    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+        UINT result{ 0 };
+        const DynamicApis &apis = DynamicApis::instance();
+        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
+            return result;
+        } else {
+            const quint32 dpi = getDpiForWindow(hwnd);
+            result = quint32(std::round(qreal(1) * qreal(dpi) / qreal(USER_DEFAULT_SCREEN_DPI)));
+            return result;
         }
     }
 
@@ -338,11 +376,11 @@ namespace QWK {
 
     static inline void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
         const auto margins = [hwnd]() -> QMargins {
-            const int titleBarHeight = getTitleBarHeight(hwnd);
+            const auto titleBarHeight = int(getTitleBarHeight(hwnd));
             if (isWin10OrGreater()) {
                 return {0, -titleBarHeight, 0, 0};
             } else {
-                const int frameSize = getResizeBorderThickness(hwnd);
+                const auto frameSize = int(getResizeBorderThickness(hwnd));
                 return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
             }
         }();
@@ -732,7 +770,7 @@ namespace QWK {
     }
 
     QString Win32WindowContext::key() const {
-        return "win32";
+        return QStringLiteral("win32");
     }
 
     void Win32WindowContext::virtual_hook(int id, void *data) {
@@ -755,7 +793,34 @@ namespace QWK {
                 auto &painter = *reinterpret_cast<QPainter *>(args[0]);
                 auto &rect = *reinterpret_cast<const QRect *>(args[1]);
                 auto &region = *reinterpret_cast<const QRegion *>(args[2]);
-                // ### TODO
+                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                QPen pen{};
+                const auto borderThickness = int(QHighDpi::fromNativePixels(getWindowFrameBorderThickness(hwnd), m_windowHandle));
+                pen.setWidth(borderThickness * 2);
+                const bool active = m_host->isWidgetType() ? m_host->property("isActiveWindow").toBool() : m_host->property("active").toBool();
+                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
+                if (active) {
+                    if (isWindowFrameBorderColorized()) {
+                        pen.setColor(getAccentColor());
+                    } else {
+                        if (dark) {
+                            pen.setColor(kFrameBorderActiveColorDark);
+                        } else {
+                            pen.setColor(kFrameBorderActiveColorLight);
+                        }
+                    }
+                } else {
+                    if (dark) {
+                        pen.setColor(kFrameBorderInactiveColorDark);
+                    } else {
+                        pen.setColor(kFrameBorderInactiveColorLight);
+                    }
+                }
+                painter.save();
+                painter.setRenderHint(QPainter::Antialiasing); // ### TODO: do we need to enable or disable it?
+                painter.setPen(pen);
+                painter.drawLine(QLine{ QPoint{ 0, 0 }, QPoint{ rect.width(), 0 } });
+                painter.restore();
                 return;
             }
             default: {

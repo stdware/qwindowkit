@@ -1,9 +1,8 @@
 #include "quickwindowagent.h"
 #include "quickwindowagent_p.h"
+#include "quickitemdelegate_p.h"
 
 #include <QtQuick/QQuickWindow>
-
-#include "quickitemdelegate_p.h"
 
 namespace QWK {
 
