@@ -1,3 +1,4 @@
+#include <QWKQuick/qwkquickglobal.h>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -13,6 +14,7 @@ int main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QGuiApplication application(argc, argv);
     QQmlApplicationEngine engine;
+    QWK::registerTypes(&engine);
     engine.load(QUrl(QStringLiteral("qrc:///main.qml")));
     return application.exec();
 }

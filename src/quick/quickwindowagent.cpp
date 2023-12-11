@@ -72,12 +72,12 @@ namespace QWK {
         return d->context->isHitTestVisible(item);
     }
 
-    void QuickWindowAgent::setHitTestVisible(const QQuickItem *item, bool visible) {
+    void QuickWindowAgent::setHitTestVisible_item(const QQuickItem *item, bool visible) {
         Q_D(QuickWindowAgent);
         d->context->setHitTestVisible(item, visible);
     }
 
-    void QuickWindowAgent::setHitTestVisible(const QRect &rect, bool visible) {
+    void QuickWindowAgent::setHitTestVisible_rect(const QRect &rect, bool visible) {
         Q_D(QuickWindowAgent);
         d->context->setHitTestVisible(rect, visible);
     }

@@ -5,6 +5,7 @@ project(QWKQuick
 
 set(_src
     qwkquickglobal.h
+    qwkquickglobal.cpp
     quickitemdelegate_p.h
     quickitemdelegate.cpp
     quickwindowagent.h

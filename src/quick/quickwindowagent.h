@@ -19,17 +19,20 @@ namespace QWK {
         ~QuickWindowAgent() override;
 
     public:
-        bool setup(QQuickWindow *window);
+        Q_INVOKABLE bool setup(QQuickWindow *window);
 
-        const QQuickItem *titleBar() const;
-        void setTitleBar(const QQuickItem *item);
+        Q_INVOKABLE const QQuickItem *titleBar() const;
+        Q_INVOKABLE void setTitleBar(const QQuickItem *item);
 
-        const QQuickItem *systemButton(SystemButton button) const;
-        void setSystemButton(SystemButton button, const QQuickItem *item);
+        Q_INVOKABLE const QQuickItem *systemButton(SystemButton button) const;
+        Q_INVOKABLE void setSystemButton(SystemButton button, const QQuickItem *item);
 
-        bool isHitTestVisible(const QQuickItem *item) const;
-        void setHitTestVisible(const QQuickItem *item, bool visible = true);
-        void setHitTestVisible(const QRect &rect, bool visible = true);
+        Q_INVOKABLE bool isHitTestVisible(const QQuickItem *item) const;
+        Q_INVOKABLE inline void setHitTestVisible(const QQuickItem *item, bool visible = true) {
+            setHitTestVisible_item(item, visible);
+        }
+        Q_INVOKABLE void setHitTestVisible_item(const QQuickItem *item, bool visible = true);
+        Q_INVOKABLE void setHitTestVisible_rect(const QRect &rect, bool visible = true);
 
     Q_SIGNALS:
         void titleBarWidgetChanged(const QQuickItem *item);

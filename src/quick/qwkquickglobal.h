@@ -15,4 +15,14 @@
 #  endif
 #endif
 
+QT_BEGIN_NAMESPACE
+class QQmlEngine;
+QT_END_NAMESPACE
+
+namespace QWK {
+
+    QWK_QUICK_EXPORT void registerTypes(QQmlEngine *engine);
+
+}
+
 #endif // QWKQUICKGLOBAL_H
