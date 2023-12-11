@@ -27,6 +27,7 @@
 #include <timeapi.h>
 
 #include "nativeeventfilter.h"
+#include "qwkglobal_p.h"
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 Q_DECLARE_METATYPE(QMargins)
@@ -34,37 +35,42 @@ Q_DECLARE_METATYPE(QMargins)
 
 namespace QWK {
 
-    using _DWMWINDOWATTRIBUTE = enum _DWMWINDOWATTRIBUTE {
-        _DWMWA_USE_HOSTBACKDROPBRUSH =
-            17, // [set] BOOL, Allows the use of host backdrop brushes for the window.
-        _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 =
-            19, // Undocumented, the same with DWMWA_USE_IMMERSIVE_DARK_MODE, but available on
-                // systems before Win10 20H1.
-        _DWMWA_USE_IMMERSIVE_DARK_MODE =
-            20, // [set] BOOL, Allows a window to either use the accent color, or dark, according to
-                // the user Color Mode preferences.
-        _DWMWA_WINDOW_CORNER_PREFERENCE = 33, // [set] WINDOW_CORNER_PREFERENCE, Controls the policy
-                                              // that rounds top-level window corners
-        _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS =
-            37,  // [get] UINT, width of the visible border around a thick frame window
-        _DWMWA_SYSTEMBACKDROP_TYPE =
-            38,  // [get, set] SYSTEMBACKDROP_TYPE, Controls the system-drawn backdrop material of a
-                 // window, including behind the non-client area.
-        _DWMWA_MICA_EFFECT =
-            1029 // Undocumented, use this value to enable Mica material on Win11 21H2. You should
-                 // use DWMWA_SYSTEMBACKDROP_TYPE instead on Win11 22H2 and newer.
+    enum _DWMWINDOWATTRIBUTE {
+        // [set] BOOL, Allows the use of host backdrop brushes for the window.
+        _DWMWA_USE_HOSTBACKDROPBRUSH = 17,
+
+        // Undocumented, the same with DWMWA_USE_IMMERSIVE_DARK_MODE, but available on systems
+        // before Win10 20H1.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19,
+
+        // [set] BOOL, Allows a window to either use the accent color, or dark, according to the
+        // user Color Mode preferences.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE = 20,
+
+        // [set] WINDOW_CORNER_PREFERENCE, Controls the policy that rounds top-level window corners
+        _DWMWA_WINDOW_CORNER_PREFERENCE = 33,
+
+        // [get] UINT, width of the visible border around a thick frame window
+        _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37,
+
+        // [get, set] SYSTEMBACKDROP_TYPE, Controls the system-drawn backdrop material of a window,
+        // including behind the non-client area.
+        _DWMWA_SYSTEMBACKDROP_TYPE = 38,
+
+        // Undocumented, use this value to enable Mica material on Win11 21H2. You should use
+        // DWMWA_SYSTEMBACKDROP_TYPE instead on Win11 22H2 and newer.
+        _DWMWA_MICA_EFFECT = 1029
     };
 
     // The thickness of an auto-hide taskbar in pixels.
-    static constexpr const auto kAutoHideTaskBarThickness = quint8{2};
+    static constexpr const quint8 kAutoHideTaskBarThickness = 2;
 
-    static inline constexpr const auto kFrameBorderActiveColorLight =
-        QColor{110, 110, 110};                                                           // #6E6E6E
-    static inline constexpr const auto kFrameBorderActiveColorDark = QColor{51, 51, 51}; // #333333
-    static inline constexpr const auto kFrameBorderInactiveColorLight =
-        QColor{167, 167, 167};                                                           // #A7A7A7
-    static inline constexpr const auto kFrameBorderInactiveColorDark =
-        QColor{61, 61, 62};                                                              // #3D3D3E
+    static constexpr const struct {
+        const uint32_t activeLight = MAKE_RGBA_COLOR(110, 110, 110, 255);   // #6E6E6E
+        const uint32_t activeDark = MAKE_RGBA_COLOR(51, 51, 51, 255);       // #333333
+        const uint32_t inactiveLight = MAKE_RGBA_COLOR(167, 167, 167, 255); // #A7A7A7
+        const uint32_t inactiveDark = MAKE_RGBA_COLOR(61, 61, 62, 255);     // #3D3D3E
+    } kWindowsColorSet;
 
     // hWnd -> context
     using WndProcHash = QHash<HWND, Win32WindowContext *>;
@@ -352,7 +358,7 @@ namespace QWK {
     }
 
     static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
-        UINT result{0};
+        UINT result = 0;
         const DynamicApis &apis = DynamicApis::instance();
         if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
                                                   &result, sizeof(result)))) {
@@ -794,6 +800,7 @@ namespace QWK {
                 moveToDesktopCenter(hwnd);
                 return;
             }
+
             case ShowSystemMenuHook: {
                 const auto &pos = *static_cast<const QPoint *>(data);
                 auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
@@ -801,45 +808,69 @@ namespace QWK {
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
             }
+
             case NeedsDrawBordersHook: {
                 auto &result = *static_cast<bool *>(data);
                 result = isWin10OrGreater() && !isWin11OrGreater();
                 return;
             }
+
+            case BorderThicknessHook: {
+                auto args = static_cast<void **>(data);
+                const bool requireNative = *static_cast<const bool *>(args[0]);
+                quint32 &thickness = *static_cast<quint32 *>(args[1]);
+                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                const auto nativeThickness = getWindowFrameBorderThickness(hwnd);
+                thickness = requireNative
+                                ? nativeThickness
+                                : QHighDpi::fromNativePixels(nativeThickness, m_windowHandle);
+                return;
+            }
+
+            case BorderColorsHook: {
+                auto arr = *reinterpret_cast<QList<QColor> *>(data);
+                arr.clear();
+                arr.push_back(kWindowsColorSet.activeLight);
+                arr.push_back(kWindowsColorSet.activeDark);
+                arr.push_back(kWindowsColorSet.inactiveLight);
+                arr.push_back(kWindowsColorSet.inactiveDark);
+                return;
+            }
+
             case DrawBordersHook: {
                 auto args = static_cast<void **>(data);
                 auto &painter = *static_cast<QPainter *>(args[0]);
                 const auto &rect = *static_cast<const QRect *>(args[1]);
                 const auto &region = *static_cast<const QRegion *>(args[2]);
                 const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+
                 QPen pen;
                 const auto borderThickness = int(QHighDpi::fromNativePixels(
                     getWindowFrameBorderThickness(hwnd), m_windowHandle));
                 pen.setWidth(borderThickness * 2);
-                const bool active = m_host->isWidgetType()
-                                        ? m_host->property("isActiveWindow").toBool()
-                                        : m_host->property("active").toBool();
+                const bool active = m_delegate->isWindowActive(m_host);
                 const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
+
                 if (active) {
                     if (isWindowFrameBorderColorized()) {
                         pen.setColor(getAccentColor());
                     } else {
-                        if (dark) {
-                            pen.setColor(kFrameBorderActiveColorDark);
-                        } else {
-                            pen.setColor(kFrameBorderActiveColorLight);
-                        }
+                        static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
+                        static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
+                        pen.setColor(dark ? frameBorderActiveColorDark
+                                          : frameBorderActiveColorLight);
                     }
                 } else {
-                    if (dark) {
-                        pen.setColor(kFrameBorderInactiveColorDark);
-                    } else {
-                        pen.setColor(kFrameBorderInactiveColorLight);
-                    }
+                    static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
+                    static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
+                    pen.setColor(dark ? frameBorderInactiveColorDark
+                                      : frameBorderInactiveColorLight);
                 }
                 painter.save();
-                painter.setRenderHint(
-                    QPainter::Antialiasing); // ### TODO: do we need to enable or disable it?
+
+                // ### TODO: do we need to enable or disable it?
+                painter.setRenderHint(QPainter::Antialiasing);
+
                 painter.setPen(pen);
                 painter.drawLine(QLine{
                     QPoint{0,            0},
@@ -848,19 +879,7 @@ namespace QWK {
                 painter.restore();
                 return;
             }
-            case QueryBorderThicknessHook: {
-                auto args = static_cast<void **>(data);
-                const bool requireNative = *static_cast<const bool *>(args[0]);
-                quint32 &thickness = *static_cast<quint32 *>(args[1]);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
-                const auto nativeThickness = getWindowFrameBorderThickness(hwnd);
-                if (requireNative) {
-                    thickness = nativeThickness;
-                } else {
-                    thickness = QHighDpi::fromNativePixels(nativeThickness, m_windowHandle);
-                }
-                return;
-            }
+
             default: {
                 // unreachable
                 break;

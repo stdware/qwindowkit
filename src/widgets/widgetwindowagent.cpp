@@ -12,15 +12,26 @@ namespace QWK {
     class WidgetBorderHandler : public QObject {
     public:
         WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
-            : widget(widget), ctx(ctx) {
+            : widget(widget), ctx(ctx), m_thickness(0) {
+            updateThickness();
             widget->installEventFilter(this);
+        }
+
+        void updateThickness() {
+            // Query thickness
+            bool native = false;
+            void *a[] = {
+                &native,
+                &m_thickness,
+            };
+            ctx->virtual_hook(AbstractWindowContext::BorderThicknessHook, &a);
         }
 
         void updateMargins() {
             if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
                 widget->setContentsMargins({});
             } else {
-                widget->setContentsMargins({0, 1, 0, 0});
+                widget->setContentsMargins({0, int(m_thickness), 0, 0});
             }
         }
 
@@ -48,6 +59,15 @@ namespace QWK {
                     updateMargins();
                     break;
                 }
+
+                case QEvent::WindowActivate:
+                case QEvent::WindowDeactivate: {
+                    widget->update();
+                    break;
+                }
+
+                    // TODO: Handle DPI Change
+
                 default:
                     break;
             }
@@ -56,6 +76,7 @@ namespace QWK {
 
         QWidget *widget;
         AbstractWindowContext *ctx;
+        quint32 m_thickness;
     };
 
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() {

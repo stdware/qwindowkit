@@ -38,4 +38,8 @@ namespace QWK {
         return false;
     }
 
+    bool QuickItemDelegate::isWindowActive(const QObject *host) const {
+        return static_cast<QQuickWindow *>(const_cast<QObject *>(host))->isActive();
+    }
+
 }

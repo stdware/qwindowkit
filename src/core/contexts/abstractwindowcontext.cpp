@@ -7,8 +7,14 @@
 
 namespace QWK {
 
-    AbstractWindowContext::AbstractWindowContext() {
-    }
+    static volatile constexpr const struct {
+        const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
+        const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
+        const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
+        const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
+    } kSampleColorSet;
+
+    AbstractWindowContext::AbstractWindowContext() = default;
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
@@ -28,7 +34,7 @@ namespace QWK {
 
         if (!setupHost()) {
             m_host = nullptr;
-            m_delegate = nullptr;
+            m_delegate.reset();
             m_windowHandle = nullptr;
             return false;
         }
@@ -172,13 +178,6 @@ namespace QWK {
         return {};
     }
 
-    static constexpr struct {
-        const quint32 grass = MAKE_RGBA_COLOR(210, 233, 189, 226);
-        const quint32 pink = MAKE_RGBA_COLOR(177, 205, 190, 240);
-        const quint32 tile = MAKE_RGBA_COLOR(193, 195, 211, 203);
-        const quint32 azure = MAKE_RGBA_COLOR(240, 240, 250, 255);
-    } kSampleColorSet;
-
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case NeedsDrawBordersHook: {
@@ -186,28 +185,26 @@ namespace QWK {
                 result = false;
                 return;
             }
-            case DrawBordersHook: {
+
+            case BorderThicknessHook: {
                 auto args = static_cast<void **>(data);
-                auto &painter = *static_cast<QPainter *>(args[0]);
-                const auto &rect = *static_cast<const QRect *>(args[1]);
-
-                // Top
-                painter.setPen(kSampleColorSet.grass);
-                painter.drawLine(rect.topLeft(), rect.topRight());
-
-                // Right
-                painter.setPen(kSampleColorSet.pink);
-                painter.drawLine(rect.topRight(), rect.bottomRight());
-
-                // Bottom
-                painter.setPen(kSampleColorSet.tile);
-                painter.drawLine(rect.bottomLeft(), rect.bottomRight());
-
-                // Right
-                painter.setPen(kSampleColorSet.azure);
-                painter.drawLine(rect.topLeft(), rect.bottomLeft());
+                const bool requireNative = *static_cast<const bool *>(args[0]);
+                quint32 &thickness = *static_cast<quint32 *>(args[1]);
+                std::ignore = requireNative;
+                thickness = 1;
                 return;
             }
+
+            case BorderColorsHook: {
+                auto arr = *reinterpret_cast<QList<QColor> *>(data);
+                arr.clear();
+                arr.push_back(kSampleColorSet.activeLight);
+                arr.push_back(kSampleColorSet.activeDark);
+                arr.push_back(kSampleColorSet.inactiveLight);
+                arr.push_back(kSampleColorSet.inactiveDark);
+                return;
+            }
+
             default:
                 break;
         }

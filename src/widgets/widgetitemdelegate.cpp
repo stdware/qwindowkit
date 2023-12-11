@@ -56,6 +56,10 @@ namespace QWK {
         return false;
     }
 
+    bool WidgetItemDelegate::isWindowActive(const QObject *host) const {
+        return static_cast<const QWidget *>(host)->isActiveWindow();
+    }
+
     void WidgetItemDelegate::resetQtGrabbedControl() const {
         if (!qt_button_down) {
             return;

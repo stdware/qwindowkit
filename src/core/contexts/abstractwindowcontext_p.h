@@ -47,8 +47,9 @@ namespace QWK {
             CentralizeHook = 1,
             ShowSystemMenuHook,
             NeedsDrawBordersHook,
+            BorderThicknessHook,
+            BorderColorsHook,
             DrawBordersHook,
-            QueryBorderThicknessHook
         };
         virtual void virtual_hook(int id, void *data);
 
@@ -56,9 +57,9 @@ namespace QWK {
         virtual bool setupHost() = 0;
 
     protected:
-        QObject *m_host;
+        QObject *m_host{};
         std::unique_ptr<WindowItemDelegate> m_delegate;
-        QWindow *m_windowHandle;
+        QWindow *m_windowHandle{};
 
         QSet<const QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;

@@ -11,26 +11,29 @@ namespace QWK {
 
     class BorderItem : public QQuickPaintedItem {
         Q_OBJECT
-
     public:
         explicit BorderItem(AbstractWindowContext *ctx, QQuickItem *parent = nullptr);
         ~BorderItem() override;
 
         void updateHeight();
 
+    public:
         void paint(QPainter *painter) override;
-
         void itemChange(ItemChange change, const ItemChangeData &data) override;
 
     private:
         AbstractWindowContext *context;
+
+        void _q_windowActivityChanged();
     };
 
-    BorderItem::BorderItem(AbstractWindowContext *ctx, QQuickItem *parent) : QQuickPaintedItem(parent), context(ctx) {
-        setAntialiasing(true); // ### FIXME: do we need to enable or disable this?
-        setMipmap(true); // ### FIXME: do we need to enable or disable this?
-        setFillColor({}); // Will improve the performance a little bit.
-        setOpaquePainting(true); // Will also improve the performance, we don't draw semi-transparent borders of course.
+    BorderItem::BorderItem(AbstractWindowContext *ctx, QQuickItem *parent)
+        : QQuickPaintedItem(parent), context(ctx) {
+        setAntialiasing(true);   // ### FIXME: do we need to enable or disable this?
+        setMipmap(true);         // ### FIXME: do we need to enable or disable this?
+        setFillColor({});        // Will improve the performance a little bit.
+        setOpaquePainting(true); // Will also improve the performance, we don't draw
+                                 // semi-transparent borders of course.
 
         auto parentPri = QQuickItemPrivate::get(parent);
         auto anchors = QQuickItemPrivate::get(this)->anchors();
@@ -46,18 +49,21 @@ namespace QWK {
     void BorderItem::updateHeight() {
         bool native = false;
         quint32 thickness = 0;
-        void *args[] = { &native, &thickness };
-        context->virtual_hook(AbstractWindowContext::QueryBorderThicknessHook, &args);
+        void *args[] = {
+            &native,
+            &thickness,
+        };
+        context->virtual_hook(AbstractWindowContext::BorderThicknessHook, &args);
         setHeight(thickness);
     }
 
     void BorderItem::paint(QPainter *painter) {
-        auto rect = QRect{ QPoint{ 0, 0}, size().toSize() };
-        auto region = QRegion{ rect };
+        QRect rect(QPoint(0, 0), size().toSize());
+        QRegion region(rect);
         void *args[] = {
             painter,
             &rect,
-            &region
+            &region,
         };
         context->virtual_hook(AbstractWindowContext::DrawBordersHook, args);
     }
@@ -67,7 +73,8 @@ namespace QWK {
         switch (change) {
             case ItemSceneChange:
                 if (data.window) {
-                    connect(data.window, &QQuickWindow::activeChanged, this, [this](){ update(); });
+                    connect(data.window, &QQuickWindow::activeChanged, this,
+                            &BorderItem::_q_windowActivityChanged);
                 }
                 Q_FALLTHROUGH();
             case ItemVisibleHasChanged:
@@ -77,6 +84,10 @@ namespace QWK {
             default:
                 break;
         }
+    }
+
+    void BorderItem::_q_windowActivityChanged() {
+        update();
     }
 
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() {
