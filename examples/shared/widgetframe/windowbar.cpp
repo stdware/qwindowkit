@@ -248,23 +248,26 @@ namespace QWK {
             QLabel *label = titleLabel();
             QAbstractButton *maxBtn = maxButton();
             switch (event->type()) {
-                case QEvent::WindowIconChange:
+                case QEvent::WindowIconChange: {
                     if (d_ptr->autoIcon && iconBtn) {
                         iconBtn->setIcon(w->windowIcon());
                         iconChanged(w->windowIcon());
                     }
                     break;
-                case QEvent::WindowTitleChange:
+                }
+                case QEvent::WindowTitleChange: {
                     if (d_ptr->autoTitle && label) {
                         label->setText(w->windowTitle());
                         titleChanged(w->windowTitle());
                     }
                     break;
-                case QEvent::WindowStateChange:
+                }
+                case QEvent::WindowStateChange: {
                     if (maxBtn) {
                         maxBtn->setChecked(w->isMaximized());
                     }
                     break;
+                }
                 default:
                     break;
             }

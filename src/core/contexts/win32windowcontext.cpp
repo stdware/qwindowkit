@@ -749,33 +749,13 @@ namespace QWK {
             return ::DefWindowProcW(hWnd, message, wParam, lParam);
         }
 
-        switch (message) {
-            case WM_NCCALCSIZE: {
-                // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
-                // forward it right away and process it in our native event filter.
-                WindowsNativeEventFilter::lastMessageContext = ctx;
-                LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
-                WindowsNativeEventFilter::lastMessageContext = nullptr;
-                return result;
-            }
-
-            case WM_WINDOWPOSCHANGING: {
-                // When toggling the "Show theme color in title bar and window border" setting in
-                // Windows Settings, or calling `DrawMenuBar()`, Windows sends a message of
-                // WM_WINDOWPOSCHANGING with flags 0x37. If we do not process this message,
-                // the client area as a whole will shift to the left, which looks very abnormal if
-                // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
-                // But I don't know what caused the problem, or why this would solve it.
-                const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
-                if (windowPos->flags ==
-                    (SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
-                    windowPos->flags |= SWP_NOCOPYBITS;
-                }
-                return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
-            }
-
-            default:
-                break;
+        // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
+        // forward it right away and process it in our native event filter.
+        if (message == WM_NCCALCSIZE) {
+            WindowsNativeEventFilter::lastMessageContext = ctx;
+            LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            WindowsNativeEventFilter::lastMessageContext = nullptr;
+            return result;
         }
 
         // Try hooked procedure and save result
@@ -1250,6 +1230,7 @@ namespace QWK {
                 }
                 break;
             }
+
             case WM_NCHITTEST: {
                 // 原生Win32窗口只有顶边是在窗口内部resize的，其余三边都是在窗口
                 // 外部进行resize的，其原理是，WS_THICKFRAME这个窗口样式会在窗
@@ -1538,9 +1519,27 @@ namespace QWK {
                     return true;
                 }
             }
+
+            case WM_WINDOWPOSCHANGING: {
+                // ### FIXME: How does this problem happen and why is it solved?
+                // When toggling the "Show theme color in title bar and window border" setting in
+                // Windows Settings, or calling `DrawMenuBar()`, Windows sends a message of
+                // WM_WINDOWPOSCHANGING with flags 0x37. If we do not process this message,
+                // the client area as a whole will shift to the left, which looks very abnormal if
+                // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
+                // But I don't know what caused the problem, or why this would solve it.
+                const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
+                if (windowPos->flags ==
+                    (SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+                    windowPos->flags |= SWP_NOCOPYBITS;
+                }
+                break;
+            }
+
             default:
                 break;
         }
+
         if (!isWin10OrGreater()) {
             switch (message) {
                 case WM_NCUAHDRAWCAPTION:

@@ -3,25 +3,38 @@
 
 #include <QtGui/QtEvents>
 #include <QtGui/QPainter>
+#include <QtCore/QDebug>
 
 #include "widgetitemdelegate_p.h"
 
 namespace QWK {
 
-    class WidgetPaintFilter : public QObject {
+    class WidgetBorderHandler : public QObject {
     public:
-        WidgetPaintFilter(QWidget *widget, AbstractWindowContext *ctx) : widget(widget), ctx(ctx) {
+        WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
+            : widget(widget), ctx(ctx) {
             widget->installEventFilter(this);
+        }
+
+        void updateMargins() {
+            if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
+                widget->setContentsMargins({});
+            } else {
+                widget->setContentsMargins({0, 1, 0, 0});
+            }
         }
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
             switch (event->type()) {
                 case QEvent::Paint: {
-                    auto pe = static_cast<QPaintEvent *>(event);
+                    if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen))
+                        break;
+
+                    auto paintEvent = static_cast<QPaintEvent *>(event);
                     QPainter painter(widget);
-                    QRect rect = pe->rect();
-                    QRegion region = pe->region();
+                    QRect rect = paintEvent->rect();
+                    QRegion region = paintEvent->region();
                     void *args[] = {
                         &painter,
                         &rect,
@@ -29,6 +42,11 @@ namespace QWK {
                     };
                     ctx->virtual_hook(AbstractWindowContext::DrawBordersHook, args);
                     return true;
+                }
+
+                case QEvent::WindowStateChange: {
+                    updateMargins();
+                    break;
                 }
                 default:
                     break;
@@ -79,13 +97,10 @@ namespace QWK {
         if (bool needPaintBorder = false;
             d->context->virtual_hook(AbstractWindowContext::NeedsDrawBordersHook, &needPaintBorder),
             needPaintBorder) {
-            d->paintFilter = std::make_unique<WidgetPaintFilter>(w, d->context.get());
+            auto borderHandler = std::make_unique<WidgetBorderHandler>(w, d->context.get());
+            borderHandler->updateMargins();
+            d->borderHandler = std::move(borderHandler);
         }
-
-        if (d->context->key() == "win32") {
-            w->setContentsMargins(0, 1, 0, 0);
-        }
-
         return true;
     }
 
