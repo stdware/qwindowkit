@@ -2,22 +2,17 @@
 
 namespace QWK {
 
-    typedef NTSTATUS(WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
-
     RTL_OSVERSIONINFOW GetRealOSVersion() {
-        HMODULE hMod = GetModuleHandleW(L"ntdll.dll");
-        if (hMod) {
-            auto fxPtr = reinterpret_cast<RtlGetVersionPtr>(GetProcAddress(hMod, "RtlGetVersion"));
-            if (fxPtr != nullptr) {
-                RTL_OSVERSIONINFOW rovi = {0};
-                rovi.dwOSVersionInfoSize = sizeof(rovi);
-                if (0 == fxPtr(&rovi)) {
-                    return rovi;
-                }
-            }
-        }
-        RTL_OSVERSIONINFOW rovi = {0};
-        return rovi;
+        static const auto result = []() -> RTL_OSVERSIONINFOW {
+            HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
+            using RtlGetVersionPtr = NTSTATUS(WINAPI *)(PRTL_OSVERSIONINFOW);
+            auto pRtlGetVersion = reinterpret_cast<RtlGetVersionPtr>(::GetProcAddress(hMod, "RtlGetVersion"));
+            RTL_OSVERSIONINFOW rovi{};
+            rovi.dwOSVersionInfoSize = sizeof(rovi);
+            pRtlGetVersion(&rovi);
+            return rovi;
+        }();
+        return result;
     }
 
 }
