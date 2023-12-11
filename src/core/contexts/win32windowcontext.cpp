@@ -4,7 +4,6 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
-#include <QtCore/QDateTime>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
