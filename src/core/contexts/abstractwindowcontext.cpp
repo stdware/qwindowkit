@@ -7,7 +7,7 @@
 
 namespace QWK {
 
-    static volatile constexpr const struct {
+    QWK_USED static constexpr const struct {
         const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
         const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
         const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);

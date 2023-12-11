@@ -65,7 +65,7 @@ namespace QWK {
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const quint8 kAutoHideTaskBarThickness = 2;
 
-    static constexpr const struct {
+    QWK_USED static constexpr const struct {
         const uint32_t activeLight = MAKE_RGBA_COLOR(110, 110, 110, 255);   // #6E6E6E
         const uint32_t activeDark = MAKE_RGBA_COLOR(51, 51, 51, 255);       // #333333
         const uint32_t inactiveLight = MAKE_RGBA_COLOR(167, 167, 167, 255); // #A7A7A7
@@ -948,6 +948,7 @@ namespace QWK {
             return true;
         }
 
+        // Whether to show system menu
         if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
             return true;
         }
@@ -955,7 +956,7 @@ namespace QWK {
         return false; // Not handled
     }
 
-    static constexpr const struct {
+    QWK_USED static constexpr const struct {
         const WPARAM wParam = 0xF1C9ADD4;
         const LPARAM lParam = 0xAFB6F4C6;
     } kMessageTag;
@@ -1099,7 +1100,7 @@ namespace QWK {
                                                LPARAM lParam, LRESULT *result) {
         switch (message) {
             case WM_MOUSELEAVE: {
-                if (wParam == kMessageTag.wParam) {
+                if (wParam != kMessageTag.wParam) {
                     // Qt will call TrackMouseEvent() to get the WM_MOUSELEAVE message when it
                     // receives WM_MOUSEMOVE messages, and since we are converting every
                     // WM_NCMOUSEMOVE message to WM_MOUSEMOVE message and send it back to the window
@@ -1362,7 +1363,7 @@ namespace QWK {
                     // this is also the normal behavior of a native Win32 window (but only when the
                     // window is not maximized/fullscreen/minimized, of course).
                     if (isWindowNoState(hWnd)) {
-                        static constexpr const auto kBorderSize = quint8{2};
+                        static constexpr const quint8 kBorderSize = 2;
                         bool isTop = (nativeLocalPos.y <= kBorderSize);
                         bool isLeft = nativeLocalPos.x <= kBorderSize;
                         bool isRight = (nativeLocalPos.x >= (clientWidth - kBorderSize));

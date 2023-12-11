@@ -7,7 +7,7 @@ macro(qwk_add_example _target)
 
     add_executable(${_target})
     qm_configure_target(${_target} ${ARGN})
-    qm_add_win_rc(${_target} ICON ../shared/resources/example.ico)
+    qm_add_win_rc(${_target} ICON ${QWK_EXAMPLES_DIR}/shared/resources/example.ico)
     qm_add_win_manifest(${_target})
 endmacro()
 
