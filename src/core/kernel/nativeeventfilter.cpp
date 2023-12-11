@@ -14,7 +14,7 @@ namespace QWK {
         }
 
         ~MasterNativeEventFilter() override {
-            qApp->removeNativeEventFilter(this);
+            // The base class removes automatically
         }
 
         bool nativeEventFilter(const QByteArray &eventType, void *message,

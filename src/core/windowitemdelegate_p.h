@@ -30,7 +30,7 @@ namespace QWK {
         virtual void resetQtGrabbedControl() const;
 
     private:
-        Q_DISABLE_COPY_MOVE(WindowItemDelegate)
+        Q_DISABLE_COPY(WindowItemDelegate)
     };
 
 }

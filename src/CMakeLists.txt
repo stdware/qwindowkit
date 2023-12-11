@@ -27,7 +27,7 @@ endif()
 # ----------------------------------
 # CMake API
 # ----------------------------------
-function(qwk_add_library _target)
+macro(qwk_add_library _target)
     set(options AUTOGEN NO_SYNC_INCLUDE NO_WIN_RC)
     set(oneValueArgs SYNC_INCLUDE_PREFIX PREFIX)
     set(multiValueArgs SYNC_INCLUDE_OPTIONS)
@@ -115,7 +115,7 @@ function(qwk_add_library _target)
             "$<BUILD_INTERFACE:${QWINDOWKIT_GENERATED_INCLUDE_DIR}>"
         )
     endif()
-endfunction()
+endmacro()
 
 # ----------------------------------
 # Main Project
