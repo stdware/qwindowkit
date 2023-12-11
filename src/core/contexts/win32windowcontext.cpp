@@ -4,6 +4,7 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
+#include <QtCore/QDateTime>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
@@ -34,15 +35,25 @@ Q_DECLARE_METATYPE(QMargins)
 
 namespace QWK {
 
-    using _DWMWINDOWATTRIBUTE = enum _DWMWINDOWATTRIBUTE
-    {
-        _DWMWA_USE_HOSTBACKDROPBRUSH = 17, // [set] BOOL, Allows the use of host backdrop brushes for the window.
-        _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19, // Undocumented, the same with DWMWA_USE_IMMERSIVE_DARK_MODE, but available on systems before Win10 20H1.
-        _DWMWA_USE_IMMERSIVE_DARK_MODE = 20, // [set] BOOL, Allows a window to either use the accent color, or dark, according to the user Color Mode preferences.
-        _DWMWA_WINDOW_CORNER_PREFERENCE = 33, // [set] WINDOW_CORNER_PREFERENCE, Controls the policy that rounds top-level window corners
-        _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37, // [get] UINT, width of the visible border around a thick frame window
-        _DWMWA_SYSTEMBACKDROP_TYPE = 38, // [get, set] SYSTEMBACKDROP_TYPE, Controls the system-drawn backdrop material of a window, including behind the non-client area.
-        _DWMWA_MICA_EFFECT = 1029 // Undocumented, use this value to enable Mica material on Win11 21H2. You should use DWMWA_SYSTEMBACKDROP_TYPE instead on Win11 22H2 and newer.
+    using _DWMWINDOWATTRIBUTE = enum _DWMWINDOWATTRIBUTE {
+        _DWMWA_USE_HOSTBACKDROPBRUSH =
+            17, // [set] BOOL, Allows the use of host backdrop brushes for the window.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 =
+            19, // Undocumented, the same with DWMWA_USE_IMMERSIVE_DARK_MODE, but available on
+                // systems before Win10 20H1.
+        _DWMWA_USE_IMMERSIVE_DARK_MODE =
+            20, // [set] BOOL, Allows a window to either use the accent color, or dark, according to
+                // the user Color Mode preferences.
+        _DWMWA_WINDOW_CORNER_PREFERENCE = 33, // [set] WINDOW_CORNER_PREFERENCE, Controls the policy
+                                              // that rounds top-level window corners
+        _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS =
+            37,  // [get] UINT, width of the visible border around a thick frame window
+        _DWMWA_SYSTEMBACKDROP_TYPE =
+            38,  // [get, set] SYSTEMBACKDROP_TYPE, Controls the system-drawn backdrop material of a
+                 // window, including behind the non-client area.
+        _DWMWA_MICA_EFFECT =
+            1029 // Undocumented, use this value to enable Mica material on Win11 21H2. You should
+                 // use DWMWA_SYSTEMBACKDROP_TYPE instead on Win11 22H2 and newer.
     };
 
     // The thickness of an auto-hide taskbar in pixels.
@@ -79,18 +90,18 @@ namespace QWK {
             return inst;
         }
 
-//        template <typename T>
-//        struct DefaultFunc;
-//
-//        template <typename Return, typename... Args>
-//        struct DefaultFunc<Return(QT_WIN_CALLBACK *)(Args...)> {
-//            static Return STDAPICALLTYPE func(Args...) {
-//                return Return{};
-//            }
-//        };
-//
-// #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME =
-// DefaultFunc<decltype(&::NAME)>::func
+        //        template <typename T>
+        //        struct DefaultFunc;
+        //
+        //        template <typename Return, typename... Args>
+        //        struct DefaultFunc<Return(QT_WIN_CALLBACK *)(Args...)> {
+        //            static Return STDAPICALLTYPE func(Args...) {
+        //                return Return{};
+        //            }
+        //        };
+        //
+        // #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME =
+        // DefaultFunc<decltype(&::NAME)>::func
 
 #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
 
@@ -282,9 +293,12 @@ namespace QWK {
     static inline bool isDarkWindowFrameEnabled(HWND hwnd) {
         BOOL enabled = FALSE;
         const DynamicApis &apis = DynamicApis::instance();
-        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE, &enabled, sizeof(enabled)))) {
+        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE, &enabled,
+                                                  sizeof(enabled)))) {
             return enabled;
-        } else if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &enabled, sizeof(enabled)))) {
+        } else if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd,
+                                                         _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                                                         &enabled, sizeof(enabled)))) {
             return enabled;
         } else {
             return false;
@@ -332,16 +346,17 @@ namespace QWK {
         } else { // Win2K
             HDC hdc = ::GetDC(nullptr);
             const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
-            //const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
+            // const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
             ::ReleaseDC(nullptr, hdc);
             return quint32(dpiX);
         }
     }
 
     static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
-        UINT result{ 0 };
+        UINT result{0};
         const DynamicApis &apis = DynamicApis::instance();
-        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
+        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
+                                                  &result, sizeof(result)))) {
             return result;
         } else {
             const quint32 dpi = getDpiForWindow(hwnd);
@@ -735,13 +750,33 @@ namespace QWK {
             return ::DefWindowProcW(hWnd, message, wParam, lParam);
         }
 
-        // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
-        // forward it right away and process it in our native event filter.
-        if (message == WM_NCCALCSIZE) {
-            WindowsNativeEventFilter::lastMessageContext = ctx;
-            LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
-            WindowsNativeEventFilter::lastMessageContext = nullptr;
-            return result;
+        switch (message) {
+            case WM_NCCALCSIZE: {
+                // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
+                // forward it right away and process it in our native event filter.
+                WindowsNativeEventFilter::lastMessageContext = ctx;
+                LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+                WindowsNativeEventFilter::lastMessageContext = nullptr;
+                return result;
+            }
+
+            case WM_WINDOWPOSCHANGING: {
+                // When toggling the "Show theme color in title bar and window border" setting in
+                // Windows Settings, or calling `DrawMenuBar()`, Windows sends a message of
+                // WM_WINDOWPOSCHANGING with flags 0x37. If we do not process this message,
+                // the client area as a whole will shift to the left, which looks very abnormal if
+                // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
+                // But I don't know what caused the problem, or why this would solve it.
+                const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
+                if (windowPos->flags ==
+                    (SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+                    windowPos->flags |= SWP_NOCOPYBITS;
+                }
+                return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            }
+
+            default:
+                break;
         }
 
         // Try hooked procedure and save result
@@ -798,10 +833,13 @@ namespace QWK {
                 const auto &rect = *static_cast<const QRect *>(args[1]);
                 const auto &region = *static_cast<const QRegion *>(args[2]);
                 const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
-                QPen pen{};
-                const auto borderThickness = int(QHighDpi::fromNativePixels(getWindowFrameBorderThickness(hwnd), m_windowHandle));
+                QPen pen;
+                const auto borderThickness = int(QHighDpi::fromNativePixels(
+                    getWindowFrameBorderThickness(hwnd), m_windowHandle));
                 pen.setWidth(borderThickness * 2);
-                const bool active = m_host->isWidgetType() ? m_host->property("isActiveWindow").toBool() : m_host->property("active").toBool();
+                const bool active = m_host->isWidgetType()
+                                        ? m_host->property("isActiveWindow").toBool()
+                                        : m_host->property("active").toBool();
                 const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
                 if (active) {
                     if (isWindowFrameBorderColorized()) {
@@ -821,9 +859,13 @@ namespace QWK {
                     }
                 }
                 painter.save();
-                painter.setRenderHint(QPainter::Antialiasing); // ### TODO: do we need to enable or disable it?
+                painter.setRenderHint(
+                    QPainter::Antialiasing); // ### TODO: do we need to enable or disable it?
                 painter.setPen(pen);
-                painter.drawLine(QLine{ QPoint{ 0, 0 }, QPoint{ rect.width(), 0 } });
+                painter.drawLine(QLine{
+                    QPoint{0,            0},
+                    QPoint{rect.width(), 0}
+                });
                 painter.restore();
                 return;
             }

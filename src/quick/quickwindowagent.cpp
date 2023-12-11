@@ -38,7 +38,7 @@ namespace QWK {
         anchors->setLeft(parentPri->left());
         anchors->setRight(parentPri->right());
 
-        setZ(std::numeric_limits<qreal>::max());
+        setZ(10);
     }
 
     BorderItem::~BorderItem() = default;
@@ -86,7 +86,6 @@ namespace QWK {
     }
 
     void QuickWindowAgentPrivate::init() {
-        borderItem = std::make_unique<BorderItem>(context.get(), hostWindow->contentItem());
     }
 
     QuickWindowAgent::QuickWindowAgent(QObject *parent)
@@ -111,6 +110,12 @@ namespace QWK {
             return false;
         }
         d->hostWindow = window;
+
+        if (bool needPaintBorder = false;
+            d->context->virtual_hook(AbstractWindowContext::NeedsDrawBordersHook, &needPaintBorder),
+            needPaintBorder) {
+            d->borderItem = std::make_unique<BorderItem>(d->context.get(), window->contentItem());
+        }
         return true;
     }
 
