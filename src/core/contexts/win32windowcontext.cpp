@@ -775,10 +775,14 @@ namespace QWK {
 
     void Win32WindowContext::virtual_hook(int id, void *data) {
         switch (id) {
+            case CentralizeHook: {
+                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                moveToDesktopCenter(hwnd);
+                return;
+            }
             case ShowSystemMenuHook: {
                 const auto &pos = *reinterpret_cast<const QPoint *>(data);
-                auto winId = m_windowHandle->winId();
-                auto hWnd = reinterpret_cast<HWND>(winId);
+                auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
                 showSystemMenu2(hWnd, qpoint2point(pos), false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;

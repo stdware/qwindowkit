@@ -47,7 +47,7 @@ namespace QWK {
     }
 
     QString QtWindowContext::key() const {
-        return "qt";
+        return QStringLiteral("qt");
     }
 
     void QtWindowContext::virtual_hook(int id, void *data) {

@@ -172,12 +172,12 @@ namespace QWK {
         return {};
     }
 
-    static constexpr struct {
+    static constexpr const struct {
         const quint32 lilac = MAKE_RGBA_COLOR(210, 233, 189, 226);
         const quint32 pink = MAKE_RGBA_COLOR(177, 205, 190, 240);
         const quint32 tile = MAKE_RGBA_COLOR(193, 195, 211, 203);
         const quint32 azure = MAKE_RGBA_COLOR(25, 90, 190, 255);
-    } kSampleColorSet;
+    } kSampleColorSet{};
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
@@ -189,14 +189,14 @@ namespace QWK {
             case NeedsDrawBordersHook: {
                 auto &result = *reinterpret_cast<bool *>(data);
                 result = false;
-                break;
+                return;
             }
             case DrawBordersHook: {
                 auto args = reinterpret_cast<void **>(data);
                 auto &painter = *reinterpret_cast<QPainter *>(args[0]);
                 auto &rect = *reinterpret_cast<const QRect *>(args[1]);
 
-                QPen pen;
+                QPen pen{};
                 pen.setWidth(1);
 
                 // Top
