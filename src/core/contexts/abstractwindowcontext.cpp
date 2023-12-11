@@ -1,9 +1,13 @@
 #include "abstractwindowcontext_p.h"
 
+#include <QtGui/QPen>
+#include <QtGui/QPainter>
+
+#include "qwkglobal_p.h"
+
 namespace QWK {
 
-    AbstractWindowContext::AbstractWindowContext()
-        : m_host(nullptr), m_delegate(nullptr), m_windowHandle(nullptr) {
+    AbstractWindowContext::AbstractWindowContext() {
     }
 
     AbstractWindowContext::~AbstractWindowContext() = default;
@@ -168,12 +172,53 @@ namespace QWK {
         return {};
     }
 
+    static constexpr struct {
+        const quint32 lilac = MAKE_RGBA_COLOR(210, 233, 189, 226);
+        const quint32 pink = MAKE_RGBA_COLOR(177, 205, 190, 240);
+        const quint32 tile = MAKE_RGBA_COLOR(193, 195, 211, 203);
+        const quint32 azure = MAKE_RGBA_COLOR(25, 90, 190, 255);
+    } kSampleColorSet;
+
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
+            case ShowSystemMenuHook: {
+                const auto &pos = *reinterpret_cast<const QPoint *>(data);
+                // ...
+                return;
+            }
             case NeedsDrawBordersHook: {
                 auto &result = *reinterpret_cast<bool *>(data);
                 result = false;
                 break;
+            }
+            case DrawBordersHook: {
+                auto args = reinterpret_cast<void **>(data);
+                auto &painter = *reinterpret_cast<QPainter *>(args[0]);
+                auto &rect = *reinterpret_cast<const QRect *>(args[1]);
+
+                QPen pen;
+                pen.setWidth(1);
+
+                // Top
+                pen.setColor(kSampleColorSet.lilac);
+                painter.setPen(pen);
+                painter.drawLine(rect.topLeft(), rect.topRight());
+
+                // Right
+                pen.setColor(kSampleColorSet.pink);
+                painter.setPen(pen);
+                painter.drawLine(rect.topRight(), rect.bottomRight());
+
+                // Bottom
+                pen.setColor(kSampleColorSet.tile);
+                painter.setPen(pen);
+                painter.drawLine(rect.bottomLeft(), rect.bottomRight());
+
+                // Right
+                pen.setColor(kSampleColorSet.azure);
+                painter.setPen(pen);
+                painter.drawLine(rect.topLeft(), rect.bottomLeft());
+                return;
             }
             default:
                 break;

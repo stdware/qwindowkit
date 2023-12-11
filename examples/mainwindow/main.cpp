@@ -1,4 +1,5 @@
-#include <QApplication>
+#include <QtWidgets/QApplication>
+#include <QtCore/QDebug>
 
 #include "mainwindow.h"
 
@@ -12,7 +13,9 @@ int main(int argc, char *argv[]) {
     qputenv("QSG_RHI_HDR", "scrgb");
     qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 #endif
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+        Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication a(argc, argv);
     MainWindow w;
     w.show();

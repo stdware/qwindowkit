@@ -37,10 +37,13 @@ namespace QWK {
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const auto kAutoHideTaskBarThickness = quint8{2};
 
-    static inline constexpr const auto kFrameBorderActiveColorLight = QColor{110, 110, 110}; // #6E6E6E
+    static inline constexpr const auto kFrameBorderActiveColorLight =
+        QColor{110, 110, 110};                                                           // #6E6E6E
     static inline constexpr const auto kFrameBorderActiveColorDark = QColor{51, 51, 51}; // #333333
-    static inline constexpr const auto kFrameBorderInactiveColorLight = QColor{167, 167, 167}; // #A7A7A7
-    static inline constexpr const auto kFrameBorderInactiveColorDark = QColor{61, 61, 62}; // #3D3D3E
+    static inline constexpr const auto kFrameBorderInactiveColorLight =
+        QColor{167, 167, 167};                                                           // #A7A7A7
+    static inline constexpr const auto kFrameBorderInactiveColorDark =
+        QColor{61, 61, 62};                                                              // #3D3D3E
 
     // hWnd -> context
     using WndProcHash = QHash<HWND, Win32WindowContext *>;
@@ -238,26 +241,27 @@ namespace QWK {
         if (!registry.isValid()) {
             return false;
         }
-        const QVariant value = registry.value(L"ColorPrevalence");
-        if (!value.isValid()) {
+        const auto value = registry.dwordValue(L"ColorPrevalence");
+        if (!value.second) {
             return false;
         }
-        return qvariant_cast<DWORD>(value);
+        return value.first;
     }
 
     static inline bool isDarkThemeActive() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 #else
-        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)");
+        const QWinRegistryKey registry(
+            HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)");
         if (!registry.isValid()) {
             return false;
         }
-        const QVariant value = registry.value(L"AppsUseLightTheme");
-        if (!value.isValid()) {
+        const auto value = registry.dwordValue(L"AppsUseLightTheme");
+        if (!value.second) {
             return false;
         }
-        return !qvariant_cast<DWORD>(value);
+        return !value.first;
 #endif
     }
 
@@ -269,13 +273,13 @@ namespace QWK {
         if (!registry.isValid()) {
             return {};
         }
-        const QVariant value = registry.value(L"AccentColor");
-        if (!value.isValid()) {
+        const auto value = registry.dwordValue(L"AccentColor");
+        if (!value.second) {
             return {};
         }
         // The retrieved value is in the #AABBGGRR format, we need to
         // convert it to the #AARRGGBB format which Qt expects.
-        const QColor abgr = QColor::fromRgba(qvariant_cast<DWORD>(value));
+        const QColor abgr = QColor::fromRgba(value.first);
         if (!abgr.isValid()) {
             return {};
         }
@@ -534,7 +538,8 @@ namespace QWK {
             case HTBORDER:
                 return Win32WindowContext::FixedBorder;
             default:
-                break; // unreachable
+                // unreachable
+                break;
         }
         return Win32WindowContext::Outside;
     }
@@ -753,8 +758,10 @@ namespace QWK {
                 // ### TODO
                 return;
             }
-            default:
+            default: {
+                // unreachable
                 break;
+            }
         }
         AbstractWindowContext::virtual_hook(id, data);
     }
@@ -826,11 +833,10 @@ namespace QWK {
         return false; // Not handled
     }
 
-    static constexpr const auto kMessageTag = WPARAM(0xF1C9ADD4);
-
-    static inline constexpr bool isTaggedMessage(WPARAM wParam) {
-        return (wParam == kMessageTag);
-    }
+    static constexpr const struct {
+        const WPARAM wParam = 0xF1C9ADD4;
+        const LPARAM lParam = 0xAFB6F4C6;
+    } kMessageTag;
 
     static inline quint64 getKeyState() {
         quint64 result = 0;
@@ -870,7 +876,7 @@ namespace QWK {
                 // wParam is always ignored in mouse leave messages, but here we
                 // give them a special tag to be able to distinguish which messages
                 // are sent by ourselves.
-                return kMessageTag;
+                return kMessageTag.wParam;
             }
             const quint64 keyState = getKeyState();
             if ((myMsg >= WM_NCXBUTTONDOWN) && (myMsg <= WM_NCXBUTTONDBLCLK)) {
@@ -948,6 +954,7 @@ namespace QWK {
                 SEND_MESSAGE(hWnd, WM_MOUSELEAVE, wParamNew, lParamNew);
                 break;
             default:
+                // unreachable
                 break;
         }
 
@@ -970,7 +977,7 @@ namespace QWK {
                                                LPARAM lParam, LRESULT *result) {
         switch (message) {
             case WM_MOUSELEAVE: {
-                if (!isTaggedMessage(wParam)) {
+                if (wParam == kMessageTag.wParam) {
                     // Qt will call TrackMouseEvent() to get the WM_MOUSELEAVE message when it
                     // receives WM_MOUSEMOVE messages, and since we are converting every
                     // WM_NCMOUSEMOVE message to WM_MOUSEMOVE message and send it back to the window
@@ -1282,7 +1289,8 @@ namespace QWK {
                                 *result = HTCLOSE;
                                 break;
                             default:
-                                break; // unreachable
+                                // unreachable
+                                break;
                         }
                     }
                     if (*result == HTNOWHERE) {
