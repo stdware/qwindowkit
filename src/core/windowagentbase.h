@@ -1,5 +1,5 @@
-#ifndef COREWINDOWAGENT_H
-#define COREWINDOWAGENT_H
+#ifndef WINDOWAGENTBASE_H
+#define WINDOWAGENTBASE_H
 
 #include <memory>
 
@@ -9,13 +9,13 @@
 
 namespace QWK {
 
-    class CoreWindowAgentPrivate;
+    class WindowAgentBasePrivate;
 
-    class QWK_CORE_EXPORT CoreWindowAgent : public QObject {
+    class QWK_CORE_EXPORT WindowAgentBase : public QObject {
         Q_OBJECT
-        Q_DECLARE_PRIVATE(CoreWindowAgent)
+        Q_DECLARE_PRIVATE(WindowAgentBase)
     public:
-        ~CoreWindowAgent() override;
+        ~WindowAgentBase() override;
 
         enum SystemButton {
             Unknown,
@@ -36,11 +36,11 @@ namespace QWK {
         void raise();
 
     protected:
-        explicit CoreWindowAgent(CoreWindowAgentPrivate &d, QObject *parent = nullptr);
+        explicit WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent = nullptr);
 
-        const std::unique_ptr<CoreWindowAgentPrivate> d_ptr;
+        const std::unique_ptr<WindowAgentBasePrivate> d_ptr;
     };
 
 }
 
-#endif // COREWINDOWAGENT_H
+#endif // WINDOWAGENTBASE_H

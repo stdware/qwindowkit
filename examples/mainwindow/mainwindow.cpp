@@ -77,10 +77,10 @@ void MainWindow::installWindowAgent() {
     windowBar->setHostWidget(this);
 
     agent->setTitleBar(windowBar);
-    agent->setSystemButton(QWK::CoreWindowAgent::WindowIcon, iconButton);
-    agent->setSystemButton(QWK::CoreWindowAgent::Minimize, minButton);
-    agent->setSystemButton(QWK::CoreWindowAgent::Maximize, maxButton);
-    agent->setSystemButton(QWK::CoreWindowAgent::Close, closeButton);
+    agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
+    agent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
+    agent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
+    agent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
     agent->setHitTestVisible(menuBar, true);
 
     connect(windowBar, &QWK::WindowBar::minimizeRequested, this, &QWidget::showMinimized);

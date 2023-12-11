@@ -4,7 +4,7 @@
 #include <QtCore/QObject>
 #include <QtGui/QWindow>
 
-#include <QWKCore/windowitemdelegate.h>
+#include <QWKCore/private/windowitemdelegate_p.h>
 #include <QWKWidgets/qwkwidgetsglobal.h>
 
 namespace QWK {

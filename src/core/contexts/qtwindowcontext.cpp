@@ -46,11 +46,14 @@ namespace QWK {
     QtWindowContext::~QtWindowContext() {
     }
 
-    bool QtWindowContext::setupHost() {
-        return false;
+    QString QtWindowContext::key() const {
+        return "qt";
     }
 
-    bool QtWindowContext::hostEventFilter(QEvent *event) {
+    void QtWindowContext::virtual_hook(int id, void *data) {
+    }
+
+    bool QtWindowContext::setupHost() {
         return false;
     }
 

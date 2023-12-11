@@ -3,14 +3,14 @@
 
 #include <QtWidgets/QWidget>
 
-#include <QWKCore/corewindowagent.h>
+#include <QWKCore/windowagentbase.h>
 #include <QWKWidgets/qwkwidgetsglobal.h>
 
 namespace QWK {
 
     class WidgetWindowAgentPrivate;
 
-    class QWK_WIDGETS_EXPORT WidgetWindowAgent : public CoreWindowAgent {
+    class QWK_WIDGETS_EXPORT WidgetWindowAgent : public WindowAgentBase {
         Q_OBJECT
         Q_DECLARE_PRIVATE(WidgetWindowAgent)
     public:

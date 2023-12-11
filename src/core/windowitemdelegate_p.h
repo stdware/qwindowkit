@@ -1,11 +1,11 @@
-#ifndef WINDOWITEMDELEGATE_H
-#define WINDOWITEMDELEGATE_H
+#ifndef WINDOWITEMDELEGATE_P_H
+#define WINDOWITEMDELEGATE_P_H
 
 #include <QtCore/QObject>
 #include <QtCore/QPoint>
 #include <QtGui/QWindow>
 
-#include <QWKCore/corewindowagent.h>
+#include <QWKCore/qwkcoreglobal.h>
 
 namespace QWK {
 
@@ -34,4 +34,4 @@ namespace QWK {
 
 }
 
-#endif // WINDOWITEMDELEGATE_H
+#endif // WINDOWITEMDELEGATE_P_H

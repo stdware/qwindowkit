@@ -11,9 +11,11 @@ namespace QWK {
         QtWindowContext();
         ~QtWindowContext();
 
+        QString key() const override;
+        void virtual_hook(int id, void *data) override;
+
     protected:
         bool setupHost() override;
-        bool hostEventFilter(QEvent *event) override;
     };
 
 }

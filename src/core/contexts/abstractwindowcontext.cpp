@@ -8,24 +8,6 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
-    class EventFilterForwarder : public QObject {
-    public:
-        using EventProc = bool (*)(QEvent *, void *);
-
-        EventFilterForwarder(EventProc proc, void *user, QObject *parent = nullptr)
-            : QObject(parent), proc(proc), user(user) {
-        }
-
-        bool eventFilter(QObject *obj, QEvent *event) override {
-            Q_UNUSED(obj)
-            return proc(event, user);
-        }
-
-    protected:
-        EventProc proc;
-        void *user;
-    };
-
     bool AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
         if (!host || !delegate) {
             return false;
@@ -46,14 +28,6 @@ namespace QWK {
             m_windowHandle = nullptr;
             return false;
         }
-
-        // Install specific event filter
-        host->installEventFilter(new EventFilterForwarder(
-            [](QEvent *event, void *user) {
-                return static_cast<AbstractWindowContext *>(user)->hostEventFilter(event);
-            },
-            this, this));
-
         return true;
     }
 
@@ -86,11 +60,11 @@ namespace QWK {
         return true;
     }
 
-    bool AbstractWindowContext::setSystemButton(CoreWindowAgent::SystemButton button,
+    bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 const QObject *obj) {
         Q_ASSERT(obj);
-        Q_ASSERT(button != CoreWindowAgent::Unknown);
-        if (!obj || (button == CoreWindowAgent::Unknown)) {
+        Q_ASSERT(button != WindowAgentBase::Unknown);
+        if (!obj || (button == WindowAgentBase::Unknown)) {
             return false;
         }
 
@@ -115,7 +89,7 @@ namespace QWK {
     }
 
     void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
-        // ?
+        virtual_hook(ShowSystemMenuHook, &const_cast<QPoint &>(pos));
     }
 
     QRegion AbstractWindowContext::hitTestShape() const {
@@ -130,16 +104,16 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
-                                                  CoreWindowAgent::SystemButton *button) const {
-        *button = CoreWindowAgent::Unknown;
-        for (int i = CoreWindowAgent::WindowIcon; i <= CoreWindowAgent::Close; ++i) {
+                                                  WindowAgentBase::SystemButton *button) const {
+        *button = WindowAgentBase::Unknown;
+        for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
             if (!currentButton || !m_delegate->isVisible(currentButton) ||
                 !m_delegate->isEnabled(currentButton)) {
                 continue;
             }
             if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
-                *button = static_cast<CoreWindowAgent::SystemButton>(i);
+                *button = static_cast<WindowAgentBase::SystemButton>(i);
                 return true;
             }
         }
@@ -168,7 +142,7 @@ namespace QWK {
             return false;
         }
 
-        for (int i = CoreWindowAgent::WindowIcon; i <= CoreWindowAgent::Close; ++i) {
+        for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
             if (currentButton && m_delegate->isVisible(currentButton) &&
                 m_delegate->isEnabled(currentButton) &&
@@ -190,9 +164,17 @@ namespace QWK {
         return true;
     }
 
-    bool AbstractWindowContext::hostEventFilter(QEvent *event) {
-        Q_UNUSED(event)
-        return false;
+    QString AbstractWindowContext::key() const {
+        return {};
+    }
+
+    void AbstractWindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case CentralizeHook:
+                break;
+            default:
+                break;
+        }
     }
 
 }

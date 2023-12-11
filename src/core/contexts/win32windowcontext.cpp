@@ -1,10 +1,8 @@
 #include "win32windowcontext_p.h"
-#include "qwkcoreglobal_p.h"
 
 #include <optional>
 
 #include <QtCore/QHash>
-#include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QScopeGuard>
 #include <QtGui/QGuiApplication>
 
@@ -24,6 +22,8 @@
 #include <dwmapi.h>
 #include <timeapi.h>
 #include <versionhelpers.h>
+
+#include "nativeeventfilter.h"
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 Q_DECLARE_METATYPE(QMargins)
@@ -62,7 +62,8 @@ namespace QWK {
 //            }
 //        };
 //
-// #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = DefaultFunc<decltype(&::NAME)>::func
+// #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME =
+// DefaultFunc<decltype(&::NAME)>::func
 #define DYNAMIC_API_DECLARE(NAME) decltype(&::NAME) p##NAME = nullptr
 
         DYNAMIC_API_DECLARE(DwmFlush);
@@ -78,7 +79,8 @@ namespace QWK {
 #undef DYNAMIC_API_DECLARE
 
         DynamicApis() {
-#define DYNAMIC_API_RESOLVE(DLL, NAME) p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
+#define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
+    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
@@ -207,7 +209,8 @@ namespace QWK {
     }
 
     static inline bool isWin11OrGreater() {
-        static const bool result = ::IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 22000);
+        static const bool result = ::IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10),
+                                                               LOBYTE(_WIN32_WINNT_WIN10), 22000);
         return result;
     }
 
@@ -383,8 +386,8 @@ namespace QWK {
         apis.ptimeEndPeriod(ms_granularity);
     }
 
-    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry, const bool fixedSize)
-    {
+    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
+                                       const bool fixedSize) {
         const HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
             // The corresponding window doesn't have a system menu, most likely due to the
@@ -395,8 +398,10 @@ namespace QWK {
 
         const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
         ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | MFS_ENABLED));
-        ::EnableMenuItem(hMenu, SC_MAXIMIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
-        ::EnableMenuItem(hMenu, SC_RESTORE, (MF_BYCOMMAND | ((maxOrFull && !fixedSize) ? MFS_ENABLED : MFS_DISABLED)));
+        ::EnableMenuItem(hMenu, SC_MAXIMIZE,
+                         (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(hMenu, SC_RESTORE,
+                         (MF_BYCOMMAND | ((maxOrFull && !fixedSize) ? MFS_ENABLED : MFS_DISABLED)));
         // The first menu item should be selected by default if the menu is brought
         // up by keyboard. I don't know how to pre-select a menu item but it seems
         // highlight can do the job. However, there's an annoying issue if we do
@@ -406,9 +411,11 @@ namespace QWK {
         // highlight bar will not move accordingly, the OS will generate another
         // highlight bar to indicate the current selected menu item, which will make
         // the menu look kind of weird. Currently I don't know how to fix this issue.
-        ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE, (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
+        ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE,
+                         (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
         ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | MFS_ENABLED));
-        ::EnableMenuItem(hMenu, SC_SIZE, (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(hMenu, SC_SIZE,
+                         (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
         ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | (maxOrFull ? MFS_DISABLED : MFS_ENABLED)));
 
         // The default menu item will appear in bold font. There can only be one default
@@ -428,7 +435,10 @@ namespace QWK {
         ::SetMenuDefaultItem(hMenu, defaultItemId, FALSE);
 
         // Popup the system menu at the required position.
-        const auto result = ::TrackPopupMenu(hMenu, (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN)), pos.x, pos.y, 0, hWnd, nullptr);
+        const auto result = ::TrackPopupMenu(
+            hMenu,
+            (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN)),
+            pos.x, pos.y, 0, hWnd, nullptr);
 
         // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
         // highlighting until we unhighlight it manually.
@@ -511,7 +521,7 @@ namespace QWK {
     // DefWindowProc(). Consequently, we have to add a global native filter that forwards the result
     // of the hook function, telling Qt whether we have filtered the events before. Since Qt only
     // handles Windows window messages in the main thread, it is safe to do so.
-    class WindowsNativeEventFilter : public QAbstractNativeEventFilter {
+    class WindowsNativeEventFilter : public NativeEventFilter {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
@@ -546,14 +556,12 @@ namespace QWK {
                 return;
             }
             instance = new WindowsNativeEventFilter();
-            installNativeEventFilter(instance);
         }
 
         static inline void uninstall() {
             if (!instance) {
                 return;
             }
-            removeNativeEventFilter(instance);
             delete instance;
             instance = nullptr;
         }
@@ -661,6 +669,26 @@ namespace QWK {
         }
     }
 
+    QString Win32WindowContext::key() const {
+        return "win32";
+    }
+
+    void Win32WindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case ShowSystemMenuHook: {
+                const auto &pos = *reinterpret_cast<const QPoint *>(data);
+                auto winId = m_windowHandle->winId();
+                auto hWnd = reinterpret_cast<HWND>(winId);
+                showSystemMenu2(hWnd, {pos.x(), pos.y()}, false,
+                                m_delegate->isHostSizeFixed(m_host));
+                return;
+            }
+            default:
+                break;
+        }
+        AbstractWindowContext::virtual_hook(id, data);
+    }
+
     bool Win32WindowContext::setupHost() {
         // Install window hook
         auto winId = m_windowHandle->winId();
@@ -728,7 +756,7 @@ namespace QWK {
         return false; // Not handled
     }
 
-    static constexpr const auto kMessageTag = WPARAM(0x97CCEA99);
+    static constexpr const auto kMessageTag = WPARAM(0xF1C9ADD4);
 
     static inline constexpr bool isTaggedMessage(WPARAM wParam) {
         return (wParam == kMessageTag);
@@ -884,8 +912,9 @@ namespace QWK {
                     DWORD dwScreenPos = ::GetMessagePos();
                     POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
                     ::ScreenToClient(hWnd, &screenPoint);
-                    QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(screenPoint), m_windowHandle);
-                    auto dummy = CoreWindowAgent::Unknown;
+                    QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(screenPoint),
+                                                                          m_windowHandle);
+                    auto dummy = WindowAgentBase::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
                         // Qt does not receive this message it will not call TrackMouseEvent()
@@ -1116,13 +1145,14 @@ namespace QWK {
                 auto clientWidth = RECT_WIDTH(clientRect);
                 auto clientHeight = RECT_HEIGHT(clientRect);
 
-                QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
+                QPoint qtScenePos =
+                    QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
 
                 bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
                 bool dontOverrideCursor = false; // ### TODO
 
-                CoreWindowAgent::SystemButton sysButtonType = CoreWindowAgent::Unknown;
+                WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                 if (!isFixedSize && isInSystemButtons(qtScenePos, &sysButtonType)) {
                     // Firstly, we set the hit test result to a default value to be able to detect
                     // whether we have changed it or not afterwards.
@@ -1166,19 +1196,19 @@ namespace QWK {
                         // exact role of our button. The Snap Layout feature introduced in Windows
                         // 11 won't work without this.
                         switch (sysButtonType) {
-                            case CoreWindowAgent::WindowIcon:
+                            case WindowAgentBase::WindowIcon:
                                 *result = HTSYSMENU;
                                 break;
-                            case CoreWindowAgent::Help:
+                            case WindowAgentBase::Help:
                                 *result = HTHELP;
                                 break;
-                            case CoreWindowAgent::Minimize:
+                            case WindowAgentBase::Minimize:
                                 *result = HTREDUCE;
                                 break;
-                            case CoreWindowAgent::Maximize:
+                            case WindowAgentBase::Maximize:
                                 *result = HTZOOM;
                                 break;
-                            case CoreWindowAgent::Close:
+                            case WindowAgentBase::Close:
                                 *result = HTCLOSE;
                                 break;
                             default:
@@ -1628,7 +1658,8 @@ namespace QWK {
             }();
             RECT windowPos{};
             ::GetWindowRect(hWnd, &windowPos);
-            return {static_cast<LONG>(windowPos.left + horizontalOffset), static_cast<LONG>(windowPos.top + verticalOffset)};
+            return {static_cast<LONG>(windowPos.left + horizontalOffset),
+                    static_cast<LONG>(windowPos.top + verticalOffset)};
         };
         bool shouldShowSystemMenu = false;
         bool broughtByKeyboard = false;
@@ -1636,7 +1667,8 @@ namespace QWK {
         switch (message) {
             case WM_RBUTTONUP: {
                 const POINT nativeLocalPos = getNativePosFromMouse();
-                const QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
+                const QPoint qtScenePos =
+                    QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
                 if (isInTitleBarDraggableArea(qtScenePos)) {
                     shouldShowSystemMenu = true;
                     nativeGlobalPos = nativeLocalPos;
@@ -1675,7 +1707,8 @@ namespace QWK {
                 break;
         }
         if (shouldShowSystemMenu) {
-            showSystemMenu2(hWnd, nativeGlobalPos, broughtByKeyboard, m_delegate->isHostSizeFixed(m_host));
+            showSystemMenu2(hWnd, nativeGlobalPos, broughtByKeyboard,
+                            m_delegate->isHostSizeFixed(m_host));
             // QPA's internal code will handle system menu events separately, and its
             // behavior is not what we would want to see because it doesn't know our
             // window doesn't have any window frame now, so return early here to avoid

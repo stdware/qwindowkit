@@ -4,14 +4,14 @@
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
 
-#include <QWKCore/corewindowagent.h>
+#include <QWKCore/windowagentbase.h>
 #include <QWKQuick/qwkquickglobal.h>
 
 namespace QWK {
 
     class QuickWindowAgentPrivate;
 
-    class QWK_QUICK_EXPORT QuickWindowAgent : public CoreWindowAgent {
+    class QWK_QUICK_EXPORT QuickWindowAgent : public WindowAgentBase {
         Q_OBJECT
         Q_DECLARE_PRIVATE(QuickWindowAgent)
     public:

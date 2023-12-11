@@ -1,4 +1,4 @@
-#include "windowitemdelegate.h"
+#include "windowitemdelegate_p.h"
 
 namespace QWK {
 

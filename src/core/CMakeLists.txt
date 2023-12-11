@@ -5,13 +5,15 @@ project(QWKCore
 
 set(_src
     qwkcoreglobal.h
-    qwkcoreglobal_p.h
-    qwkcoreglobal.cpp
-    corewindowagent.h
-    corewindowagent_p.h
-    corewindowagent.cpp
-    windowitemdelegate.h
+    qwkglobal.h
+    qwkglobal_p.h
+    windowagentbase.h
+    windowagentbase_p.h
+    windowagentbase.cpp
+    windowitemdelegate_p.h
     windowitemdelegate.cpp
+    kernel/nativeeventfilter.h
+    kernel/nativeeventfilter.cpp
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
 )
@@ -43,7 +45,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
-    INCLUDE_PRIVATE contexts
+    INCLUDE_PRIVATE kernel contexts
     PREFIX QWK_CORE
 )
 
