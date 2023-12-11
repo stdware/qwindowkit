@@ -5,6 +5,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
 #include <QtGui/QGuiApplication>
+#include <QtGui/QPainter>
 
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
@@ -682,6 +683,24 @@ namespace QWK {
                 showSystemMenu2(hWnd, {pos.x(), pos.y()}, false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
+            }
+            case NeedsDrawBordersHook: {
+                auto &result = *reinterpret_cast<bool *>(data);
+                result = isWin10OrGreater() && !isWin11OrGreater();
+                return;
+            }
+            case DrawBordersHook: {
+                auto a = reinterpret_cast<void **>(data);
+                auto &painter = *reinterpret_cast<QPainter *>(a[0]);
+                auto &rect = *reinterpret_cast<const QRect *>(a[1]);
+                auto &region = *reinterpret_cast<const QRegion *>(a[2]);
+
+                qDebug() << "paint" << &painter << rect << region;
+
+                // TODO: Draw border
+                // ...
+
+                break;
             }
             default:
                 break;

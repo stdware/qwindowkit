@@ -29,11 +29,11 @@ namespace QWK {
         bool setHitTestVisible(const QObject *obj, bool visible);
         bool setHitTestVisible(const QRect &rect, bool visible);
 
-        inline const QObject *systemButton(WindowAgentBase::SystemButton button) const;
-        bool setSystemButton(WindowAgentBase::SystemButton button, const QObject *obj);
+        inline QObject *systemButton(WindowAgentBase::SystemButton button) const;
+        bool setSystemButton(WindowAgentBase::SystemButton button, QObject *obj);
 
-        inline const QObject *titleBar() const;
-        bool setTitleBar(const QObject *obj);
+        inline QObject *titleBar() const;
+        bool setTitleBar(QObject *obj);
 
         void showSystemMenu(const QPoint &pos);
 
@@ -46,6 +46,8 @@ namespace QWK {
         enum WindowContextHook {
             CentralizeHook = 1,
             ShowSystemMenuHook,
+            NeedsDrawBordersHook,
+            DrawBordersHook,
         };
         virtual void virtual_hook(int id, void *data);
 
@@ -60,8 +62,8 @@ namespace QWK {
         QSet<const QObject *> m_hitTestVisibleItems;
         QList<QRect> m_hitTestVisibleRects;
 
-        const QObject *m_titleBar{};
-        std::array<const QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
+        QObject *m_titleBar{};
+        std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
 
         // Cached shape
         mutable bool hitTestVisibleShapeDirty{};
@@ -80,12 +82,12 @@ namespace QWK {
         return m_hitTestVisibleItems.contains(obj);
     }
 
-    inline const QObject *
+    inline QObject *
         AbstractWindowContext::systemButton(WindowAgentBase::SystemButton button) const {
         return m_systemButtons[button];
     }
 
-    inline const QObject *AbstractWindowContext::titleBar() const {
+    inline QObject *AbstractWindowContext::titleBar() const {
         return m_titleBar;
     }
 

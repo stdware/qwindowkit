@@ -61,7 +61,7 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
-                                                const QObject *obj) {
+                                                QObject *obj) {
         Q_ASSERT(obj);
         Q_ASSERT(button != WindowAgentBase::Unknown);
         if (!obj || (button == WindowAgentBase::Unknown)) {
@@ -75,7 +75,7 @@ namespace QWK {
         return true;
     }
 
-    bool AbstractWindowContext::setTitleBar(const QObject *item) {
+    bool AbstractWindowContext::setTitleBar(QObject *item) {
         Q_ASSERT(item);
         if (!item) {
             return false;
@@ -170,8 +170,11 @@ namespace QWK {
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case CentralizeHook:
+            case NeedsDrawBordersHook: {
+                auto &result = *reinterpret_cast<bool *>(data);
+                result = false;
                 break;
+            }
             default:
                 break;
         }

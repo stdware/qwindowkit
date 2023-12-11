@@ -41,12 +41,12 @@ namespace QWK {
         return true;
     }
 
-    const QQuickItem *QuickWindowAgent::titleBar() const {
+    QQuickItem *QuickWindowAgent::titleBar() const {
         Q_D(const QuickWindowAgent);
-        return static_cast<const QQuickItem *>(d->context->titleBar());
+        return static_cast<QQuickItem *>(d->context->titleBar());
     }
 
-    void QuickWindowAgent::setTitleBar(const QQuickItem *item) {
+    void QuickWindowAgent::setTitleBar(QQuickItem *item) {
         Q_D(QuickWindowAgent);
         if (!d->context->setTitleBar(item)) {
             return;
@@ -54,12 +54,12 @@ namespace QWK {
         Q_EMIT titleBarWidgetChanged(item);
     }
 
-    const QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
+    QQuickItem *QuickWindowAgent::systemButton(SystemButton button) const {
         Q_D(const QuickWindowAgent);
-        return static_cast<const QQuickItem *>(d->context->systemButton(button));
+        return static_cast<QQuickItem *>(d->context->systemButton(button));
     }
 
-    void QuickWindowAgent::setSystemButton(SystemButton button, const QQuickItem *item) {
+    void QuickWindowAgent::setSystemButton(SystemButton button, QQuickItem *item) {
         Q_D(QuickWindowAgent);
         if (!d->context->setSystemButton(button, item)) {
             return;
@@ -86,4 +86,5 @@ namespace QWK {
         : WindowAgentBase(d, parent) {
         d.init();
     }
+
 }

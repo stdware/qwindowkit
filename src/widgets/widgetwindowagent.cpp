@@ -1,9 +1,44 @@
 #include "widgetwindowagent.h"
 #include "widgetwindowagent_p.h"
 
+#include <QtGui/QtEvents>
+#include <QtGui/QPainter>
+
 #include "widgetitemdelegate_p.h"
 
 namespace QWK {
+
+    class WidgetPaintFilter : public QObject {
+    public:
+        WidgetPaintFilter(QWidget *widget, AbstractWindowContext *ctx) : widget(widget), ctx(ctx) {
+            widget->installEventFilter(this);
+        }
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            switch (event->type()) {
+                case QEvent::Paint: {
+                    auto e = static_cast<QPaintEvent *>(event);
+                    QPainter painter(widget);
+                    QRect rect = e->rect();
+                    QRegion region = e->region();
+                    void *a[3] = {
+                        &painter,
+                        &rect,
+                        &region,
+                    };
+                    ctx->virtual_hook(AbstractWindowContext::DrawBordersHook, a);
+                    return true;
+                }
+                default:
+                    break;
+            }
+            return false;
+        }
+
+        QWidget *widget;
+        AbstractWindowContext *ctx;
+    };
 
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() {
     }
@@ -39,15 +74,22 @@ namespace QWK {
             return false;
         }
         d->hostWidget = w;
+
+        // Install painting hook
+        if (bool needPaintBorder = false;
+            d->context->virtual_hook(AbstractWindowContext::NeedsDrawBordersHook, &needPaintBorder),
+            needPaintBorder) {
+            d->paintFilter = std::make_unique<WidgetPaintFilter>(w, d->context.get());
+        }
         return true;
     }
 
-    const QWidget *WidgetWindowAgent::titleBar() const {
+    QWidget *WidgetWindowAgent::titleBar() const {
         Q_D(const WidgetWindowAgent);
-        return static_cast<const QWidget *>(d->context->titleBar());
+        return static_cast<QWidget *>(d->context->titleBar());
     }
 
-    void WidgetWindowAgent::setTitleBar(const QWidget *w) {
+    void WidgetWindowAgent::setTitleBar(QWidget *w) {
         Q_D(WidgetWindowAgent);
         if (!d->context->setTitleBar(w)) {
             return;
@@ -55,12 +97,12 @@ namespace QWK {
         Q_EMIT titleBarWidgetChanged(w);
     }
 
-    const QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
+    QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
         Q_D(const WidgetWindowAgent);
-        return static_cast<const QWidget *>(d->context->systemButton(button));
+        return static_cast<QWidget *>(d->context->systemButton(button));
     }
 
-    void WidgetWindowAgent::setSystemButton(SystemButton button, const QWidget *w) {
+    void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
         Q_D(WidgetWindowAgent);
         if (!d->context->setSystemButton(button, w)) {
             return;

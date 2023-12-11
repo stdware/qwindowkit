@@ -16,6 +16,8 @@ namespace QWK {
 
         // Host
         QWidget *hostWidget{};
+
+        std::unique_ptr<QObject> paintFilter;
     };
 
 }

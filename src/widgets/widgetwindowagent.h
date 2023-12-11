@@ -20,11 +20,11 @@ namespace QWK {
     public:
         bool setup(QWidget *w);
 
-        const QWidget *titleBar() const;
-        void setTitleBar(const QWidget *w);
+        QWidget *titleBar() const;
+        void setTitleBar(QWidget *w);
 
-        const QWidget *systemButton(SystemButton button) const;
-        void setSystemButton(SystemButton button, const QWidget *w);
+        QWidget *systemButton(SystemButton button) const;
+        void setSystemButton(SystemButton button, QWidget *w);
 
         bool isHitTestVisible(const QWidget *w) const;
         void setHitTestVisible(const QWidget *w, bool visible = true);
