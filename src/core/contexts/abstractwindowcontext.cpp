@@ -172,18 +172,18 @@ namespace QWK {
         return {};
     }
 
-    static constexpr const struct {
-        const quint32 lilac = MAKE_RGBA_COLOR(210, 233, 189, 226);
+    static constexpr struct {
+        const quint32 grass = MAKE_RGBA_COLOR(210, 233, 189, 226);
         const quint32 pink = MAKE_RGBA_COLOR(177, 205, 190, 240);
         const quint32 tile = MAKE_RGBA_COLOR(193, 195, 211, 203);
-        const quint32 azure = MAKE_RGBA_COLOR(25, 90, 190, 255);
-    } kSampleColorSet{};
+        const quint32 azure = MAKE_RGBA_COLOR(240, 240, 250, 255);
+    } kSampleColorSet;
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case ShowSystemMenuHook: {
                 const auto &pos = *reinterpret_cast<const QPoint *>(data);
-                // ...
+                std::ignore = pos;
                 return;
             }
             case NeedsDrawBordersHook: {
@@ -196,27 +196,20 @@ namespace QWK {
                 auto &painter = *reinterpret_cast<QPainter *>(args[0]);
                 auto &rect = *reinterpret_cast<const QRect *>(args[1]);
 
-                QPen pen{};
-                pen.setWidth(1);
-
                 // Top
-                pen.setColor(kSampleColorSet.lilac);
-                painter.setPen(pen);
+                painter.setPen(kSampleColorSet.grass);
                 painter.drawLine(rect.topLeft(), rect.topRight());
 
                 // Right
-                pen.setColor(kSampleColorSet.pink);
-                painter.setPen(pen);
+                painter.setPen(kSampleColorSet.pink);
                 painter.drawLine(rect.topRight(), rect.bottomRight());
 
                 // Bottom
-                pen.setColor(kSampleColorSet.tile);
-                painter.setPen(pen);
+                painter.setPen(kSampleColorSet.tile);
                 painter.drawLine(rect.bottomLeft(), rect.bottomRight());
 
                 // Right
-                pen.setColor(kSampleColorSet.azure);
-                painter.setPen(pen);
+                painter.setPen(kSampleColorSet.azure);
                 painter.drawLine(rect.topLeft(), rect.bottomLeft());
                 return;
             }

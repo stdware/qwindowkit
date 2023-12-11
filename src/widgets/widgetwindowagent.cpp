@@ -81,6 +81,11 @@ namespace QWK {
             needPaintBorder) {
             d->paintFilter = std::make_unique<WidgetPaintFilter>(w, d->context.get());
         }
+
+        if (d->context->key() == "win32") {
+            w->setContentsMargins(0, 1, 0, 0);
+        }
+
         return true;
     }
 

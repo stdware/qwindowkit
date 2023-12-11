@@ -15,7 +15,7 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 #  define QWK_FATAL qCFatal(qWindowKitLog)
 #endif
 
-#define MAKE_RGB_COLOR(r, g, b) ((quint32) | (((r) &0xFF) << 16) | (((g) &0xFF) << 8) | ((b) &0xFF))
+#define MAKE_RGB_COLOR(r, g, b) ((quint32) (((r) &0xFF) << 16) | (((g) &0xFF) << 8) | ((b) &0xFF))
 
 #define MAKE_RGBA_COLOR(r, g, b, a)                                                                \
     ((quint32) (((a) &0xFF) << 24) | (((r) &0xFF) << 16) | (((g) &0xFF) << 8) | ((b) &0xFF))
