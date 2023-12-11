@@ -2,6 +2,7 @@
 #define QWKGLOBAL_H
 
 #include <QtCore/QEvent>
+#include <QtGui/QtEvents>
 
 #include <QWKCore/qwkcoreglobal.h>
 
