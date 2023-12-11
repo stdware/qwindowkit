@@ -669,10 +669,24 @@ namespace QWK {
         }
     }
 
-    void Win32WindowContext::showSystemMenu(const QPoint &pos) {
-        auto winId = m_windowHandle->winId();
-        auto hWnd = reinterpret_cast<HWND>(winId);
-        showSystemMenu2(hWnd, {pos.x(), pos.y()}, false, m_delegate->isHostSizeFixed(m_host));
+    QString Win32WindowContext::key() const {
+        return "win32";
+    }
+
+    void Win32WindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case ShowSystemMenuHook: {
+                const auto &pos = *reinterpret_cast<const QPoint *>(data);
+                auto winId = m_windowHandle->winId();
+                auto hWnd = reinterpret_cast<HWND>(winId);
+                showSystemMenu2(hWnd, {pos.x(), pos.y()}, false,
+                                m_delegate->isHostSizeFixed(m_host));
+                return;
+            }
+            default:
+                break;
+        }
+        AbstractWindowContext::virtual_hook(id, data);
     }
 
     bool Win32WindowContext::setupHost() {
@@ -742,7 +756,7 @@ namespace QWK {
         return false; // Not handled
     }
 
-    static constexpr const auto kMessageTag = WPARAM(0x97CCEA99);
+    static constexpr const auto kMessageTag = WPARAM(0xF1C9ADD4);
 
     static inline constexpr bool isTaggedMessage(WPARAM wParam) {
         return (wParam == kMessageTag);

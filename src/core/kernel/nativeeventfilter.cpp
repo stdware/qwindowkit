@@ -1,7 +1,7 @@
 #include "nativeeventfilter.h"
 
 #include <QtCore/QAbstractNativeEventFilter>
-#include <QtGui/QGuiApplication>
+#include <QtCore/QCoreApplication>
 
 namespace QWK {
 
@@ -19,7 +19,7 @@ namespace QWK {
 
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            for (const auto &child : qAsConst(m_children)) {
+            for (const auto &child : qAsConst(children)) {
                 if (child->nativeEventFilter(eventType, message, result)) {
                     return true;
                 }
@@ -27,22 +27,9 @@ namespace QWK {
             return false;
         }
 
-        inline int count() const {
-            return m_children.size();
-        }
-
-        inline void addChild(NativeEventFilter *child) {
-            m_children.append(child);
-        }
-
-        inline void removeChild(NativeEventFilter *child) {
-            m_children.removeOne(child);
-        }
+        QVector<NativeEventFilter *> children;
 
         static MasterNativeEventFilter *instance;
-
-    protected:
-        QVector<NativeEventFilter *> m_children;
     };
 
     MasterNativeEventFilter *MasterNativeEventFilter::instance = nullptr;
@@ -51,12 +38,12 @@ namespace QWK {
         if (!MasterNativeEventFilter::instance) {
             MasterNativeEventFilter::instance = new MasterNativeEventFilter();
         }
-        MasterNativeEventFilter::instance->addChild(this);
+        MasterNativeEventFilter::instance->children.append(this);
     }
 
     NativeEventFilter::~NativeEventFilter() {
-        MasterNativeEventFilter::instance->removeChild(this);
-        if (MasterNativeEventFilter::instance->count() == 0) {
+        MasterNativeEventFilter::instance->children.removeOne(this);
+        if (MasterNativeEventFilter::instance->children.isEmpty()) {
             delete MasterNativeEventFilter::instance;
             MasterNativeEventFilter::instance = nullptr;
         }

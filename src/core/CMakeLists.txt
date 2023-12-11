@@ -14,8 +14,6 @@ set(_src
     windowitemdelegate.cpp
     kernel/nativeeventfilter.h
     kernel/nativeeventfilter.cpp
-    kernel/sharedeventfilter.h
-    kernel/sharedeventfilter.cpp
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
 )

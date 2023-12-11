@@ -88,7 +88,9 @@ namespace QWK {
         return true;
     }
 
-    void AbstractWindowContext::showSystemMenu(const QPoint &pos){Q_UNUSED(pos)}
+    void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
+        virtual_hook(ShowSystemMenuHook, &const_cast<QPoint &>(pos));
+    }
 
     QRegion AbstractWindowContext::hitTestShape() const {
         if (hitTestVisibleShapeDirty) {
@@ -162,8 +164,17 @@ namespace QWK {
         return true;
     }
 
-    QObject *AbstractWindowContext::target() const {
-        return m_host;
+    QString AbstractWindowContext::key() const {
+        return {};
+    }
+
+    void AbstractWindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case CentralizeHook:
+                break;
+            default:
+                break;
+        }
     }
 
 }

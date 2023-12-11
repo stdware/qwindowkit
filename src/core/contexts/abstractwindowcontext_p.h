@@ -9,12 +9,11 @@
 #include <QtGui/QPolygon>
 
 #include <QWKCore/windowagentbase.h>
-#include <QWKCore/sharedeventfilter.h>
 #include <QWKCore/private/windowitemdelegate_p.h>
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public SharedEventDispatcher {
+    class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
         Q_OBJECT
     public:
         AbstractWindowContext();
@@ -36,16 +35,22 @@ namespace QWK {
         inline const QObject *titleBar() const;
         bool setTitleBar(const QObject *obj);
 
-        virtual void showSystemMenu(const QPoint &pos);
+        void showSystemMenu(const QPoint &pos);
 
         QRegion hitTestShape() const;
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
+        virtual QString key() const;
+
+        enum WindowContextHook {
+            CentralizeHook = 1,
+            ShowSystemMenuHook,
+        };
+        virtual void virtual_hook(int id, void *data);
+
     protected:
         virtual bool setupHost() = 0;
-
-        QObject *target() const override;
 
     protected:
         QObject *m_host;
