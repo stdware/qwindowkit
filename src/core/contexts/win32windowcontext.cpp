@@ -22,7 +22,6 @@
 #include <shellscalingapi.h>
 #include <dwmapi.h>
 #include <timeapi.h>
-#include <versionhelpers.h>
 
 #include "nativeeventfilter.h"
 
@@ -195,23 +194,22 @@ namespace QWK {
     }
 
     static inline bool isWin8OrGreater() {
-        static const bool result = ::IsWindows8OrGreater();
+        static const bool result = IsWindows8OrGreater_Real();
         return result;
     }
 
     static inline bool isWin8Point1OrGreater() {
-        static const bool result = ::IsWindows8Point1OrGreater();
+        static const bool result = IsWindows8Point1OrGreater_Real();
         return result;
     }
 
     static inline bool isWin10OrGreater() {
-        static const bool result = ::IsWindows10OrGreater();
+        static const bool result = IsWindows10OrGreater_Real();
         return result;
     }
 
     static inline bool isWin11OrGreater() {
-        static const bool result = ::IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10),
-                                                               LOBYTE(_WIN32_WINNT_WIN10), 22000);
+        static const bool result = IsWindows11OrGreater_Real();
         return result;
     }
 

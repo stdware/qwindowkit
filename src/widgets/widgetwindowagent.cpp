@@ -22,7 +22,7 @@ namespace QWK {
                     QPainter painter(widget);
                     QRect rect = e->rect();
                     QRegion region = e->region();
-                    void *a[3] = {
+                    void *a[] = {
                         &painter,
                         &rect,
                         &region,

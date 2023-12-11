@@ -4,6 +4,8 @@
 #include <QtCore/qt_windows.h>
 #include <QtCore/qglobal.h>
 
+#include <QWKCore/qwkcoreglobal.h>
+
 #ifndef GET_X_LPARAM
 #  define GET_X_LPARAM(lp) (static_cast<int>(static_cast<short>(LOWORD(lp))))
 #endif
@@ -44,5 +46,34 @@
 #ifndef WM_NCUAHDRAWFRAME
 #  define WM_NCUAHDRAWFRAME (0x00AF)
 #endif
+
+namespace QWK {
+
+    QWK_CORE_EXPORT RTL_OSVERSIONINFOW GetRealOSVersion();
+
+    inline bool IsWindows10OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0);
+    }
+
+    inline bool IsWindows11OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                rovi.dwBuildNumber >= 22000);
+    }
+
+    inline bool IsWindows8Point1OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 6) || (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 3);
+    }
+
+    inline bool IsWindows8OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 6) || (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
+    }
+
+}
 
 #endif // QWINDOWKIT_WINDOWS_H

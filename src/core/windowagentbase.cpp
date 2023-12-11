@@ -13,6 +13,9 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
+    WindowAgentBasePrivate::WindowContextFactoryMethod
+        WindowAgentBasePrivate::windowContextFactoryMethod = nullptr;
+
     WindowAgentBasePrivate::WindowAgentBasePrivate() : q_ptr(nullptr), context(nullptr) {
     }
 
@@ -22,15 +25,15 @@ namespace QWK {
     }
 
     AbstractWindowContext *WindowAgentBasePrivate::createContext() const {
-        return
+        if (windowContextFactoryMethod) {
+            return windowContextFactoryMethod();
+        }
 #ifdef Q_OS_WINDOWS
-            new Win32WindowContext()
+        return new Win32WindowContext();
 #else
-            new QtWindowContext()
+        return new QtWindowContext();
 #endif
-                ;
     }
-
 
     bool WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
         std::unique_ptr<AbstractWindowContext> ctx(createContext());

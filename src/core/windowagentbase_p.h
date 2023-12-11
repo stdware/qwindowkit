@@ -22,6 +22,12 @@ namespace QWK {
 
         std::unique_ptr<AbstractWindowContext> context;
 
+    public:
+        using WindowContextFactoryMethod = AbstractWindowContext *(*) ();
+
+        static WindowContextFactoryMethod windowContextFactoryMethod;
+
+    private:
         Q_DISABLE_COPY_MOVE(WindowAgentBasePrivate)
     };
 
