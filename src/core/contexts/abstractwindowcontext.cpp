@@ -181,20 +181,15 @@ namespace QWK {
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case ShowSystemMenuHook: {
-                const auto &pos = *reinterpret_cast<const QPoint *>(data);
-                std::ignore = pos;
-                return;
-            }
             case NeedsDrawBordersHook: {
-                auto &result = *reinterpret_cast<bool *>(data);
+                auto &result = *static_cast<bool *>(data);
                 result = false;
                 return;
             }
             case DrawBordersHook: {
-                auto args = reinterpret_cast<void **>(data);
-                auto &painter = *reinterpret_cast<QPainter *>(args[0]);
-                auto &rect = *reinterpret_cast<const QRect *>(args[1]);
+                auto args = static_cast<void **>(data);
+                auto &painter = *static_cast<QPainter *>(args[0]);
+                const auto &rect = *static_cast<const QRect *>(args[1]);
 
                 // Top
                 painter.setPen(kSampleColorSet.grass);

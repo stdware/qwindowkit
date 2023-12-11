@@ -18,16 +18,16 @@ namespace QWK {
         bool eventFilter(QObject *obj, QEvent *event) override {
             switch (event->type()) {
                 case QEvent::Paint: {
-                    auto e = static_cast<QPaintEvent *>(event);
+                    auto pe = static_cast<QPaintEvent *>(event);
                     QPainter painter(widget);
-                    QRect rect = e->rect();
-                    QRegion region = e->region();
-                    void *a[] = {
+                    QRect rect = pe->rect();
+                    QRegion region = pe->region();
+                    void *args[] = {
                         &painter,
                         &rect,
                         &region,
                     };
-                    ctx->virtual_hook(AbstractWindowContext::DrawBordersHook, a);
+                    ctx->virtual_hook(AbstractWindowContext::DrawBordersHook, args);
                     return true;
                 }
                 default:

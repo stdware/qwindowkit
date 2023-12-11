@@ -781,22 +781,22 @@ namespace QWK {
                 return;
             }
             case ShowSystemMenuHook: {
-                const auto &pos = *reinterpret_cast<const QPoint *>(data);
+                const auto &pos = *static_cast<const QPoint *>(data);
                 auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
                 showSystemMenu2(hWnd, qpoint2point(pos), false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
             }
             case NeedsDrawBordersHook: {
-                auto &result = *reinterpret_cast<bool *>(data);
+                auto &result = *static_cast<bool *>(data);
                 result = isWin10OrGreater() && !isWin11OrGreater();
                 return;
             }
             case DrawBordersHook: {
-                auto args = reinterpret_cast<void **>(data);
-                auto &painter = *reinterpret_cast<QPainter *>(args[0]);
-                auto &rect = *reinterpret_cast<const QRect *>(args[1]);
-                auto &region = *reinterpret_cast<const QRegion *>(args[2]);
+                auto args = static_cast<void **>(data);
+                auto &painter = *static_cast<QPainter *>(args[0]);
+                const auto &rect = *static_cast<const QRect *>(args[1]);
+                const auto &region = *static_cast<const QRegion *>(args[2]);
                 const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
                 QPen pen{};
                 const auto borderThickness = int(QHighDpi::fromNativePixels(getWindowFrameBorderThickness(hwnd), m_windowHandle));
@@ -825,6 +825,19 @@ namespace QWK {
                 painter.setPen(pen);
                 painter.drawLine(QLine{ QPoint{ 0, 0 }, QPoint{ rect.width(), 0 } });
                 painter.restore();
+                return;
+            }
+            case QueryBorderThicknessHook: {
+                auto args = static_cast<void **>(data);
+                const bool requireNative = *static_cast<const bool *>(args[0]);
+                quint32 &thickness = *static_cast<quint32 *>(args[1]);
+                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                const auto nativeThickness = getWindowFrameBorderThickness(hwnd);
+                if (requireNative) {
+                    thickness = nativeThickness;
+                } else {
+                    thickness = QHighDpi::fromNativePixels(nativeThickness, m_windowHandle);
+                }
                 return;
             }
             default: {
