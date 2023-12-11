@@ -6,7 +6,10 @@
 #include <QtCore/QScopeGuard>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
+#include <QtGui/QPalette>
+#include <QtGui/QStyleHints>
 
+#include <QtCore/private/qwinregistry_p.h>
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -33,6 +36,11 @@ namespace QWK {
 
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const auto kAutoHideTaskBarThickness = quint8{2};
+
+    static inline constexpr const auto kFrameBorderActiveColorLight = QColor{110, 110, 110}; // #6E6E6E
+    static inline constexpr const auto kFrameBorderActiveColorDark = QColor{51, 51, 51}; // #333333
+    static inline constexpr const auto kFrameBorderInactiveColorLight = QColor{167, 167, 167}; // #A7A7A7
+    static inline constexpr const auto kFrameBorderInactiveColorDark = QColor{61, 61, 62}; // #3D3D3E
 
     // hWnd -> context
     using WndProcHash = QHash<HWND, Win32WindowContext *>;
@@ -223,6 +231,56 @@ namespace QWK {
         }
         BOOL enabled = FALSE;
         return SUCCEEDED(apis.pDwmIsCompositionEnabled(&enabled)) && enabled;
+    }
+
+    static inline bool isWindowFrameBorderColorized() {
+        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
+        if (!registry.isValid()) {
+            return false;
+        }
+        const QVariant value = registry.value(L"ColorPrevalence");
+        if (!value.isValid()) {
+            return false;
+        }
+        return qvariant_cast<DWORD>(value);
+    }
+
+    static inline bool isDarkThemeActive() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+#else
+        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)");
+        if (!registry.isValid()) {
+            return false;
+        }
+        const QVariant value = registry.value(L"AppsUseLightTheme");
+        if (!value.isValid()) {
+            return false;
+        }
+        return !qvariant_cast<DWORD>(value);
+#endif
+    }
+
+    static inline QColor getAccentColor() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+        return QGuiApplication::palette().color(QPalette::Accent);
+#else
+        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
+        if (!registry.isValid()) {
+            return {};
+        }
+        const QVariant value = registry.value(L"AccentColor");
+        if (!value.isValid()) {
+            return {};
+        }
+        // The retrieved value is in the #AABBGGRR format, we need to
+        // convert it to the #AARRGGBB format which Qt expects.
+        const QColor abgr = QColor::fromRgba(qvariant_cast<DWORD>(value));
+        if (!abgr.isValid()) {
+            return {};
+        }
+        return QColor::fromRgb(abgr.blue(), abgr.green(), abgr.red(), abgr.alpha());
+#endif
     }
 
     static inline void triggerFrameChange(HWND hwnd) {
@@ -678,7 +736,7 @@ namespace QWK {
                 const auto &pos = *reinterpret_cast<const QPoint *>(data);
                 auto winId = m_windowHandle->winId();
                 auto hWnd = reinterpret_cast<HWND>(winId);
-                showSystemMenu2(hWnd, {pos.x(), pos.y()}, false,
+                showSystemMenu2(hWnd, qpoint2point(pos), false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
             }
@@ -688,17 +746,12 @@ namespace QWK {
                 return;
             }
             case DrawBordersHook: {
-                auto a = reinterpret_cast<void **>(data);
-                auto &painter = *reinterpret_cast<QPainter *>(a[0]);
-                auto &rect = *reinterpret_cast<const QRect *>(a[1]);
-                auto &region = *reinterpret_cast<const QRegion *>(a[2]);
-
-                qDebug() << "paint" << &painter << rect << region;
-
-                // TODO: Draw border
-                // ...
-
-                break;
+                auto args = reinterpret_cast<void **>(data);
+                auto &painter = *reinterpret_cast<QPainter *>(args[0]);
+                auto &rect = *reinterpret_cast<const QRect *>(args[1]);
+                auto &region = *reinterpret_cast<const QRegion *>(args[2]);
+                // ### TODO
+                return;
             }
             default:
                 break;
