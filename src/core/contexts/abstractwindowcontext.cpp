@@ -191,12 +191,12 @@ namespace QWK {
             }
 
             case DefaultColorsHook: {
-                auto map = *reinterpret_cast<QMap<QString, QColor> *>(data);
+                auto &map = *static_cast<QMap<QString, QColor> *>(data);
                 map.clear();
-                map.insert("activeLight", kSampleColorSet.activeLight);
-                map.insert("activeDark", kSampleColorSet.activeDark);
-                map.insert("inactiveLight", kSampleColorSet.inactiveLight);
-                map.insert("inactiveDark", kSampleColorSet.inactiveDark);
+                map.insert(QStringLiteral("activeLight"), kSampleColorSet.activeLight);
+                map.insert(QStringLiteral("activeDark"), kSampleColorSet.activeDark);
+                map.insert(QStringLiteral("inactiveLight"), kSampleColorSet.inactiveLight);
+                map.insert(QStringLiteral("inactiveDark"), kSampleColorSet.inactiveDark);
                 return;
             }
             default:

@@ -51,6 +51,9 @@ namespace QWK {
         bool nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                       LRESULT *result);
 
+        bool themeStuffHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                               LRESULT *resul);
+
     protected:
         WId windowId = 0;
 

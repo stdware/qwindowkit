@@ -805,12 +805,12 @@ namespace QWK {
             }
 
             case DefaultColorsHook: {
-                auto map = *reinterpret_cast<QMap<QString, QColor> *>(data);
+                auto &map = *static_cast<QMap<QString, QColor> *>(data);
                 map.clear();
-                map.insert("activeLight", kWindowsColorSet.activeLight);
-                map.insert("activeDark", kWindowsColorSet.activeDark);
-                map.insert("inactiveLight", kWindowsColorSet.inactiveLight);
-                map.insert("inactiveDark", kWindowsColorSet.inactiveDark);
+                map.insert(QStringLiteral("activeLight"), kWindowsColorSet.activeLight);
+                map.insert(QStringLiteral("activeDark"), kWindowsColorSet.activeDark);
+                map.insert(QStringLiteral("inactiveLight"), kWindowsColorSet.inactiveLight);
+                map.insert(QStringLiteral("inactiveDark"), kWindowsColorSet.inactiveDark);
                 return;
             }
 
@@ -894,6 +894,10 @@ namespace QWK {
 
         // Whether to show system menu
         if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
+            return true;
+        }
+
+        if (themeStuffHandler(hWnd, message, wParam, lParam, result)) {
             return true;
         }
 
@@ -1879,6 +1883,47 @@ namespace QWK {
             // entering Qt's own handling logic.
             *result = FALSE;
             return true;
+        }
+        return false;
+    }
+
+    bool Win32WindowContext::themeStuffHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
+                           LRESULT *resul)
+    {
+        switch (message) {
+            case WM_DPICHANGED: {
+                const auto dpiX = UINT(LOWORD(wParam));
+                const auto dpiY = UINT(HIWORD(wParam));
+                break;
+            }
+            case WM_THEMECHANGED:
+            case WM_SYSCOLORCHANGE: {
+                break;
+            }
+            case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                const QColor color = QColor::fromRgba(wParam);
+                const auto blendWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
+                break;
+            }
+            case WM_SETTINGCHANGE: {
+                if (!wParam && lParam && std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0) {
+                    const QColor color = getAccentColor();
+                }
+                break;
+            }
+            case WM_SIZE: {
+                const bool max = wParam == SIZE_MAXIMIZED;
+                const bool min = wParam == SIZE_MINIMIZED;
+                const bool full = isFullScreen(hWnd);
+                break;
+            }
+            case WM_ACTIVATE: {
+                const auto state = LOWORD(wParam);
+                const bool active = state == WA_ACTIVE || state == WA_CLICKACTIVE;
+                break;
+            }
+            default:
+                break;
         }
         return false;
     }
