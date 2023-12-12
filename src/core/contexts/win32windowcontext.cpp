@@ -357,44 +357,37 @@ namespace QWK {
         }
     }
 
-    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
-        UINT result = 0;
+    static inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
-                                                  &result, sizeof(result)))) {
-            return result;
-        } else {
-            const quint32 dpi = getDpiForWindow(hwnd);
-            result = quint32(std::round(qreal(1) * qreal(dpi) / qreal(USER_DEFAULT_SCREEN_DPI)));
+        if (apis.pGetSystemMetricsForDpi) {
+            return ::GetSystemMetricsForDpi(index, dpi);
+        }
+        return ::GetSystemMetrics(index);
+    }
+
+    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+        const DynamicApis &apis = DynamicApis::instance();
+        if (UINT result = 0; SUCCEEDED(apis.pDwmGetWindowAttribute(
+                hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
             return result;
         }
+        return getSystemMetricsForDpi(SM_CXBORDER, getDpiForWindow(hwnd));
     }
 
     static inline quint32 getResizeBorderThickness(HWND hwnd) {
-        const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetSystemMetricsForDpi) {
-            const quint32 dpi = getDpiForWindow(hwnd);
-            return apis.pGetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
-                   apis.pGetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
-        } else {
-            return ::GetSystemMetrics(SM_CXSIZEFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER);
-        }
+        const quint32 dpi = getDpiForWindow(hwnd);
+        return getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
     static inline quint32 getTitleBarHeight(HWND hwnd) {
-        const auto captionHeight = [hwnd]() -> int {
-            const DynamicApis &apis = DynamicApis::instance();
-            if (apis.pGetSystemMetricsForDpi) {
-                const quint32 dpi = getDpiForWindow(hwnd);
-                return apis.pGetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-            } else {
-                return ::GetSystemMetrics(SM_CYCAPTION);
-            }
-        }();
-        return captionHeight + getResizeBorderThickness(hwnd);
+        const quint32 dpi = getDpiForWindow(hwnd);
+        return getSystemMetricsForDpi(SM_CYCAPTION, dpi) +
+               getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
-    static inline void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
+    static void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
         const auto margins = [hwnd]() -> QMargins {
             const auto titleBarHeight = int(getTitleBarHeight(hwnd));
             if (isWin10OrGreater()) {
@@ -460,7 +453,7 @@ namespace QWK {
 #endif
     }
 
-    static inline void syncPaintEventWithDwm() {
+    static void syncPaintEventWithDwm() {
         // No need to sync with DWM if DWM composition is disabled.
         if (!isDwmCompositionEnabled()) {
             return;
@@ -505,9 +498,9 @@ namespace QWK {
         apis.ptimeEndPeriod(ms_granularity);
     }
 
-    static inline void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
-                                       const bool fixedSize) {
-        const HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
+    static void showSystemMenu2(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
+                                const bool fixedSize) {
+        HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
             // The corresponding window doesn't have a system menu, most likely due to the
             // lack of the "WS_SYSMENU" window style. This situation should not be treated
