@@ -6,10 +6,10 @@
 
 namespace QWK {
 
-    class Win10BorderHandler;
-
     class QWK_CORE_EXPORT Win32WindowContext : public AbstractWindowContext {
         Q_OBJECT
+        Q_PROPERTY(bool needBorderPainter READ needBorderPainter FINAL)
+        Q_PROPERTY(int borderThickness READ borderThickness FINAL)
     public:
         Win32WindowContext();
         ~Win32WindowContext() override;
@@ -26,8 +26,8 @@ namespace QWK {
         QString key() const override;
         void virtual_hook(int id, void *data) override;
 
-        Q_INVOKABLE bool needWin10BorderHandler() const;
-        Q_INVOKABLE void setWin10BorderHandler(Win10BorderHandler *handler);
+        bool needBorderPainter() const;
+        int borderThickness() const;
 
     protected:
         bool setupHost() override;
@@ -65,8 +65,6 @@ namespace QWK {
         bool mouseLeaveBlocked = false;
 
         bool centered = false;
-
-        std::unique_ptr<Win10BorderHandler> win10BorderHandler;
     };
 
 }

@@ -1,6 +1,8 @@
 #include "qwkquickglobal.h"
-#include "quickwindowagent.h"
+
 #include <QtQml/QQmlEngine>
+
+#include "quickwindowagent.h"
 
 namespace QWK {
 

@@ -1,4 +1,4 @@
-#include "nativeeventfilter.h"
+#include "nativeeventfilter_p.h"
 
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCoreApplication>

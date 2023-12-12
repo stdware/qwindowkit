@@ -16,6 +16,10 @@ namespace QWK {
 
         // Host
         QWidget *hostWidget{};
+
+#ifdef Q_OS_WINDOWS
+        void setupWindows10BorderWorkaround();
+#endif
     };
 
 }

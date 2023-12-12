@@ -13,6 +13,10 @@ set(_src
     quickwindowagent.cpp
 )
 
+if(WIN32)
+    list(APPEND _src quickwindowagent_win.cpp)
+endif()
+
 qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
     LINKS QWKCore

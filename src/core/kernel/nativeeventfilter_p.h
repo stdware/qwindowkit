@@ -1,5 +1,5 @@
-#ifndef NATIVEEVENTFILTER_H
-#define NATIVEEVENTFILTER_H
+#ifndef NATIVEEVENTFILTER_P_H
+#define NATIVEEVENTFILTER_P_H
 
 #include <QWKCore/qwkglobal.h>
 
@@ -20,4 +20,4 @@ namespace QWK {
 
 }
 
-#endif // NATIVEEVENTFILTER_H
+#endif // NATIVEEVENTFILTER_P_H

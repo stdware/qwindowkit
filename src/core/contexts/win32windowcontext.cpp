@@ -4,6 +4,7 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
+#include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
@@ -26,10 +27,8 @@
 #include <dwmapi.h>
 #include <timeapi.h>
 
-#include "nativeeventfilter.h"
+#include "nativeeventfilter_p.h"
 #include "qwkglobal_p.h"
-
-#include "win10borderhandler_p.h"
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 Q_DECLARE_METATYPE(QMargins)
@@ -814,6 +813,45 @@ namespace QWK {
                 return;
             }
 
+            case DrawWindows10BorderHook: {
+                auto args = static_cast<void **>(data);
+                auto &painter = *static_cast<QPainter *>(args[0]);
+                const auto &rect = *static_cast<const QRect *>(args[1]);
+                const auto &region = *static_cast<const QRegion *>(args[2]);
+                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+
+                QPen pen;
+                pen.setWidth(getWindowFrameBorderThickness(hwnd) * 2);
+
+                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
+                if (m_delegate->isWindowActive(m_host)) {
+                    if (isWindowFrameBorderColorized()) {
+                        pen.setColor(getAccentColor());
+                    } else {
+                        static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
+                        static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
+                        pen.setColor(dark ? frameBorderActiveColorDark
+                                          : frameBorderActiveColorLight);
+                    }
+                } else {
+                    static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
+                    static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
+                    pen.setColor(dark ? frameBorderInactiveColorDark
+                                      : frameBorderInactiveColorLight);
+                }
+                painter.save();
+
+                // ### TODO: do we need to enable or disable it?
+                painter.setRenderHint(QPainter::Antialiasing);
+
+                painter.setPen(pen);
+                painter.drawLine(QLine{
+                    QPoint{0,                       0},
+                    QPoint{m_windowHandle->width(), 0}
+                });
+                painter.restore();
+            }
+
             default: {
                 // unreachable
                 break;
@@ -822,14 +860,12 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    bool Win32WindowContext::needWin10BorderHandler() const {
+    bool Win32WindowContext::needBorderPainter() const {
         return isWin10OrGreater() && !isWin11OrGreater();
     }
 
-    void Win32WindowContext::setWin10BorderHandler(Win10BorderHandler *handler) {
-        win10BorderHandler.reset(handler);
-        handler->setBorderThickness(
-            int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId))));
+    int Win32WindowContext::borderThickness() const {
+        return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
     }
 
     bool Win32WindowContext::setupHost() {
@@ -905,8 +941,8 @@ namespace QWK {
     }
 
     QWK_USED static constexpr const struct {
-        const WPARAM wParam = 0xF1C9ADD4;
-        const LPARAM lParam = 0xAFB6F4C6;
+        const WPARAM wParam = MAKEWPARAM(44500, 61897);
+        const LPARAM lParam = MAKELPARAM(62662, 44982); // Not used. Reserve for future use.
     } kMessageTag;
 
     static inline quint64 getKeyState() {
@@ -1887,81 +1923,83 @@ namespace QWK {
         return false;
     }
 
-    bool Win32WindowContext::themeStuffHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
-                           LRESULT *resul)
-    {
+    bool Win32WindowContext::themeStuffHandler(HWND hWnd, UINT message, WPARAM wParam,
+                                               LPARAM lParam, LRESULT *resul) {
         switch (message) {
             case WM_DPICHANGED: {
                 const auto dpiX = UINT(LOWORD(wParam));
                 const auto dpiY = UINT(HIWORD(wParam));
+
+                QEvent e(QEvent::ScreenChangeInternal);
+                dispatch(&e);
                 break;
             }
+
             case WM_THEMECHANGED:
             case WM_SYSCOLORCHANGE: {
+                QEvent e(QEvent::UpdateRequest);
+                dispatch(&e);
                 break;
             }
+
             case WM_DWMCOLORIZATIONCOLORCHANGED: {
                 const QColor color = QColor::fromRgba(wParam);
                 const auto blendWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
+
+                QEvent e(QEvent::UpdateRequest);
+                dispatch(&e);
                 break;
             }
+
             case WM_SETTINGCHANGE: {
-                if (!wParam && lParam && std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0) {
+                if (!wParam && lParam &&
+                    std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0) {
                     const QColor color = getAccentColor();
                 }
+
+                QEvent e(QEvent::UpdateRequest);
+                dispatch(&e);
                 break;
             }
+
             case WM_SIZE: {
                 const bool max = wParam == SIZE_MAXIMIZED;
                 const bool min = wParam == SIZE_MINIMIZED;
                 const bool full = isFullScreen(hWnd);
+
+                Qt::WindowStates states{};
+                if (max) {
+                    states |= Qt::WindowMaximized;
+                }
+                if (min) {
+                    states |= Qt::WindowMinimized;
+                }
+                if (full) {
+                    states |= Qt::WindowFullScreen;
+                }
+
+                QTimer::singleShot(0, this, [this, states] {
+                    QWindowStateChangeEvent e(states);
+                    dispatch(&e);
+                });
                 break;
             }
+
             case WM_ACTIVATE: {
                 const auto state = LOWORD(wParam);
                 const bool active = state == WA_ACTIVE || state == WA_CLICKACTIVE;
+                Q_UNUSED(state)
+
+                QTimer::singleShot(0, this, [this, active] {
+                    QEvent e(active ? QEvent::WindowActivate : QEvent::WindowDeactivate);
+                    dispatch(&e);
+                });
                 break;
             }
             default:
                 break;
         }
         return false;
-    }
-
-    void Win10BorderHandler::paintBorder(QPainter &painter, const QRect &rect,
-                                         const QRegion &region) {
-        Q_UNUSED(rect)
-        Q_UNUSED(region)
-
-        QPen pen;
-        pen.setWidth(m_borderThickness * 2);
-
-        const bool dark = isDarkThemeActive() &&
-                          isDarkWindowFrameEnabled(reinterpret_cast<HWND>(m_window->winId()));
-        if (isActive()) {
-            if (isWindowFrameBorderColorized()) {
-                pen.setColor(getAccentColor());
-            } else {
-                static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
-                static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
-                pen.setColor(dark ? frameBorderActiveColorDark : frameBorderActiveColorLight);
-            }
-        } else {
-            static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
-            static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
-            pen.setColor(dark ? frameBorderInactiveColorDark : frameBorderInactiveColorLight);
-        }
-        painter.save();
-
-        // ### TODO: do we need to enable or disable it?
-        painter.setRenderHint(QPainter::Antialiasing);
-
-        painter.setPen(pen);
-        painter.drawLine(QLine{
-            QPoint{0,                 0},
-            QPoint{m_window->width(), 0}
-        });
-        painter.restore();
     }
 
 }

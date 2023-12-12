@@ -12,12 +12,12 @@ set(_src
     windowagentbase.cpp
     windowitemdelegate_p.h
     windowitemdelegate.cpp
-    kernel/nativeeventfilter.h
+    kernel/eventobserver_p.h
+    kernel/eventobserver.cpp
+    kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
-    platforms/win10borderhandler_p.h
-    platforms/win10borderhandler.cpp
 )
 
 if(WIN32)
@@ -26,7 +26,6 @@ if(WIN32)
         qwindowkit_windows.cpp
         contexts/win32windowcontext_p.h
         contexts/win32windowcontext.cpp
-        platforms
     )
 else()
     list(APPEND _src

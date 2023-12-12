@@ -5,58 +5,9 @@
 #include <QtGui/QPainter>
 #include <QtCore/QDebug>
 
-#ifdef Q_OS_WINDOWS
-#  include <QWKCore/private/win10borderhandler_p.h>
-#endif
-
 #include "widgetitemdelegate_p.h"
 
 namespace QWK {
-
-#ifdef Q_OS_WINDOWS
-    class WidgetBorderHandler : public QObject, public Win10BorderHandler {
-    public:
-        explicit WidgetBorderHandler(QWidget *widget)
-            : Win10BorderHandler(widget->windowHandle()), widget(widget) {
-            widget->installEventFilter(this);
-        }
-
-        void updateGeometry() override {
-            if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
-                widget->setContentsMargins({});
-            } else {
-                widget->setContentsMargins({0, int(m_borderThickness), 0, 0});
-            }
-        }
-
-        void requestUpdate() override {
-            widget->update();
-        }
-
-        bool isActive() const override {
-            return widget->isActiveWindow();
-        }
-
-    protected:
-        bool eventFilter(QObject *obj, QEvent *event) override {
-            switch (event->type()) {
-                case QEvent::Paint: {
-                    if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen))
-                        break;
-                    auto paintEvent = static_cast<QPaintEvent *>(event);
-                    QPainter painter(widget);
-                    paintBorder(painter, paintEvent->rect(), paintEvent->region());
-                    return true;
-                }
-                default:
-                    break;
-            }
-            return false;
-        }
-
-        QWidget *widget;
-    };
-#endif
 
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() {
     }
@@ -94,15 +45,7 @@ namespace QWK {
         d->hostWidget = w;
 
 #ifdef Q_OS_WINDOWS
-        // Install painting hook
-        if (bool needPaintBorder;
-            QMetaObject::invokeMethod(d->context.get(), "needWin10BorderHandler",
-                                      Qt::DirectConnection, Q_RETURN_ARG(bool, needPaintBorder)),
-            needPaintBorder) {
-            QMetaObject::invokeMethod(d->context.get(), "setWin10BorderHandler",
-                                      Qt::DirectConnection,
-                                      Q_ARG(Win10BorderHandler *, new WidgetBorderHandler(w)));
-        }
+        d->setupWindows10BorderWorkaround();
 #endif
         return true;
     }

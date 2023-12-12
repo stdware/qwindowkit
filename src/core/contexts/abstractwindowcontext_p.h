@@ -9,11 +9,12 @@
 #include <QtGui/QPolygon>
 
 #include <QWKCore/windowagentbase.h>
+#include <QWKCore/private/eventobserver_p.h>
 #include <QWKCore/private/windowitemdelegate_p.h>
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT AbstractWindowContext : public QObject {
+    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public EventDispatcher {
         Q_OBJECT
     public:
         AbstractWindowContext();
@@ -35,8 +36,6 @@ namespace QWK {
         inline QObject *titleBar() const;
         bool setTitleBar(QObject *obj);
 
-        void showSystemMenu(const QPoint &pos);
-
         QRegion hitTestShape() const;
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
@@ -47,8 +46,11 @@ namespace QWK {
             CentralizeHook = 1,
             ShowSystemMenuHook,
             DefaultColorsHook,
+            DrawWindows10BorderHook, // Only works on Windows 10
         };
         virtual void virtual_hook(int id, void *data);
+
+        void showSystemMenu(const QPoint &pos);
 
     protected:
         virtual bool setupHost() = 0;
