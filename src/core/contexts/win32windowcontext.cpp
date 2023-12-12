@@ -29,6 +29,8 @@
 #include "nativeeventfilter.h"
 #include "qwkglobal_p.h"
 
+#include "win10borderhandler_p.h"
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 Q_DECLARE_METATYPE(QMargins)
 #endif
@@ -802,74 +804,13 @@ namespace QWK {
                 return;
             }
 
-            case NeedsDrawBordersHook: {
-                auto &result = *static_cast<bool *>(data);
-                result = isWin10OrGreater() && !isWin11OrGreater();
-                return;
-            }
-
-            case BorderThicknessHook: {
-                auto args = static_cast<void **>(data);
-                const bool requireNative = *static_cast<const bool *>(args[0]);
-                quint32 &thickness = *static_cast<quint32 *>(args[1]);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
-                const auto nativeThickness = getWindowFrameBorderThickness(hwnd);
-                thickness = requireNative
-                                ? nativeThickness
-                                : QHighDpi::fromNativePixels(nativeThickness, m_windowHandle);
-                return;
-            }
-
-            case BorderColorsHook: {
-                auto arr = *reinterpret_cast<QList<QColor> *>(data);
-                arr.clear();
-                arr.push_back(kWindowsColorSet.activeLight);
-                arr.push_back(kWindowsColorSet.activeDark);
-                arr.push_back(kWindowsColorSet.inactiveLight);
-                arr.push_back(kWindowsColorSet.inactiveDark);
-                return;
-            }
-
-            case DrawBordersHook: {
-                auto args = static_cast<void **>(data);
-                auto &painter = *static_cast<QPainter *>(args[0]);
-                const auto &rect = *static_cast<const QRect *>(args[1]);
-                const auto &region = *static_cast<const QRegion *>(args[2]);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
-
-                QPen pen;
-                const auto borderThickness = int(QHighDpi::fromNativePixels(
-                    getWindowFrameBorderThickness(hwnd), m_windowHandle));
-                pen.setWidth(borderThickness * 2);
-                const bool active = m_delegate->isWindowActive(m_host);
-                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
-
-                if (active) {
-                    if (isWindowFrameBorderColorized()) {
-                        pen.setColor(getAccentColor());
-                    } else {
-                        static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
-                        static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
-                        pen.setColor(dark ? frameBorderActiveColorDark
-                                          : frameBorderActiveColorLight);
-                    }
-                } else {
-                    static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
-                    static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
-                    pen.setColor(dark ? frameBorderInactiveColorDark
-                                      : frameBorderInactiveColorLight);
-                }
-                painter.save();
-
-                // ### TODO: do we need to enable or disable it?
-                painter.setRenderHint(QPainter::Antialiasing);
-
-                painter.setPen(pen);
-                painter.drawLine(QLine{
-                    QPoint{0,            0},
-                    QPoint{rect.width(), 0}
-                });
-                painter.restore();
+            case DefaultColorsHook: {
+                auto map = *reinterpret_cast<QMap<QString, QColor> *>(data);
+                map.clear();
+                map.insert("activeLight", kWindowsColorSet.activeLight);
+                map.insert("activeDark", kWindowsColorSet.activeDark);
+                map.insert("inactiveLight", kWindowsColorSet.inactiveLight);
+                map.insert("inactiveDark", kWindowsColorSet.inactiveDark);
                 return;
             }
 
@@ -879,6 +820,16 @@ namespace QWK {
             }
         }
         AbstractWindowContext::virtual_hook(id, data);
+    }
+
+    bool Win32WindowContext::needWin10BorderHandler() const {
+        return isWin10OrGreater() && !isWin11OrGreater();
+    }
+
+    void Win32WindowContext::setWin10BorderHandler(Win10BorderHandler *handler) {
+        win10BorderHandler.reset(handler);
+        handler->setBorderThickness(
+            int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId))));
     }
 
     bool Win32WindowContext::setupHost() {
@@ -1930,6 +1881,42 @@ namespace QWK {
             return true;
         }
         return false;
+    }
+
+    void Win10BorderHandler::paintBorder(QPainter &painter, const QRect &rect,
+                                         const QRegion &region) {
+        Q_UNUSED(rect)
+        Q_UNUSED(region)
+
+        QPen pen;
+        pen.setWidth(m_borderThickness * 2);
+
+        const bool dark = isDarkThemeActive() &&
+                          isDarkWindowFrameEnabled(reinterpret_cast<HWND>(m_window->winId()));
+        if (isActive()) {
+            if (isWindowFrameBorderColorized()) {
+                pen.setColor(getAccentColor());
+            } else {
+                static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
+                static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
+                pen.setColor(dark ? frameBorderActiveColorDark : frameBorderActiveColorLight);
+            }
+        } else {
+            static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
+            static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
+            pen.setColor(dark ? frameBorderInactiveColorDark : frameBorderInactiveColorLight);
+        }
+        painter.save();
+
+        // ### TODO: do we need to enable or disable it?
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        painter.setPen(pen);
+        painter.drawLine(QLine{
+            QPoint{0,                 0},
+            QPoint{m_window->width(), 0}
+        });
+        painter.restore();
     }
 
 }

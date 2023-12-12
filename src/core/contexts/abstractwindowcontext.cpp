@@ -180,31 +180,25 @@ namespace QWK {
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case NeedsDrawBordersHook: {
-                auto &result = *static_cast<bool *>(data);
-                result = false;
-                return;
+            case CentralizeHook: {
+                // TODO: Qt
+                break;
             }
 
-            case BorderThicknessHook: {
-                auto args = static_cast<void **>(data);
-                const bool requireNative = *static_cast<const bool *>(args[0]);
-                quint32 &thickness = *static_cast<quint32 *>(args[1]);
-                std::ignore = requireNative;
-                thickness = 1;
-                return;
+            case ShowSystemMenuHook: {
+                // TODO: Qt
+                break;
             }
 
-            case BorderColorsHook: {
-                auto arr = *reinterpret_cast<QList<QColor> *>(data);
-                arr.clear();
-                arr.push_back(kSampleColorSet.activeLight);
-                arr.push_back(kSampleColorSet.activeDark);
-                arr.push_back(kSampleColorSet.inactiveLight);
-                arr.push_back(kSampleColorSet.inactiveDark);
+            case DefaultColorsHook: {
+                auto map = *reinterpret_cast<QMap<QString, QColor> *>(data);
+                map.clear();
+                map.insert("activeLight", kSampleColorSet.activeLight);
+                map.insert("activeDark", kSampleColorSet.activeDark);
+                map.insert("inactiveLight", kSampleColorSet.inactiveLight);
+                map.insert("inactiveDark", kSampleColorSet.inactiveDark);
                 return;
             }
-
             default:
                 break;
         }

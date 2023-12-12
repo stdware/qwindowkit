@@ -1,34 +1,36 @@
 #include "quickwindowagent.h"
 #include "quickwindowagent_p.h"
-#include "quickitemdelegate_p.h"
 
 #include <QtQuick/QQuickWindow>
 #include <QtQuick/QQuickPaintedItem>
 #include <QtQuick/private/qquickitem_p.h>
 #include <QtQuick/private/qquickanchors_p.h>
 
+#ifdef Q_OS_WINDOWS
+#  include <QWKCore/private/win10borderhandler_p.h>
+#endif
+
+#include "quickitemdelegate_p.h"
+
 namespace QWK {
 
-    class BorderItem : public QQuickPaintedItem {
+    class BorderItem : public QQuickPaintedItem, public Win10BorderHandler {
         Q_OBJECT
     public:
-        explicit BorderItem(AbstractWindowContext *ctx, QQuickItem *parent = nullptr);
+        explicit BorderItem(QQuickItem *parent = nullptr);
         ~BorderItem() override;
 
-        void updateHeight();
+        void updateGeometry() override;
+        void requestUpdate() override;
+
+        bool isActive() const override;
 
     public:
         void paint(QPainter *painter) override;
-        void itemChange(ItemChange change, const ItemChangeData &data) override;
-
-    private:
-        AbstractWindowContext *context;
-
-        void _q_windowActivityChanged();
     };
 
-    BorderItem::BorderItem(AbstractWindowContext *ctx, QQuickItem *parent)
-        : QQuickPaintedItem(parent), context(ctx) {
+    BorderItem::BorderItem(QQuickItem *parent)
+        : Win10BorderHandler(parent->window()), QQuickPaintedItem(parent) {
         setAntialiasing(true);   // ### FIXME: do we need to enable or disable this?
         setMipmap(true);         // ### FIXME: do we need to enable or disable this?
         setFillColor({});        // Will improve the performance a little bit.
@@ -46,48 +48,22 @@ namespace QWK {
 
     BorderItem::~BorderItem() = default;
 
-    void BorderItem::updateHeight() {
-        bool native = false;
-        quint32 thickness = 0;
-        void *args[] = {
-            &native,
-            &thickness,
-        };
-        context->virtual_hook(AbstractWindowContext::BorderThicknessHook, &args);
-        setHeight(thickness);
+    void BorderItem::updateGeometry() {
+        setHeight(m_borderThickness);
+    }
+
+    void BorderItem::requestUpdate() {
+        update();
+    }
+
+    bool BorderItem::isActive() const {
+        return static_cast<QQuickWindow *>(m_window)->isActive();
     }
 
     void BorderItem::paint(QPainter *painter) {
         QRect rect(QPoint(0, 0), size().toSize());
         QRegion region(rect);
-        void *args[] = {
-            painter,
-            &rect,
-            &region,
-        };
-        context->virtual_hook(AbstractWindowContext::DrawBordersHook, args);
-    }
-
-    void BorderItem::itemChange(ItemChange change, const ItemChangeData &data) {
-        QQuickPaintedItem::itemChange(change, data);
-        switch (change) {
-            case ItemSceneChange:
-                if (data.window) {
-                    connect(data.window, &QQuickWindow::activeChanged, this,
-                            &BorderItem::_q_windowActivityChanged);
-                }
-                Q_FALLTHROUGH();
-            case ItemVisibleHasChanged:
-            case ItemDevicePixelRatioHasChanged:
-                updateHeight();
-                break;
-            default:
-                break;
-        }
-    }
-
-    void BorderItem::_q_windowActivityChanged() {
-        update();
+        Win10BorderHandler::paintBorder(*painter, rect, region);
     }
 
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() {
@@ -122,11 +98,17 @@ namespace QWK {
         }
         d->hostWindow = window;
 
-        if (bool needPaintBorder = false;
-            d->context->virtual_hook(AbstractWindowContext::NeedsDrawBordersHook, &needPaintBorder),
+#ifdef Q_OS_WINDOWS
+        // Install painting hook
+        if (bool needPaintBorder;
+            QMetaObject::invokeMethod(d->context.get(), "needWin10BorderHandler",
+                                      Qt::DirectConnection, Q_RETURN_ARG(bool, needPaintBorder)),
             needPaintBorder) {
-            d->borderItem = std::make_unique<BorderItem>(d->context.get(), window->contentItem());
+            QMetaObject::invokeMethod(
+                d->context.get(), "setWin10BorderHandler", Qt::DirectConnection,
+                Q_ARG(Win10BorderHandler *, new BorderItem(window->contentItem())));
         }
+#endif
         return true;
     }
 

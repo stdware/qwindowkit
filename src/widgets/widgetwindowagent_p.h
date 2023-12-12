@@ -6,8 +6,6 @@
 
 namespace QWK {
 
-    class WidgetBorderHandler;
-
     class WidgetWindowAgentPrivate : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(WidgetWindowAgent)
     public:
@@ -18,8 +16,6 @@ namespace QWK {
 
         // Host
         QWidget *hostWidget{};
-
-        std::unique_ptr<WidgetBorderHandler> borderHandler;
     };
 
 }

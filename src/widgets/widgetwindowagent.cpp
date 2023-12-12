@@ -5,34 +5,36 @@
 #include <QtGui/QPainter>
 #include <QtCore/QDebug>
 
+#ifdef Q_OS_WINDOWS
+#  include <QWKCore/private/win10borderhandler_p.h>
+#endif
+
 #include "widgetitemdelegate_p.h"
 
 namespace QWK {
 
-    class WidgetBorderHandler : public QObject {
+#ifdef Q_OS_WINDOWS
+    class WidgetBorderHandler : public QObject, public Win10BorderHandler {
     public:
-        WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
-            : widget(widget), ctx(ctx), m_thickness(0) {
-            updateThickness();
+        explicit WidgetBorderHandler(QWidget *widget)
+            : Win10BorderHandler(widget->windowHandle()), widget(widget) {
             widget->installEventFilter(this);
         }
 
-        void updateThickness() {
-            // Query thickness
-            bool native = false;
-            void *a[] = {
-                &native,
-                &m_thickness,
-            };
-            ctx->virtual_hook(AbstractWindowContext::BorderThicknessHook, &a);
-        }
-
-        void updateMargins() {
+        void updateGeometry() override {
             if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
                 widget->setContentsMargins({});
             } else {
-                widget->setContentsMargins({0, int(m_thickness), 0, 0});
+                widget->setContentsMargins({0, int(m_borderThickness), 0, 0});
             }
+        }
+
+        void requestUpdate() override {
+            widget->update();
+        }
+
+        bool isActive() const override {
+            return widget->isActiveWindow();
         }
 
     protected:
@@ -41,33 +43,11 @@ namespace QWK {
                 case QEvent::Paint: {
                     if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen))
                         break;
-
                     auto paintEvent = static_cast<QPaintEvent *>(event);
                     QPainter painter(widget);
-                    QRect rect = paintEvent->rect();
-                    QRegion region = paintEvent->region();
-                    void *args[] = {
-                        &painter,
-                        &rect,
-                        &region,
-                    };
-                    ctx->virtual_hook(AbstractWindowContext::DrawBordersHook, args);
+                    paintBorder(painter, paintEvent->rect(), paintEvent->region());
                     return true;
                 }
-
-                case QEvent::WindowStateChange: {
-                    updateMargins();
-                    break;
-                }
-
-                case QEvent::WindowActivate:
-                case QEvent::WindowDeactivate: {
-                    widget->update();
-                    break;
-                }
-
-                    // TODO: Handle DPI Change
-
                 default:
                     break;
             }
@@ -75,9 +55,8 @@ namespace QWK {
         }
 
         QWidget *widget;
-        AbstractWindowContext *ctx;
-        quint32 m_thickness;
     };
+#endif
 
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() {
     }
@@ -114,14 +93,17 @@ namespace QWK {
         }
         d->hostWidget = w;
 
+#ifdef Q_OS_WINDOWS
         // Install painting hook
-        if (bool needPaintBorder = false;
-            d->context->virtual_hook(AbstractWindowContext::NeedsDrawBordersHook, &needPaintBorder),
+        if (bool needPaintBorder;
+            QMetaObject::invokeMethod(d->context.get(), "needWin10BorderHandler",
+                                      Qt::DirectConnection, Q_RETURN_ARG(bool, needPaintBorder)),
             needPaintBorder) {
-            auto borderHandler = std::make_unique<WidgetBorderHandler>(w, d->context.get());
-            borderHandler->updateMargins();
-            d->borderHandler = std::move(borderHandler);
+            QMetaObject::invokeMethod(d->context.get(), "setWin10BorderHandler",
+                                      Qt::DirectConnection,
+                                      Q_ARG(Win10BorderHandler *, new WidgetBorderHandler(w)));
         }
+#endif
         return true;
     }
 

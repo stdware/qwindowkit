@@ -46,10 +46,7 @@ namespace QWK {
         enum WindowContextHook {
             CentralizeHook = 1,
             ShowSystemMenuHook,
-            NeedsDrawBordersHook,
-            BorderThicknessHook,
-            BorderColorsHook,
-            DrawBordersHook,
+            DefaultColorsHook,
         };
         virtual void virtual_hook(int id, void *data);
 

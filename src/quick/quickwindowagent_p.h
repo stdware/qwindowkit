@@ -6,8 +6,6 @@
 
 namespace QWK {
 
-    class BorderItem;
-
     class QuickWindowAgentPrivate : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(QuickWindowAgent)
     public:
@@ -18,8 +16,6 @@ namespace QWK {
 
         // Host
         QQuickWindow *hostWindow{};
-
-        std::unique_ptr<BorderItem> borderItem;
     };
 
 }

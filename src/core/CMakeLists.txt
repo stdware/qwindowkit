@@ -16,6 +16,8 @@ set(_src
     kernel/nativeeventfilter.cpp
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
+    platforms/win10borderhandler_p.h
+    platforms/win10borderhandler.cpp
 )
 
 if(WIN32)
@@ -24,6 +26,7 @@ if(WIN32)
         qwindowkit_windows.cpp
         contexts/win32windowcontext_p.h
         contexts/win32windowcontext.cpp
+        platforms
     )
 else()
     list(APPEND _src
@@ -45,7 +48,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
-    INCLUDE_PRIVATE kernel contexts
+    INCLUDE_PRIVATE kernel contexts platforms
     PREFIX QWK_CORE
 )
 
