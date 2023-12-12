@@ -6,7 +6,7 @@
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT Win32WindowContext : public AbstractWindowContext {
+    class Win32WindowContext : public AbstractWindowContext {
         Q_OBJECT
         Q_PROPERTY(bool needBorderPainter READ needBorderPainter FINAL)
         Q_PROPERTY(int borderThickness READ borderThickness FINAL)

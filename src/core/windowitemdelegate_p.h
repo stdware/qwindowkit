@@ -16,13 +16,13 @@ namespace QWK {
 
     public:
         // Item property query
-        virtual QWindow *window(const QObject *obj) const = 0;
+        virtual QWindow *window(QObject *obj) const = 0;
         virtual bool isEnabled(const QObject *obj) const = 0;
         virtual bool isVisible(const QObject *obj) const = 0;
         virtual QRect mapGeometryToScene(const QObject *obj) const = 0;
 
         // Host property query
-        virtual QWindow *hostWindow(const QObject *host) const = 0;
+        virtual QWindow *hostWindow(QObject *host) const = 0;
         virtual bool isHostSizeFixed(const QObject *host) const = 0;
         virtual bool isWindowActive(const QObject *host) const = 0;
 

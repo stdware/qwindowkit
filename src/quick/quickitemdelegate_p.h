@@ -15,12 +15,12 @@ namespace QWK {
         ~QuickItemDelegate() override;
 
     public:
-        QWindow *window(const QObject *obj) const override;
+        QWindow *window(QObject *obj) const override;
         bool isEnabled(const QObject *obj) const override;
         bool isVisible(const QObject *obj) const override;
         QRect mapGeometryToScene(const QObject *obj) const override;
 
-        QWindow *hostWindow(const QObject *host) const override;
+        QWindow *hostWindow(QObject *host) const override;
         bool isHostSizeFixed(const QObject *host) const override;
         bool isWindowActive(const QObject *host) const override;
     };

@@ -5,7 +5,7 @@
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT QtWindowContext : public AbstractWindowContext {
+    class QtWindowContext : public AbstractWindowContext {
         Q_OBJECT
     public:
         QtWindowContext();

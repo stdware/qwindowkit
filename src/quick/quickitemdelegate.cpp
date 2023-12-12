@@ -10,7 +10,7 @@ namespace QWK {
 
     QuickItemDelegate::~QuickItemDelegate() = default;
 
-    QWindow *QuickItemDelegate::window(const QObject *obj) const {
+    QWindow *QuickItemDelegate::window(QObject *obj) const {
         return static_cast<const QQuickItem *>(obj)->window();
     }
 
@@ -29,8 +29,8 @@ namespace QWK {
         return QRectF(originPoint, size).toRect();
     }
 
-    QWindow *QuickItemDelegate::hostWindow(const QObject *host) const {
-        return static_cast<QQuickWindow *>(const_cast<QObject *>(host));
+    QWindow *QuickItemDelegate::hostWindow(QObject *host) const {
+        return static_cast<QQuickWindow *>(host);
     }
 
     bool QuickItemDelegate::isHostSizeFixed(const QObject *host) const {

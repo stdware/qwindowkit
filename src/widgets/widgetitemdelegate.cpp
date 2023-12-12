@@ -12,7 +12,7 @@ namespace QWK {
 
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
-    QWindow *WidgetItemDelegate::window(const QObject *obj) const {
+    QWindow *WidgetItemDelegate::window(QObject *obj) const {
         return static_cast<const QWidget *>(obj)->windowHandle();
     }
 
@@ -31,7 +31,7 @@ namespace QWK {
         return {originPoint, size};
     }
 
-    QWindow *WidgetItemDelegate::hostWindow(const QObject *host) const {
+    QWindow *WidgetItemDelegate::hostWindow(QObject *host) const {
         return static_cast<const QWidget *>(host)->windowHandle();
     }
 
@@ -49,8 +49,8 @@ namespace QWK {
         }
         // Usually set by the user.
         const QSizePolicy sizePolicy = widget->sizePolicy();
-        if ((sizePolicy.horizontalPolicy() == QSizePolicy::Fixed)
-            && (sizePolicy.verticalPolicy() == QSizePolicy::Fixed)) {
+        if ((sizePolicy.horizontalPolicy() == QSizePolicy::Fixed) &&
+            (sizePolicy.verticalPolicy() == QSizePolicy::Fixed)) {
             return true;
         }
         return false;
@@ -64,11 +64,11 @@ namespace QWK {
         if (!qt_button_down) {
             return;
         }
-        static constexpr const auto invalidPos = QPoint{std::numeric_limits<int>::lowest(), std::numeric_limits<int>::lowest()};
-        const auto event =
-            new QMouseEvent(QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos,
-                            Qt::LeftButton, QGuiApplication::mouseButtons() ^ Qt::LeftButton,
-                            QGuiApplication::keyboardModifiers());
+        static constexpr const auto invalidPos =
+            QPoint{std::numeric_limits<int>::lowest(), std::numeric_limits<int>::lowest()};
+        const auto event = new QMouseEvent(
+            QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos, Qt::LeftButton,
+            QGuiApplication::mouseButtons() ^ Qt::LeftButton, QGuiApplication::keyboardModifiers());
         QApplication::postEvent(qt_button_down, event);
         qt_button_down = nullptr;
     }
