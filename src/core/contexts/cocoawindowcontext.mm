@@ -9,7 +9,7 @@ namespace QWK {
     }
 
     QString CocoaWindowContext::key() const {
-        return "cocoa";
+        return QStringLiteral("cocoa");
     }
 
     void CocoaWindowContext::virtual_hook(int id, void *data) {

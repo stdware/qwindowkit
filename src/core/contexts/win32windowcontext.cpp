@@ -1944,7 +1944,7 @@ namespace QWK {
 
             case WM_DWMCOLORIZATIONCOLORCHANGED: {
                 const QColor color = QColor::fromRgba(wParam);
-                const auto blendWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
+                const auto blendedWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
 
                 QEvent e(QEvent::UpdateLater);
                 dispatch(&e);
@@ -1955,47 +1955,13 @@ namespace QWK {
                 if (!wParam && lParam &&
                     std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0) {
                     const QColor color = getAccentColor();
-                }
 
-                QEvent e(QEvent::UpdateLater);
-                dispatch(&e);
+                    QEvent e(QEvent::UpdateLater);
+                    dispatch(&e);
+                }
                 break;
             }
 
-            // case WM_SIZE: {
-            //     const bool max = wParam == SIZE_MAXIMIZED;
-            //     const bool min = wParam == SIZE_MINIMIZED;
-            //     const bool full = isFullScreen(hWnd);
-
-            //     Qt::WindowStates states{};
-            //     if (max) {
-            //         states |= Qt::WindowMaximized;
-            //     }
-            //     if (min) {
-            //         states |= Qt::WindowMinimized;
-            //     }
-            //     if (full) {
-            //         states |= Qt::WindowFullScreen;
-            //     }
-
-            //     // QTimer::singleShot(0, this, [this, states] {
-            //     QWindowStateChangeEvent e(states);
-            //     dispatch(&e);
-            //     // });
-            //     break;
-            // }
-
-            // case WM_ACTIVATE: {
-            //     const auto state = LOWORD(wParam);
-            //     const bool active = state == WA_ACTIVE || state == WA_CLICKACTIVE;
-            //     Q_UNUSED(state)
-
-            //     // QTimer::singleShot(0, this, [this, active] {
-            //     QEvent e(active ? QEvent::WindowActivate : QEvent::WindowDeactivate);
-            //     dispatch(&e);
-            //     // });
-            //     break;
-            // }
             default:
                 break;
         }
