@@ -42,7 +42,6 @@ if(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
         contexts/qtwindowcontext_p.h
         contexts/qtwindowcontext.cpp
     )
-    list(APPEND _defines_private QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
 else()
     if(WIN32)
         list(APPEND _src
