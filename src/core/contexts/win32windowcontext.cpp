@@ -84,7 +84,7 @@ namespace QWK {
     // ### FIXME: Tell the user to call in the documentation, instead of automatically
     // calling it directly.
     // ### FIXME FIXME FIXME
-    static struct QWK_Hook {
+    static const struct QWK_Hook {
         QWK_Hook() {
             qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
         }

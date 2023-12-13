@@ -19,7 +19,7 @@ namespace QWK {
 
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            for (const auto &child : qAsConst(children)) {
+            for (const auto &child : std::as_const(children)) {
                 if (child->nativeEventFilter(eventType, message, result)) {
                     return true;
                 }

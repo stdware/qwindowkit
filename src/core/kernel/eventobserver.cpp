@@ -13,13 +13,13 @@ namespace QWK {
     EventDispatcher::EventDispatcher() = default;
 
     EventDispatcher::~EventDispatcher() {
-        for (const auto &observer : qAsConst(m_observers)) {
+        for (const auto &observer : std::as_const(m_observers)) {
             observer->m_dispatcher = nullptr;
         }
     }
 
     bool EventDispatcher::dispatch(QEvent *event) {
-        for (const auto &observer : qAsConst(m_observers)) {
+        for (const auto &observer : std::as_const(m_observers)) {
             if (observer->observe(event))
                 return true;
         }
