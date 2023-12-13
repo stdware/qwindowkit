@@ -5,6 +5,8 @@
 
 #if defined(Q_OS_WINDOWS) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
 #  include "win32windowcontext_p.h"
+#elif defined(Q_OS_MAC) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+#  include "cocoawindowcontext_p.h"
 #else
 #  include "qtwindowcontext_p.h"
 #endif
@@ -28,8 +30,11 @@ namespace QWK {
         if (windowContextFactoryMethod) {
             return windowContextFactoryMethod();
         }
+
 #if defined(Q_OS_WINDOWS) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
         return new Win32WindowContext();
+#elif defined(Q_OS_MAC) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+        return new CocoaWindowContext();
 #else
         return new QtWindowContext();
 #endif

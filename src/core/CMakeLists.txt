@@ -27,30 +27,33 @@ if(WIN32)
         qwindowkit_windows.h
         qwindowkit_windows.cpp
     )
+elseif(NOT APPLE)
+    list(APPEND _src
+        qwindowkit_linux.h
+    )
+endif()
 
-    if(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
-        list(APPEND _src
-            contexts/qtwindowcontext_p.h
-            contexts/qtwindowcontext.cpp
-        )
-        list(APPEND _defines_private QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
-    else()
-        list(APPEND _src
-            contexts/win32windowcontext_p.h
-            contexts/win32windowcontext.cpp
-        )
-    endif()
-else()
+if(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
     list(APPEND _src
         contexts/qtwindowcontext_p.h
         contexts/qtwindowcontext.cpp
     )
-
-    if(APPLE)
-    # add files
+    list(APPEND _defines_private QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+else()
+    if(WIN32)
+        list(APPEND _src
+            contexts/win32windowcontext_p.h
+            contexts/win32windowcontext.cpp
+        )
+    elseif(APPLE)
+        list(APPEND _src
+            contexts/cocoawindowcontext_p.h
+            contexts/cocoawindowcontext.cpp
+        )
     else()
         list(APPEND _src
-            qwindowkit_linux.h
+            contexts/qtwindowcontext_p.h
+            contexts/qtwindowcontext.cpp
         )
     endif()
 endif()
