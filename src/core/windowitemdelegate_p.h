@@ -5,7 +5,7 @@
 #include <QtCore/QPoint>
 #include <QtGui/QWindow>
 
-#include <QWKCore/qwkcoreglobal.h>
+#include <QWKCore/qwkglobal.h>
 
 namespace QWK {
 

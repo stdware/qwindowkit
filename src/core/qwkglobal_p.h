@@ -3,7 +3,7 @@
 
 #include <QtCore/QLoggingCategory>
 
-#include <QWKCore/qwkcoreglobal.h>
+#include <QWKCore/qwkglobal.h>
 
 QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 

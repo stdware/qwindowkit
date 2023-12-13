@@ -4,7 +4,7 @@
 #include <QtCore/qt_windows.h>
 #include <QtCore/qglobal.h>
 
-#include <QWKCore/qwkcoreglobal.h>
+#include <QWKCore/qwkglobal.h>
 
 #ifndef GET_X_LPARAM
 #  define GET_X_LPARAM(lp) (static_cast<int>(static_cast<short>(LOWORD(lp))))

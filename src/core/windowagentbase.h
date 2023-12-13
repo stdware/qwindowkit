@@ -5,7 +5,7 @@
 
 #include <QtCore/QObject>
 
-#include <QWKCore/qwkcoreglobal.h>
+#include <QWKCore/qwkglobal.h>
 
 namespace QWK {
 
