@@ -13,4 +13,9 @@ qm_configure_target(${PROJECT_NAME}
     QT_LINKS Core Gui Widgets
 )
 
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+)
+
 target_include_directories(${PROJECT_NAME} PUBLIC . ..)

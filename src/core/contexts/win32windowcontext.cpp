@@ -849,6 +849,7 @@ namespace QWK {
                     QPoint{m_windowHandle->width(), 0}
                 });
                 painter.restore();
+                return;
             }
 
             default: {

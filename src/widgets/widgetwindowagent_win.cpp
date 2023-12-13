@@ -81,7 +81,7 @@ namespace QWK {
                         &region,
                     };
                     ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
-                    return true;
+                    break;
                 }
 
                 case QEvent::WindowStateChange: {

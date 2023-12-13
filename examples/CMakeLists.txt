@@ -13,6 +13,10 @@ endmacro()
 
 add_subdirectory(shared)
 
-add_subdirectory(mainwindow)
+if(QWINDOWKIT_BUILD_WIDGETS)
+    add_subdirectory(mainwindow)
+endif()
 
-add_subdirectory(qml)
+if(QWINDOWKIT_BUILD_QUICK)
+    add_subdirectory(qml)
+endif()

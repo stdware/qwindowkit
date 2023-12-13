@@ -4,11 +4,15 @@
 #include <QtWidgets/QMainWindow>
 
 class MainWindow : public QMainWindow {
+    Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
 
 protected:
+    bool event(QEvent *event) override;
+
+private:
     void installWindowAgent();
 };
 

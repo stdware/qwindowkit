@@ -195,6 +195,7 @@ namespace QWK {
                 map.insert(QStringLiteral("inactiveDark"), kSampleColorSet.inactiveDark);
                 return;
             }
+            
             default:
                 break;
         }

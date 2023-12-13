@@ -1,4 +1,5 @@
 #include <QtWidgets/QApplication>
+#include <QtGui/QFont>
 #include <QtCore/QDebug>
 
 #include "mainwindow.h"
@@ -17,6 +18,15 @@ int main(int argc, char *argv[]) {
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication a(argc, argv);
+
+#ifdef Q_OS_WINDOWS
+    a.setFont([]() {
+        QFont f("Microsoft YaHei");
+        f.setPixelSize(15);
+        return f;
+    }());
+#endif
+
     MainWindow w;
     w.show();
     return a.exec();
