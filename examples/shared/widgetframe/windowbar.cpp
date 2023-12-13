@@ -1,5 +1,5 @@
-#include "WindowBar.h"
-#include "WindowBar_p.h"
+#include "windowbar.h"
+#include "windowbar_p.h"
 
 #include <QtCore/QDebug>
 #include <QtGui/QtEvents>

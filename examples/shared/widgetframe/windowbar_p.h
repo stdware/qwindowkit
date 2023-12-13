@@ -3,7 +3,7 @@
 
 #include <QBoxLayout>
 
-#include "WindowBar.h"
+#include "windowbar.h"
 
 namespace QWK {
 

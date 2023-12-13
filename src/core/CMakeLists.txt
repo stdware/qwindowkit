@@ -21,13 +21,20 @@ set(_src
 )
 
 set(_defines_private)
+set(_links_private)
 
 if(WIN32)
     list(APPEND _src
         qwindowkit_windows.h
         qwindowkit_windows.cpp
     )
-elseif(NOT APPLE)
+elseif(APPLE)
+    list(APPEND _links_private
+        "-framework Foundation"
+        "-framework Cocoa"
+        "-framework AppKit"
+    )
+else()
     list(APPEND _src
         qwindowkit_linux.h
     )
@@ -48,7 +55,7 @@ else()
     elseif(APPLE)
         list(APPEND _src
             contexts/cocoawindowcontext_p.h
-            contexts/cocoawindowcontext.cpp
+            contexts/cocoawindowcontext.mm
         )
     else()
         list(APPEND _src
@@ -62,6 +69,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
     DEFINES_PRIVATE ${_defines_private}
     LINKS
+    LINKS_PRIVATE ${_links_private}
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
     INCLUDE_PRIVATE kernel contexts platforms

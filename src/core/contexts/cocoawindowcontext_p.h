@@ -17,6 +17,9 @@ namespace QWK {
 
     protected:
         bool setupHost() override;
+
+    protected:
+        WId windowId = 0;
     };
 
 }
