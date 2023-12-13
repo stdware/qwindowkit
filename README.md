@@ -2,7 +2,7 @@
 
 Cross-platform window customization framework for Qt Widgets and Qt Quick.
 
-The next generation of [FramelessHelper](https://github.com/wangwenx190/framelesshelper).
+This project inherited most of [FramelessHelper](https://github.com/wangwenx190/framelesshelper)'s implementation, with a complete refactoring and upgrading of the architecture.
 
 ## Supported Platforms
 
@@ -32,7 +32,15 @@ The next generation of [FramelessHelper](https://github.com/wangwenx190/frameles
 
 + [qmsetup](https://github.com/stdware/qmsetup)
 
+## Quick Start
+
+TODO
+
+## Documentatons
+
++ Examples (TODO)
++ [Framelesshelper Related](docs/framelesshelper-related.md)
 
 ## License
 
-QWindowKit is licensed under the MIT License.
+QWindowKit is licensed under the Apache 2.0 License.
