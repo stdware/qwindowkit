@@ -3,7 +3,7 @@
 
 #include "qwkglobal_p.h"
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
 #  include "win32windowcontext_p.h"
 #else
 #  include "qtwindowcontext_p.h"
@@ -28,7 +28,7 @@ namespace QWK {
         if (windowContextFactoryMethod) {
             return windowContextFactoryMethod();
         }
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) && !defined(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
         return new Win32WindowContext();
 #else
         return new QtWindowContext();

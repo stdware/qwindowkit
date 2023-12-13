@@ -20,13 +20,26 @@ set(_src
     contexts/abstractwindowcontext.cpp
 )
 
+set(_defines_private)
+
 if(WIN32)
     list(APPEND _src
         qwindowkit_windows.h
         qwindowkit_windows.cpp
-        contexts/win32windowcontext_p.h
-        contexts/win32windowcontext.cpp
     )
+
+    if(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+        list(APPEND _src
+            contexts/qtwindowcontext_p.h
+            contexts/qtwindowcontext.cpp
+        )
+        list(APPEND _defines_private QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+    else()
+        list(APPEND _src
+            contexts/win32windowcontext_p.h
+            contexts/win32windowcontext.cpp
+        )
+    endif()
 else()
     list(APPEND _src
         contexts/qtwindowcontext_p.h
@@ -44,6 +57,7 @@ endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
+    DEFINES_PRIVATE ${_defines_private}
     LINKS
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui

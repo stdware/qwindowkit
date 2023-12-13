@@ -54,7 +54,7 @@ namespace QWK {
     }
 
     bool QtWindowContext::setupHost() {
-        return false;
+        return true;
     }
 
 }
