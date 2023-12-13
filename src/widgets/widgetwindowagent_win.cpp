@@ -2,19 +2,19 @@
 
 #include <QtGui/QPainter>
 
-#include <QWKCore/private/eventobserver_p.h>
+#include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
-    class WidgetBorderHandler : public QObject, public EventObserver {
+    class WidgetBorderHandler : public QObject, public NativeEventFilter {
         Q_OBJECT
     public:
-        explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
-                                     QObject *parent = nullptr)
-            : QObject(parent), widget(widget), ctx(ctx) {
+        explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
+            : QObject(ctx), widget(widget), ctx(ctx) {
             widget->installEventFilter(this);
 
-            ctx->addObserver(this);
+            ctx->installNativeEventFilter(this);
             updateGeometry();
         }
 
@@ -32,15 +32,29 @@ namespace QWK {
         }
 
     protected:
-        bool observe(QEvent *event) override {
-            switch (event->type()) {
-                case QEvent::UpdateLater: {
+        bool nativeEventFilter(const QByteArray &eventType, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *result) override {
+            Q_UNUSED(eventType)
+            auto msg = reinterpret_cast<const MSG *>(message);
+            switch (msg->message) {
+                case WM_DPICHANGED: {
+                    updateGeometry();
+                    break;
+                }
+
+                case WM_THEMECHANGED:
+                case WM_SYSCOLORCHANGE:
+                case WM_DWMCOLORIZATIONCOLORCHANGED: {
                     widget->update();
                     break;
                 }
 
-                case QEvent::ScreenChangeInternal: {
-                    updateGeometry();
+                case WM_SETTINGCHANGE: {
+                    if (!msg->wParam && msg->lParam &&
+                        std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
+                            0) {
+                        widget->update();
+                    }
                     break;
                 }
 
@@ -95,7 +109,7 @@ namespace QWK {
         // Install painting hook
         auto ctx = context.get();
         if (ctx->property("needBorderPainter").toBool()) {
-            std::ignore = new WidgetBorderHandler(hostWidget, ctx, ctx);
+            std::ignore = new WidgetBorderHandler(hostWidget, ctx);
         }
     }
 

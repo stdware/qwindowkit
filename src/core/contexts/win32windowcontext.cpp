@@ -27,7 +27,6 @@
 #include <dwmapi.h>
 #include <timeapi.h>
 
-#include "nativeeventfilter_p.h"
 #include "qwkglobal_p.h"
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -635,7 +634,7 @@ namespace QWK {
     // DefWindowProc(). Consequently, we have to add a global native filter that forwards the result
     // of the hook function, telling Qt whether we have filtered the events before. Since Qt only
     // handles Windows window messages in the main thread, it is safe to do so.
-    class WindowsNativeEventFilter : public NativeEventFilter {
+    class WindowsNativeEventFilter : public AppNativeEventFilter {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
@@ -933,10 +932,19 @@ namespace QWK {
             return true;
         }
 
-        if (themeStuffHandler(hWnd, message, wParam, lParam, result)) {
-            return true;
+        // Forward to native event filter subscribers
+        if (!m_nativeEventFilters.isEmpty()) {
+            MSG msg;
+            msg.hwnd = hWnd;
+            msg.message = message;
+            msg.wParam = wParam;
+            msg.lParam = lParam;
+            QT_NATIVE_EVENT_RESULT_TYPE res = 0;
+            if (dispatch(QByteArrayLiteral("windows_generic_MSG"), &msg, &res)) {
+                *result = LRESULT(res);
+                return true;
+            }
         }
-
         return false; // Not handled
     }
 
@@ -1923,48 +1931,4 @@ namespace QWK {
         return false;
     }
 
-    bool Win32WindowContext::themeStuffHandler(HWND hWnd, UINT message, WPARAM wParam,
-                                               LPARAM lParam, LRESULT *resul) {
-        switch (message) {
-            case WM_DPICHANGED: {
-                const auto dpiX = UINT(LOWORD(wParam));
-                const auto dpiY = UINT(HIWORD(wParam));
-
-                QEvent e(QEvent::ScreenChangeInternal);
-                dispatch(&e);
-                break;
-            }
-
-            case WM_THEMECHANGED:
-            case WM_SYSCOLORCHANGE: {
-                QEvent e(QEvent::UpdateLater);
-                dispatch(&e);
-                break;
-            }
-
-            case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                const QColor color = QColor::fromRgba(wParam);
-                const auto blendedWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
-
-                QEvent e(QEvent::UpdateLater);
-                dispatch(&e);
-                break;
-            }
-
-            case WM_SETTINGCHANGE: {
-                if (!wParam && lParam &&
-                    std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0) {
-                    const QColor color = getAccentColor();
-
-                    QEvent e(QEvent::UpdateLater);
-                    dispatch(&e);
-                }
-                break;
-            }
-
-            default:
-                break;
-        }
-        return false;
-    }
 }

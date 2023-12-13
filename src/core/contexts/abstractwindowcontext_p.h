@@ -5,16 +5,16 @@
 #include <memory>
 
 #include <QtCore/QSet>
+#include <QtGui/QRegion>
 #include <QtGui/QWindow>
-#include <QtGui/QPolygon>
 
 #include <QWKCore/windowagentbase.h>
-#include <QWKCore/private/eventobserver_p.h>
+#include <QWKCore/private/nativeeventfilter_p.h>
 #include <QWKCore/private/windowitemdelegate_p.h>
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public EventDispatcher {
+    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public NativeEventDispatcher {
         Q_OBJECT
     public:
         AbstractWindowContext();

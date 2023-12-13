@@ -3,11 +3,11 @@
 #include <QtQuick/QQuickPaintedItem>
 #include <QtQuick/private/qquickitem_p.h>
 
-#include <QWKCore/private/eventobserver_p.h>
+#include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
-    class BorderItem : public QQuickPaintedItem, public EventObserver {
+    class BorderItem : public QQuickPaintedItem, public NativeEventFilter {
         Q_OBJECT
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
@@ -20,7 +20,8 @@ namespace QWK {
         void itemChange(ItemChange change, const ItemChangeData &data) override;
 
     protected:
-        bool observe(QEvent *event) override;
+        bool nativeEventFilter(const QByteArray &eventType, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *result) override;
 
         AbstractWindowContext *context;
 
@@ -44,7 +45,7 @@ namespace QWK {
 
         setZ(10);
 
-        context->addObserver(this);
+        context->installNativeEventFilter(this);
         connect(window(), &QQuickWindow::activeChanged, this,
                 &BorderItem::_q_windowActivityChanged);
         updateGeometry();
@@ -80,10 +81,24 @@ namespace QWK {
         }
     }
 
-    bool BorderItem::observe(QEvent *event) {
-        switch (event->type()) {
-            case QEvent::UpdateLater: {
+    bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
+                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        Q_UNUSED(eventType)
+        auto msg = reinterpret_cast<const MSG *>(message);
+        switch (msg->message) {
+            case WM_THEMECHANGED:
+            case WM_SYSCOLORCHANGE:
+            case WM_DWMCOLORIZATIONCOLORCHANGED: {
                 update();
+                break;
+            }
+
+            case WM_SETTINGCHANGE: {
+                if (!msg->wParam && msg->lParam &&
+                    std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
+                        0) {
+                    update();
+                }
                 break;
             }
 

@@ -12,8 +12,6 @@ set(_src
     windowagentbase.cpp
     windowitemdelegate_p.h
     windowitemdelegate.cpp
-    kernel/eventobserver_p.h
-    kernel/eventobserver.cpp
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
     contexts/abstractwindowcontext_p.h
