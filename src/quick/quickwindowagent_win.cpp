@@ -82,7 +82,7 @@ namespace QWK {
 
     bool BorderItem::observe(QEvent *event) {
         switch (event->type()) {
-            case QEvent::UpdateRequest: {
+            case QEvent::UpdateLater: {
                 update();
                 break;
             }

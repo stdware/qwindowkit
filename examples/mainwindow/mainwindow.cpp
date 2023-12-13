@@ -95,6 +95,13 @@ void MainWindow::installWindowAgent() {
 
     auto clockWidget = new ClockWidget();
     clockWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    connect(clockWidget, &QAbstractButton::clicked, this, [this]() {
+        if (!isMaximized()) {
+            showMaximized();
+        } else {
+            showNormal();
+        }
+    });
 
     setMenuWidget(windowBar);
     setCentralWidget(clockWidget);

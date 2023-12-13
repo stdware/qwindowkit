@@ -34,7 +34,7 @@ namespace QWK {
     protected:
         bool observe(QEvent *event) override {
             switch (event->type()) {
-                case QEvent::UpdateRequest: {
+                case QEvent::UpdateLater: {
                     widget->update();
                     break;
                 }

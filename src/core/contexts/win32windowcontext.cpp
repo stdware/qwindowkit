@@ -1937,7 +1937,7 @@ namespace QWK {
 
             case WM_THEMECHANGED:
             case WM_SYSCOLORCHANGE: {
-                QEvent e(QEvent::UpdateRequest);
+                QEvent e(QEvent::UpdateLater);
                 dispatch(&e);
                 break;
             }
@@ -1946,7 +1946,7 @@ namespace QWK {
                 const QColor color = QColor::fromRgba(wParam);
                 const auto blendWithOpacity = *reinterpret_cast<LPBOOL>(lParam);
 
-                QEvent e(QEvent::UpdateRequest);
+                QEvent e(QEvent::UpdateLater);
                 dispatch(&e);
                 break;
             }
@@ -1957,49 +1957,48 @@ namespace QWK {
                     const QColor color = getAccentColor();
                 }
 
-                QEvent e(QEvent::UpdateRequest);
+                QEvent e(QEvent::UpdateLater);
                 dispatch(&e);
                 break;
             }
 
-            case WM_SIZE: {
-                const bool max = wParam == SIZE_MAXIMIZED;
-                const bool min = wParam == SIZE_MINIMIZED;
-                const bool full = isFullScreen(hWnd);
+            // case WM_SIZE: {
+            //     const bool max = wParam == SIZE_MAXIMIZED;
+            //     const bool min = wParam == SIZE_MINIMIZED;
+            //     const bool full = isFullScreen(hWnd);
 
-                Qt::WindowStates states{};
-                if (max) {
-                    states |= Qt::WindowMaximized;
-                }
-                if (min) {
-                    states |= Qt::WindowMinimized;
-                }
-                if (full) {
-                    states |= Qt::WindowFullScreen;
-                }
+            //     Qt::WindowStates states{};
+            //     if (max) {
+            //         states |= Qt::WindowMaximized;
+            //     }
+            //     if (min) {
+            //         states |= Qt::WindowMinimized;
+            //     }
+            //     if (full) {
+            //         states |= Qt::WindowFullScreen;
+            //     }
 
-                QTimer::singleShot(0, this, [this, states] {
-                    QWindowStateChangeEvent e(states);
-                    dispatch(&e);
-                });
-                break;
-            }
+            //     // QTimer::singleShot(0, this, [this, states] {
+            //     QWindowStateChangeEvent e(states);
+            //     dispatch(&e);
+            //     // });
+            //     break;
+            // }
 
-            case WM_ACTIVATE: {
-                const auto state = LOWORD(wParam);
-                const bool active = state == WA_ACTIVE || state == WA_CLICKACTIVE;
-                Q_UNUSED(state)
+            // case WM_ACTIVATE: {
+            //     const auto state = LOWORD(wParam);
+            //     const bool active = state == WA_ACTIVE || state == WA_CLICKACTIVE;
+            //     Q_UNUSED(state)
 
-                QTimer::singleShot(0, this, [this, active] {
-                    QEvent e(active ? QEvent::WindowActivate : QEvent::WindowDeactivate);
-                    dispatch(&e);
-                });
-                break;
-            }
+            //     // QTimer::singleShot(0, this, [this, active] {
+            //     QEvent e(active ? QEvent::WindowActivate : QEvent::WindowDeactivate);
+            //     dispatch(&e);
+            //     // });
+            //     break;
+            // }
             default:
                 break;
         }
         return false;
     }
-
 }
