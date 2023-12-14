@@ -15,8 +15,9 @@ namespace QWK {
     } g_hook{};
 #endif
 
-    class NSWindowProxy : public QObject {
-        Q_OBJECT
+    class NSWindowProxy {
+        Q_DISABLE_COPY(NSWindowProxy)
+
     public:
         NSWindowProxy(NSWindow *macWindow) {
             if (instances.contains(macWindow)) {
@@ -39,68 +40,52 @@ namespace QWK {
             nswindow = nil;
         }
 
-    public Q_SLOTS:
         void replaceImplementations() {
             Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
-            Q_ASSERT(method);
             oldSetStyleMask = reinterpret_cast<setStyleMaskPtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(setStyleMask)));
-            Q_ASSERT(oldSetStyleMask);
 
             method =
                 class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
-            Q_ASSERT(method);
             oldSetTitlebarAppearsTransparent =
                 reinterpret_cast<setTitlebarAppearsTransparentPtr>(method_setImplementation(
                     method, reinterpret_cast<IMP>(setTitlebarAppearsTransparent)));
-            Q_ASSERT(oldSetTitlebarAppearsTransparent);
 
 #if 0
-        method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-        Q_ASSERT(method);
-        oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
-        Q_ASSERT(oldCanBecomeKeyWindow);
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
+            oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
 
-        method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-        Q_ASSERT(method);
-        oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
-        Q_ASSERT(oldCanBecomeMainWindow);
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
+            oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
 #endif
 
             method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            Q_ASSERT(method);
             oldSendEvent = reinterpret_cast<sendEventPtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
-            Q_ASSERT(oldSendEvent);
         }
 
         void restoreImplementations() {
             Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
-            Q_ASSERT(method);
             method_setImplementation(method, reinterpret_cast<IMP>(oldSetStyleMask));
             oldSetStyleMask = nil;
 
             method =
                 class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
-            Q_ASSERT(method);
             method_setImplementation(method,
                                      reinterpret_cast<IMP>(oldSetTitlebarAppearsTransparent));
             oldSetTitlebarAppearsTransparent = nil;
 
 #if 0
-        method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-        Q_ASSERT(method);
-        method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
-        oldCanBecomeKeyWindow = nil;
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
+            oldCanBecomeKeyWindow = nil;
 
-        method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-        Q_ASSERT(method);
-        method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
-        oldCanBecomeMainWindow = nil;
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
+            oldCanBecomeMainWindow = nil;
 #endif
 
             method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            Q_ASSERT(method);
             method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
             oldSendEvent = nil;
         }
@@ -122,7 +107,7 @@ namespace QWK {
             nswindow.hasShadow = YES;
             nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
-            nswindow.movable = NO;
+            //nswindow.movable = NO; // This line causes the window in the wrong position when become fullscreen.
             // For some unknown reason, we don't need the following hack in Qt versions below or
             // equal to 6.2.4.
 #if (QT_VERSION > QT_VERSION_CHECK(6, 2, 4))
@@ -183,18 +168,18 @@ namespace QWK {
             }
 
 #if 0
-        const auto nswindow = reinterpret_cast<NSWindow *>(obj);
-        const auto it = instances.find(nswindow);
-        if (it == instances.end()) {
-            return;
-        }
+            const auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            const auto it = instances.find(nswindow);
+            if (it == instances.end()) {
+                return;
+            }
 
-        NSWindowProxy * const proxy = it.value();
-        if (event.type == NSEventTypeLeftMouseDown) {
-            proxy->lastMouseDownEvent = event;
-            QCoreApplication::processEvents();
-            proxy->lastMouseDownEvent = nil;
-        }
+            NSWindowProxy *proxy = it.value();
+            if (event.type == NSEventTypeLeftMouseDown) {
+                proxy->lastMouseDownEvent = event;
+                QCoreApplication::processEvents();
+                proxy->lastMouseDownEvent = nil;
+            }
 #endif
         }
 
@@ -227,9 +212,6 @@ namespace QWK {
 
     static inline NSWindow *mac_getNSWindow(const WId windowId) {
         const auto nsview = reinterpret_cast<NSView *>(windowId);
-        if (!nsview) {
-            return nil;
-        }
         return [nsview window];
     }
 
@@ -246,9 +228,6 @@ namespace QWK {
         auto it = g_proxyList()->find(windowId);
         if (it == g_proxyList()->end()) {
             NSWindow *nswindow = mac_getNSWindow(windowId);
-            if (!nswindow) {
-                return nil;
-            }
             const auto proxy = new NSWindowProxy(nswindow);
             it = g_proxyList()->insert(windowId, proxy);
         }
@@ -285,5 +264,3 @@ namespace QWK {
     }
 
 }
-
-#include "cocoawindowcontext.moc"
