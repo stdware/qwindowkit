@@ -14,6 +14,10 @@ set(_src
 
 if(WIN32)
     list(APPEND _src widgetwindowagent_win.cpp)
+elseif(APPLE)
+    list(APPEND _src widgetwindowagent_cocoa.cpp)
+else()
+    list(APPEND _src widgetwindowagent_qt.cpp)
 endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN

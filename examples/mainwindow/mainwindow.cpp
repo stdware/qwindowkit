@@ -107,7 +107,7 @@ bool MainWindow::event(QEvent *event) {
 void MainWindow::installWindowAgent() {
     auto agent = new QWK::WidgetWindowAgent(this);
     if (!agent->setup(this)) {
-        qFatal("Frameless handle failed to initialize.");
+        qFatal("QWK failed to initialize.");
     }
 
     auto menuBar = []() {

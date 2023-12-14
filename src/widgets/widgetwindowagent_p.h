@@ -19,6 +19,8 @@ namespace QWK {
 
 #ifdef Q_OS_WINDOWS
         void setupWindows10BorderWorkaround();
+#elif defined(Q_OS_MACOS)
+        void setupMacOSTitleBar(QWidget *titleBar);
 #endif
     };
 
