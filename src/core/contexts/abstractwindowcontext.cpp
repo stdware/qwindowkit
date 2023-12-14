@@ -7,13 +7,6 @@
 
 namespace QWK {
 
-    QWK_USED static constexpr const struct {
-        const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
-        const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
-        const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
-        const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
-    } kSampleColorSet;
-
     AbstractWindowContext::AbstractWindowContext() = default;
 
     AbstractWindowContext::~AbstractWindowContext() = default;
@@ -174,6 +167,13 @@ namespace QWK {
         return {};
     }
 
+    QWK_USED static constexpr const struct {
+        const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
+        const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
+        const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
+        const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
+    } kSampleColorSet;
+
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
@@ -195,7 +195,7 @@ namespace QWK {
                 map.insert(QStringLiteral("inactiveDark"), kSampleColorSet.inactiveDark);
                 return;
             }
-            
+
             default:
                 break;
         }

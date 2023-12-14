@@ -43,4 +43,4 @@ TODO
 
 ## License
 
-QWindowKit is licensed under the Apache 2.0 License.
+QWindowKit is licensed under the [Apache 2.0 License](LICENSE).

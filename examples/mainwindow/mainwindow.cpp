@@ -169,18 +169,18 @@ void MainWindow::installWindowAgent() {
 
 #ifdef Q_OS_WINDOWS
     // Emulate Window system menu button behaviors
-    connect(iconButton, &QAbstractButton::clicked, agent, [this, iconButton, agent] {
-        setProperty("double-click-close", false);
+    connect(iconButton, &QAbstractButton::clicked, this, [iconButton, agent] {
+        iconButton->setProperty("double-click-close", false);
 
         // Pick a suitable time threshold
-        QTimer::singleShot(75, this, [this, iconButton, agent]() {
-            if (property("double-click-close").toBool())
+        QTimer::singleShot(75, [iconButton, agent]() {
+            if (iconButton->property("double-click-close").toBool())
                 return;
             agent->showSystemMenu(iconButton->mapToGlobal({0, iconButton->height()}));
         });
     });
-    connect(iconButton, &QWK::WindowButton::doubleClicked, this, [this]() {
-        setProperty("double-click-close", true);
+    connect(iconButton, &QWK::WindowButton::doubleClicked, this, [iconButton, this]() {
+        iconButton->setProperty("double-click-close", true);
         close();
     });
 #endif
@@ -195,7 +195,7 @@ void MainWindow::installWindowAgent() {
 
         // It's a Qt issue that if a QAbstractButton::clicked triggers a window's maximization,
         // the button remains to be hovered until the mouse move. As a result, we need to
-        // manully send leave events to the button.
+        // manually send leave events to the button.
         emulateLeaveEvent(maxButton);
     });
     connect(windowBar, &QWK::WindowBar::closeRequested, this, &QWidget::close);
