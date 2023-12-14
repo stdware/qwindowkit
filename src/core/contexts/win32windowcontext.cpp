@@ -114,6 +114,7 @@ namespace QWK {
         DYNAMIC_API_DECLARE(DwmIsCompositionEnabled);
         DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
         DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
+        DYNAMIC_API_DECLARE(DwmSetWindowAttribute);
         DYNAMIC_API_DECLARE(GetDpiForWindow);
         DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
         DYNAMIC_API_DECLARE(GetDpiForMonitor);
@@ -140,6 +141,7 @@ namespace QWK {
             DYNAMIC_API_RESOLVE(dwmapi, DwmIsCompositionEnabled);
             DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
             DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
+            DYNAMIC_API_RESOLVE(dwmapi, DwmSetWindowAttribute);
 
             QSystemLibrary winmm(QStringLiteral("winmm"));
             DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
@@ -880,6 +882,13 @@ namespace QWK {
         // Install window hook
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+        for (const auto attr : { _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, _DWMWA_USE_IMMERSIVE_DARK_MODE }) {
+            const BOOL enable = TRUE;
+            DynamicApis::instance().pDwmSetWindowAttribute(hWnd, attr, &enable, sizeof(enable));
+        }
+#endif
 
         // Inform Qt we want and have set custom margins
         updateInternalWindowFrameMargins(hWnd, m_windowHandle);
