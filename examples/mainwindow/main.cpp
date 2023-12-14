@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef Q_OS_WINDOWS
     a.setFont([]() {
-        QFont f("Microsoft YaHei");
+        QFont f(QStringLiteral("Microsoft YaHei UI"));
         f.setPixelSize(15);
         return f;
     }());

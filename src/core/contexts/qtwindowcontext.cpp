@@ -43,8 +43,7 @@ namespace QWK {
     QtWindowContext::QtWindowContext() : AbstractWindowContext() {
     }
 
-    QtWindowContext::~QtWindowContext() {
-    }
+    QtWindowContext::~QtWindowContext() = default;
 
     QString QtWindowContext::key() const {
         return QStringLiteral("qt");

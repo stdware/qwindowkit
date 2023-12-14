@@ -12,8 +12,7 @@ namespace QWK {
         autoIcon = false;
     }
 
-    WindowBarPrivate::~WindowBarPrivate() {
-    }
+    WindowBarPrivate::~WindowBarPrivate() = default;
 
     void WindowBarPrivate::init() {
         Q_Q(WindowBar);
@@ -54,8 +53,7 @@ namespace QWK {
     WindowBar::WindowBar(QWidget *parent) : WindowBar(*new WindowBarPrivate(), parent) {
     }
 
-    WindowBar::~WindowBar() {
-    }
+    WindowBar::~WindowBar() = default;
 
     QMenuBar *WindowBar::menuBar() const {
         Q_D(const WindowBar);

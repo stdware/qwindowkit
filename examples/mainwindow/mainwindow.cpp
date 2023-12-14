@@ -32,15 +32,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     installWindowAgent();
 
     auto clockWidget = new ClockWidget();
-    clockWidget->setObjectName("clock-widget");
+    clockWidget->setObjectName(QStringLiteral("clock-widget"));
     clockWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setCentralWidget(clockWidget);
 
-    if (QFile qss(":/dark-style.qss"); qss.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (QFile qss(QStringLiteral(":/dark-style.qss")); qss.open(QIODevice::ReadOnly | QIODevice::Text)) {
         setStyleSheet(QString::fromUtf8(qss.readAll()));
     }
 
-    setWindowTitle("Example MainWindow");
+    setWindowTitle(tr("Example MainWindow"));
     resize(640, 480);
 }
 
@@ -80,8 +80,7 @@ static inline void emulateLeaveEvent(QWidget *widget) {
     });
 }
 
-MainWindow::~MainWindow() {
-}
+MainWindow::~MainWindow() = default;
 
 bool MainWindow::event(QEvent *event) {
     switch (event->type()) {
@@ -113,41 +112,41 @@ void MainWindow::installWindowAgent() {
 
     auto menuBar = []() {
         auto menuBar = new QMenuBar();
-        auto file = new QMenu("File(&F)", menuBar);
-        file->addAction(new QAction("New(&N)", menuBar));
-        file->addAction(new QAction("Open(&O)", menuBar));
+        auto file = new QMenu(tr("File(&F)"), menuBar);
+        file->addAction(new QAction(tr("New(&N)"), menuBar));
+        file->addAction(new QAction(tr("Open(&O)"), menuBar));
 
-        auto edit = new QMenu("Edit(&E)", menuBar);
-        edit->addAction(new QAction("Undo(&U)", menuBar));
-        edit->addAction(new QAction("Redo(&R)", menuBar));
+        auto edit = new QMenu(tr("Edit(&E)"), menuBar);
+        edit->addAction(new QAction(tr("Undo(&U)"), menuBar));
+        edit->addAction(new QAction(tr("Redo(&R)"), menuBar));
 
         menuBar->addMenu(file);
         menuBar->addMenu(edit);
         return menuBar;
     }();
-    menuBar->setObjectName("win-menu-bar");
+    menuBar->setObjectName(QStringLiteral("win-menu-bar"));
 
     auto titleLabel = new QLabel();
     titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setObjectName("win-title-label");
+    titleLabel->setObjectName(QStringLiteral("win-title-label"));
 
     auto iconButton = new QWK::WindowButton();
-    iconButton->setObjectName("icon-button");
+    iconButton->setObjectName(QStringLiteral("icon-button"));
     iconButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     auto minButton = new QWK::WindowButton();
-    minButton->setObjectName("min-button");
+    minButton->setObjectName(QStringLiteral("min-button"));
     minButton->setProperty("system-button", true);
     minButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     auto maxButton = new QWK::WindowButton();
     maxButton->setCheckable(true);
-    maxButton->setObjectName("max-button");
+    maxButton->setObjectName(QStringLiteral("max-button"));
     maxButton->setProperty("system-button", true);
     maxButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     auto closeButton = new QWK::WindowButton();
-    closeButton->setObjectName("close-button");
+    closeButton->setObjectName(QStringLiteral("close-button"));
     closeButton->setProperty("system-button", true);
     closeButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 

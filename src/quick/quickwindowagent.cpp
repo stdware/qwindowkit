@@ -8,11 +8,9 @@
 
 namespace QWK {
 
-    QuickWindowAgentPrivate::QuickWindowAgentPrivate() {
-    }
+    QuickWindowAgentPrivate::QuickWindowAgentPrivate() = default;
 
-    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() {
-    }
+    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() = default;
 
     void QuickWindowAgentPrivate::init() {
     }
@@ -21,8 +19,7 @@ namespace QWK {
         : QuickWindowAgent(*new QuickWindowAgentPrivate(), parent) {
     }
 
-    QuickWindowAgent::~QuickWindowAgent() {
-    }
+    QuickWindowAgent::~QuickWindowAgent() = default;
 
     bool QuickWindowAgent::setup(QQuickWindow *window) {
         Q_ASSERT(window);

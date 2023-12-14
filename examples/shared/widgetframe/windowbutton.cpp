@@ -6,11 +6,9 @@
 
 namespace QWK {
 
-    WindowButtonPrivate::WindowButtonPrivate() {
-    }
+    WindowButtonPrivate::WindowButtonPrivate() = default;
 
-    WindowButtonPrivate::~WindowButtonPrivate() {
-    }
+    WindowButtonPrivate::~WindowButtonPrivate() = default;
 
     void WindowButtonPrivate::init() {
     }

@@ -9,11 +9,9 @@
 
 namespace QWK {
 
-    WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() {
-    }
+    WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() = default;
 
-    WidgetWindowAgentPrivate::~WidgetWindowAgentPrivate() {
-    }
+    WidgetWindowAgentPrivate::~WidgetWindowAgentPrivate() = default;
 
     void WidgetWindowAgentPrivate::init() {
     }
@@ -22,8 +20,7 @@ namespace QWK {
         : WidgetWindowAgent(*new WidgetWindowAgentPrivate(), parent) {
     }
 
-    WidgetWindowAgent::~WidgetWindowAgent() {
-    }
+    WidgetWindowAgent::~WidgetWindowAgent() = default;
 
     bool WidgetWindowAgent::setup(QWidget *w) {
         Q_ASSERT(w);

@@ -800,7 +800,7 @@ namespace QWK {
             case ShowSystemMenuHook: {
                 const auto &pos = *static_cast<const QPoint *>(data);
                 auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
-                showSystemMenu2(hWnd, qpoint2point(pos), false,
+                showSystemMenu2(hWnd, qpoint2point(QHighDpi::toNativeGlobalPosition(pos, m_windowHandle)), false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
             }
