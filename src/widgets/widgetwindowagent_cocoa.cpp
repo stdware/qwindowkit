@@ -56,8 +56,7 @@ namespace QWK {
             }
             case QEvent::MouseMove: {
                 if (m_leftButtonPressed) {
-                    const auto widget = static_cast<QWidget *>(object);
-                    widget->windowHandle()->startSystemMove();
+                    static_cast<QWidget *>(object)->windowHandle()->startSystemMove();
                     event->accept();
                     return true;
                 }
@@ -65,11 +64,12 @@ namespace QWK {
             }
             case QEvent::MouseButtonDblClick: {
                 if (me->button() == Qt::LeftButton) {
-                    if (!widget->isFullScreen()) {
-                        if (widget->isMaximized()) {
-                            widget->showNormal();
+                    QWidget *window = static_cast<QWidget *>(object)->window();
+                    if (!window->isFullScreen()) {
+                        if (window->isMaximized()) {
+                            window->showNormal();
                         } else {
-                            widget->showMaximized();
+                            window->showMaximized();
                         }
                         event->accept();
                         return true;
