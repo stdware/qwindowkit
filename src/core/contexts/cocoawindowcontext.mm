@@ -15,10 +15,7 @@ namespace QWK {
     } g_hook{};
 #endif
 
-    class NSWindowProxy {
-        Q_DISABLE_COPY(NSWindowProxy)
-
-    public:
+    struct NSWindowProxy {
         NSWindowProxy(NSWindow *macWindow) {
             if (instances.contains(macWindow)) {
                 return;
@@ -31,7 +28,7 @@ namespace QWK {
             }
         }
 
-        ~NSWindowProxy() override {
+        ~NSWindowProxy() {
             instances.remove(nswindow);
             if (instances.count() <= 0) {
                 restoreImplementations();
@@ -184,6 +181,8 @@ namespace QWK {
         }
 
     private:
+        Q_DISABLE_COPY(NSWindowProxy)
+
         NSWindow *nswindow = nil;
         // NSEvent *lastMouseDownEvent = nil;
 

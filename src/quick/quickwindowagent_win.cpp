@@ -31,8 +31,7 @@ namespace QWK {
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
         : QQuickPaintedItem(parent), context(context) {
-        setAntialiasing(true);   // ### FIXME: do we need to enable or disable this?
-        setMipmap(true);         // ### FIXME: do we need to enable or disable this?
+        setAntialiasing(true);   // We needs anti-aliasing to give us better result.
         setFillColor({});        // Will improve the performance a little bit.
         setOpaquePainting(true); // Will also improve the performance, we don't draw
                                  // semi-transparent borders of course.
@@ -43,7 +42,7 @@ namespace QWK {
         anchors->setLeft(parentPri->left());
         anchors->setRight(parentPri->right());
 
-        setZ(10);
+        setZ(9999); // Make sure our fake border always above everything in the window.
 
         context->installNativeEventFilter(this);
         connect(window(), &QQuickWindow::activeChanged, this,
@@ -84,7 +83,7 @@ namespace QWK {
     bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
                                        QT_NATIVE_EVENT_RESULT_TYPE *result) {
         Q_UNUSED(eventType)
-        auto msg = reinterpret_cast<const MSG *>(message);
+        const auto msg = static_cast<const MSG *>(message);
         switch (msg->message) {
             case WM_THEMECHANGED:
             case WM_SYSCOLORCHANGE:

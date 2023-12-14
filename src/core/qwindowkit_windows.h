@@ -15,11 +15,11 @@
 #endif
 
 #ifndef IsMinimized
-#  define IsMinimized(hwnd) (::IsIconic(hwnd) != FALSE)
+#  define IsMinimized(hwnd) (::IsIconic(hwnd))
 #endif
 
 #ifndef IsMaximized
-#  define IsMaximized(hwnd) (::IsZoomed(hwnd) != FALSE)
+#  define IsMaximized(hwnd) (::IsZoomed(hwnd))
 #endif
 
 #ifndef RECT_WIDTH

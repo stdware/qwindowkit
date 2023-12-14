@@ -35,7 +35,7 @@ namespace QWK {
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
-            auto msg = reinterpret_cast<const MSG *>(message);
+            const auto msg = static_cast<const MSG *>(message);
             switch (msg->message) {
                 case WM_DPICHANGED: {
                     updateGeometry();
@@ -67,7 +67,7 @@ namespace QWK {
         bool eventFilter(QObject *obj, QEvent *event) override {
             switch (event->type()) {
                 case QEvent::Paint: {
-                    if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen))
+                    if (widget->windowState() & (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))
                         break;
 
                     auto paintEvent = static_cast<QPaintEvent *>(event);

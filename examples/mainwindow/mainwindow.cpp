@@ -176,7 +176,7 @@ void MainWindow::installWindowAgent() {
         QTimer::singleShot(75, [iconButton, agent]() {
             if (iconButton->property("double-click-close").toBool())
                 return;
-            agent->showSystemMenu(iconButton->mapToGlobal({0, iconButton->height()}));
+            agent->showSystemMenu(iconButton->mapToGlobal(QPoint{0, iconButton->height()}));
         });
     });
     connect(iconButton, &QWK::WindowButton::doubleClicked, this, [iconButton, this]() {

@@ -428,8 +428,8 @@ namespace QWK {
         const auto monitorInfo = getMonitorForWindow(hwnd);
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
-        const auto newX = (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
-        const auto newY = (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
+        const auto newX = monitorInfo.rcMonitor.left + (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
+        const auto newY = monitorInfo.rcMonitor.top + (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
         ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0,
                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
@@ -448,6 +448,9 @@ namespace QWK {
         ::GetWindowPlacement(hwnd, &wp);
         return ((wp.showCmd == SW_NORMAL) || (wp.showCmd == SW_RESTORE));
 #else
+        if (isFullScreen(hwnd)) {
+            return false;
+        }
         const auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE));
         return (!(style & (WS_MINIMIZE | WS_MAXIMIZE)));
 #endif
@@ -840,7 +843,7 @@ namespace QWK {
                 }
                 painter.save();
 
-                // ### TODO: do we need to enable or disable it?
+                // We needs anti-aliasing to give us better result.
                 painter.setRenderHint(QPainter::Antialiasing);
 
                 painter.setPen(pen);
@@ -1236,7 +1239,7 @@ namespace QWK {
                     // If wParam is TRUE, the window is being shown.
                     // If lParam is zero, the message was sent because of a call to the ShowWindow
                     // function.
-                    if (wParam && lParam == 0) {
+                    if (wParam && !lParam) {
                         centered = true;
                         moveToDesktopCenter(hWnd);
                     }
