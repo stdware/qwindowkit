@@ -6,6 +6,8 @@ namespace QWK {
 
     WindowItemDelegate::~WindowItemDelegate() = default;
 
-    void WindowItemDelegate::resetQtGrabbedControl() const {}
+    void WindowItemDelegate::resetQtGrabbedControl(QObject *host) const {
+        Q_UNUSED(host);
+    }
 
 }

@@ -238,11 +238,9 @@ namespace QWK {
         return it.value();
     }
 
-    CocoaWindowContext::CocoaWindowContext() {
-    }
+    CocoaWindowContext::CocoaWindowContext() : AbstractWindowContext() {}
 
-    CocoaWindowContext::~CocoaWindowContext() {
-    }
+    CocoaWindowContext::~CocoaWindowContext() = default;
 
     QString CocoaWindowContext::key() const {
         return QStringLiteral("cocoa");
@@ -255,10 +253,7 @@ namespace QWK {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         m_windowHandle->setProperty("_q_mac_wantsLayer", 1);
 #endif
-        WId winId = m_windowHandle->winId();
-        ensureWindowProxy(winId)->setSystemTitleBarVisible(false);
-        // Cache window ID
-        windowId = winId;
+        ensureWindowProxy(m_windowHandle->winId())->setSystemTitleBarVisible(false);
         return true;
     }
 

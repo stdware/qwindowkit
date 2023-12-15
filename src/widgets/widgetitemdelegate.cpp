@@ -12,7 +12,7 @@ namespace QWK {
 
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
-    QWindow *WidgetItemDelegate::window(QObject *obj) const {
+    QWindow *WidgetItemDelegate::window(const QObject *obj) const {
         return static_cast<const QWidget *>(obj)->windowHandle();
     }
 
@@ -31,7 +31,7 @@ namespace QWK {
         return {originPoint, size};
     }
 
-    QWindow *WidgetItemDelegate::hostWindow(QObject *host) const {
+    QWindow *WidgetItemDelegate::hostWindow(const QObject *host) const {
         return static_cast<const QWidget *>(host)->windowHandle();
     }
 
@@ -60,7 +60,8 @@ namespace QWK {
         return static_cast<const QWidget *>(host)->isActiveWindow();
     }
 
-    void WidgetItemDelegate::resetQtGrabbedControl() const {
+    void WidgetItemDelegate::resetQtGrabbedControl(QObject *host) const {
+        Q_UNUSED(host);
         if (!qt_button_down) {
             return;
         }
@@ -69,8 +70,32 @@ namespace QWK {
         const auto event = new QMouseEvent(
             QEvent::MouseButtonRelease, invalidPos, invalidPos, invalidPos, Qt::LeftButton,
             QGuiApplication::mouseButtons() ^ Qt::LeftButton, QGuiApplication::keyboardModifiers());
-        QApplication::postEvent(qt_button_down, event);
+        QCoreApplication::postEvent(qt_button_down, event);
         qt_button_down = nullptr;
+    }
+
+    Qt::WindowStates WidgetItemDelegate::getWindowState(const QObject *host) const {
+        return static_cast<const QWidget *>(host)->windowState();
+    }
+
+    void WidgetItemDelegate::setWindowState(QObject *host, const Qt::WindowStates &state) const {
+        static_cast<QWidget *>(host)->setWindowState(state);
+    }
+
+    void WidgetItemDelegate::setCursorShape(QObject *host, const Qt::CursorShape shape) const {
+        static_cast<QWidget *>(host)->setCursor(QCursor(shape));
+    }
+
+    void WidgetItemDelegate::restoreCursorShape(QObject *host) const {
+        static_cast<QWidget *>(host)->unsetCursor();
+    }
+
+    Qt::WindowFlags WidgetItemDelegate::getWindowFlags(const QObject *host) const {
+        return static_cast<const QWidget *>(host)->windowFlags();
+    }
+
+    void WidgetItemDelegate::setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const {
+        static_cast<QWidget *>(host)->setWindowFlags(flags);
     }
 
 }

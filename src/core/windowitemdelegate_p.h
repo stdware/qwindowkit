@@ -16,18 +16,24 @@ namespace QWK {
 
     public:
         // Item property query
-        virtual QWindow *window(QObject *obj) const = 0;
+        virtual QWindow *window(const QObject *obj) const = 0;
         virtual bool isEnabled(const QObject *obj) const = 0;
         virtual bool isVisible(const QObject *obj) const = 0;
         virtual QRect mapGeometryToScene(const QObject *obj) const = 0;
 
         // Host property query
-        virtual QWindow *hostWindow(QObject *host) const = 0;
+        virtual QWindow *hostWindow(const QObject *host) const = 0;
         virtual bool isHostSizeFixed(const QObject *host) const = 0;
         virtual bool isWindowActive(const QObject *host) const = 0;
+        virtual Qt::WindowStates getWindowState(const QObject *host) const = 0;
+        virtual Qt::WindowFlags getWindowFlags(const QObject *host) const = 0;
 
         // Callbacks
-        virtual void resetQtGrabbedControl() const;
+        virtual void resetQtGrabbedControl(QObject *host) const;
+        virtual void setWindowState(QObject *host, const Qt::WindowStates &state) const = 0;
+        virtual void setCursorShape(QObject *host, const Qt::CursorShape shape) const = 0;
+        virtual void restoreCursorShape(QObject *host) const = 0;
+        virtual void setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const = 0;
 
     private:
         Q_DISABLE_COPY(WindowItemDelegate)

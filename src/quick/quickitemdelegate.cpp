@@ -10,7 +10,7 @@ namespace QWK {
 
     QuickItemDelegate::~QuickItemDelegate() = default;
 
-    QWindow *QuickItemDelegate::window(QObject *obj) const {
+    QWindow *QuickItemDelegate::window(const QObject *obj) const {
         return static_cast<const QQuickItem *>(obj)->window();
     }
 
@@ -29,8 +29,8 @@ namespace QWK {
         return QRectF(originPoint, size).toRect();
     }
 
-    QWindow *QuickItemDelegate::hostWindow(QObject *host) const {
-        return static_cast<QQuickWindow *>(host);
+    QWindow *QuickItemDelegate::hostWindow(const QObject *host) const {
+        return static_cast<QQuickWindow *>(const_cast<QObject *>(host));
     }
 
     bool QuickItemDelegate::isHostSizeFixed(const QObject *host) const {
@@ -40,6 +40,30 @@ namespace QWK {
 
     bool QuickItemDelegate::isWindowActive(const QObject *host) const {
         return static_cast<const QQuickWindow *>(host)->isActive();
+    }
+
+    Qt::WindowStates QuickItemDelegate::getWindowState(const QObject *host) const {
+        return static_cast<const QQuickWindow *>(host)->windowStates();
+    }
+
+    void QuickItemDelegate::setWindowState(QObject *host, const Qt::WindowStates &state) const {
+        static_cast<QQuickWindow *>(host)->setWindowStates(state);
+    }
+
+    void QuickItemDelegate::setCursorShape(QObject *host, const Qt::CursorShape shape) const {
+        static_cast<QQuickWindow *>(host)->setCursor(QCursor(shape));
+    }
+
+    void QuickItemDelegate::restoreCursorShape(QObject *host) const {
+        static_cast<QQuickWindow *>(host)->unsetCursor();
+    }
+
+    Qt::WindowFlags QuickItemDelegate::getWindowFlags(const QObject *host) const {
+        return static_cast<const QQuickWindow *>(host)->flags();
+    }
+
+    void QuickItemDelegate::setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const {
+        static_cast<QQuickWindow *>(host)->setFlags(flags);
     }
 
 }

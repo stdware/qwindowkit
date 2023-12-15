@@ -77,8 +77,10 @@ namespace QWK {
                 }
                 break;
             }
-            default:
-                break;
+            default: {
+                Q_UNREACHABLE();
+                return false;
+            }
         }
         return false;
     }

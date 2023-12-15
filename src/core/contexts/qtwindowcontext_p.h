@@ -9,7 +9,7 @@ namespace QWK {
         Q_OBJECT
     public:
         QtWindowContext();
-        ~QtWindowContext();
+        ~QtWindowContext() override;
 
         QString key() const override;
         void virtual_hook(int id, void *data) override;
