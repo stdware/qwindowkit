@@ -6,7 +6,10 @@
 #include <QtGui/QGuiApplication>
 
 namespace QWK {
-
+    // ### FIXME FIXME FIXME
+    // ### FIXME: Tell the user to call in the documentation, instead of automatically
+    // calling it directly.
+    // ### FIXME FIXME FIXME
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     static const struct QWK_Hook {
         QWK_Hook() {

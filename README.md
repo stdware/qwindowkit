@@ -34,7 +34,33 @@ This project inherited most of [FramelessHelper](https://github.com/wangwenx190/
 
 ## Quick Start
 
+### Initialization
+
+First of all, you're supposed to add the following code in your `main` function in a very early stage (MUST before the construction of any `Q(Gui|Core)Application` objects).
+
+```c++
+int main(int argc, char *argv[]) {
+#ifdef Q_OS_WINDOWS
+    qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
+#elif defined(Q_OS_MAC)
+# if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    qputenv("QT_MAC_WANTS_LAYER", "1");
+# endif
+#endif
+}
+```
+
+### Qt Widgets Application
+
 TODO
+
+### Qt Quick Application
+
+TODO
+
+### Learn More
+
+See [examples](examples) for more demo use cases.
 
 ## Documentatons
 
