@@ -104,7 +104,7 @@ namespace QWK {
             nswindow.hasShadow = YES;
             nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
-            // nswindow.movable = NO; // This line causes the window in the wrong position when
+            nswindow.movable = NO; // This line causes the window in the wrong position when
             // become fullscreen.
             //  For some unknown reason, we don't need the following hack in Qt versions below or
             //  equal to 6.2.4.

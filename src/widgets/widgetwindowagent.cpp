@@ -57,9 +57,6 @@ namespace QWK {
         if (!d->context->setTitleBar(w)) {
             return;
         }
-#ifdef Q_OS_MACOS
-        d->setupMacOSTitleBar(w);
-#endif
         Q_EMIT titleBarWidgetChanged(w);
     }
 
