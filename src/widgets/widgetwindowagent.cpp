@@ -86,11 +86,6 @@ namespace QWK {
         d->context->setHitTestVisible(w, visible);
     }
 
-    void WidgetWindowAgent::setHitTestVisible(const QRect &rect, bool visible) {
-        Q_D(WidgetWindowAgent);
-        d->context->setHitTestVisible(rect, visible);
-    }
-
     WidgetWindowAgent::WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
         d.init();

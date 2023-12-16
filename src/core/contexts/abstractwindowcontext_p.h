@@ -29,7 +29,6 @@ namespace QWK {
 
         inline bool isHitTestVisible(const QObject *obj) const;
         bool setHitTestVisible(const QObject *obj, bool visible);
-        bool setHitTestVisible(const QRect &rect, bool visible);
 
         inline QObject *systemButton(WindowAgentBase::SystemButton button) const;
         bool setSystemButton(WindowAgentBase::SystemButton button, QObject *obj);
@@ -37,7 +36,6 @@ namespace QWK {
         inline QObject *titleBar() const;
         bool setTitleBar(QObject *obj);
 
-        QRegion hitTestShape() const;
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
@@ -62,14 +60,9 @@ namespace QWK {
         QWindow *m_windowHandle{};
 
         QSet<const QObject *> m_hitTestVisibleItems;
-        QList<QRect> m_hitTestVisibleRects;
 
         QObject *m_titleBar{};
         std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
-
-        // Cached shape
-        mutable bool hitTestVisibleShapeDirty{};
-        mutable QRegion hitTestVisibleShape;
     };
 
     inline QObject *AbstractWindowContext::host() const {

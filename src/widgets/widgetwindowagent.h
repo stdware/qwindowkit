@@ -28,7 +28,6 @@ namespace QWK {
 
         bool isHitTestVisible(const QWidget *w) const;
         void setHitTestVisible(const QWidget *w, bool visible = true);
-        void setHitTestVisible(const QRect &rect, bool visible = true);
 
     Q_SIGNALS:
         void titleBarWidgetChanged(const QWidget *w);

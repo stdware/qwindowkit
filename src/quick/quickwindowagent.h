@@ -28,9 +28,7 @@ namespace QWK {
         Q_INVOKABLE void setSystemButton(SystemButton button, QQuickItem *item);
 
         Q_INVOKABLE bool isHitTestVisible(const QQuickItem *item) const;
-        Q_INVOKABLE inline void setHitTestVisible(const QQuickItem *item, bool visible = true);
-        Q_INVOKABLE void setHitTestVisible_item(const QQuickItem *item, bool visible = true);
-        Q_INVOKABLE void setHitTestVisible_rect(const QRect &rect, bool visible = true);
+        Q_INVOKABLE void setHitTestVisible(const QQuickItem *item, bool visible = true);
 
     Q_SIGNALS:
         void titleBarWidgetChanged(const QQuickItem *item);
@@ -39,10 +37,6 @@ namespace QWK {
     protected:
         QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent = nullptr);
     };
-
-    inline void QuickWindowAgent::setHitTestVisible(const QQuickItem *item, bool visible) {
-        setHitTestVisible_item(item, visible);
-    }
 
 }
 

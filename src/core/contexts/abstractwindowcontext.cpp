@@ -48,21 +48,6 @@ namespace QWK {
         return true;
     }
 
-    bool AbstractWindowContext::setHitTestVisible(const QRect &rect, bool visible) {
-        Q_ASSERT(rect.isValid());
-        if (!rect.isValid()) {
-            return false;
-        }
-
-        if (visible) {
-            m_hitTestVisibleRects.append(rect);
-        } else {
-            m_hitTestVisibleRects.removeAll(rect);
-        }
-        hitTestVisibleShapeDirty = true;
-        return true;
-    }
-
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
         Q_ASSERT(obj);
@@ -89,17 +74,6 @@ namespace QWK {
         }
         m_titleBar = item;
         return true;
-    }
-
-    QRegion AbstractWindowContext::hitTestShape() const {
-        if (hitTestVisibleShapeDirty) {
-            hitTestVisibleShape = {};
-            for (const auto &rect : m_hitTestVisibleRects) {
-                hitTestVisibleShape += rect;
-            }
-            hitTestVisibleShapeDirty = false;
-        }
-        return hitTestVisibleShape;
     }
 
     bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
@@ -157,9 +131,6 @@ namespace QWK {
             }
         }
 
-        if (!m_hitTestVisibleRects.isEmpty() && hitTestShape().contains(pos)) {
-            return false;
-        }
         return true;
     }
 

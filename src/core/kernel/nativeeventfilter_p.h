@@ -43,7 +43,7 @@ namespace QWK {
         friend class NativeEventDispatcher;
     };
 
-    // Automatically install to QApplication at construction
+    // Automatically install to QCoreApplication at construction
     class QWK_CORE_EXPORT AppNativeEventFilter : public NativeEventFilter {
     public:
         AppNativeEventFilter();
