@@ -1,10 +1,10 @@
 #include "widgetwindowagent_p.h"
 
+#include <QtCore/QDebug>
+
 namespace QWK {
 
     class TitleBarEventFilter : public QObject {
-        Q_OBJECT
-
     public:
         explicit TitleBarEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
         ~TitleBarEventFilter() override;
@@ -15,9 +15,12 @@ namespace QWK {
     private:
         AbstractWindowContext *m_context;
         bool m_leftButtonPressed;
-    }
+        bool m_moving;
+    };
 
-    TitleBarEventFilter::TitleBarEventFilter(QObject *parent) : QObject(parent), m_context(context), m_leftButtonPressed(false) {}
+    TitleBarEventFilter::TitleBarEventFilter(AbstractWindowContext *context, QObject *parent)
+        : QObject(parent), m_context(context), m_leftButtonPressed(false), m_moving(false) {
+    }
 
     TitleBarEventFilter::~TitleBarEventFilter() = default;
 
@@ -31,8 +34,8 @@ namespace QWK {
         const QPoint scenePos = mouseEvent->scenePosition().toPoint();
         const QPoint globalPos = mouseEvent->globalPosition().toPoint();
 #else
-        const QPoint scenePos = mouseEvent->windowPos().toPoint();
-        const QPoint globalPos = mouseEvent->screenPos().toPoint();
+        const QPoint scenePos = me->windowPos().toPoint();
+        const QPoint globalPos = me->screenPos().toPoint();
 #endif
         if (!m_context->isInTitleBarDraggableArea(scenePos)) {
             return false;
@@ -41,6 +44,7 @@ namespace QWK {
             case QEvent::MouseButtonPress: {
                 if (me->button() == Qt::LeftButton) {
                     m_leftButtonPressed = true;
+                    m_moving = false;
                     event->accept();
                     return true;
                 }
@@ -49,6 +53,7 @@ namespace QWK {
             case QEvent::MouseButtonRelease: {
                 if (me->button() == Qt::LeftButton) {
                     m_leftButtonPressed = false;
+                    m_moving = false;
                     event->accept();
                     return true;
                 }
@@ -56,7 +61,10 @@ namespace QWK {
             }
             case QEvent::MouseMove: {
                 if (m_leftButtonPressed) {
-                    static_cast<QWidget *>(object)->windowHandle()->startSystemMove();
+                    if (!m_moving) {
+                        m_moving = true;
+                        m_context->window()->startSystemMove();
+                    }
                     event->accept();
                     return true;
                 }
@@ -64,7 +72,7 @@ namespace QWK {
             }
             case QEvent::MouseButtonDblClick: {
                 if (me->button() == Qt::LeftButton) {
-                    QWidget *window = static_cast<QWidget *>(object)->window();
+                    auto window = static_cast<QWidget *>(object)->window();
                     if (!window->isFullScreen()) {
                         if (window->isMaximized()) {
                             window->showNormal();
@@ -90,5 +98,3 @@ namespace QWK {
     }
 
 }
-
-#include "widgetwindowagent_cocoa.moc"

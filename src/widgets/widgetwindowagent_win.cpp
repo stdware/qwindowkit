@@ -8,7 +8,6 @@
 namespace QWK {
 
     class WidgetBorderHandler : public QObject, public NativeEventFilter {
-        Q_OBJECT
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
             : QObject(ctx), widget(widget), ctx(ctx) {
@@ -114,5 +113,3 @@ namespace QWK {
     }
 
 }
-
-#include "widgetwindowagent_win.moc"

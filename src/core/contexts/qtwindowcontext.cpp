@@ -74,8 +74,6 @@ namespace QWK {
     }
 
     class WindowEventFilter : public QObject {
-        Q_OBJECT
-
     public:
         explicit WindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
         ~WindowEventFilter() override;
@@ -202,5 +200,3 @@ namespace QWK {
     }
 
 }
-
-#include "qtwindowcontext.moc"
