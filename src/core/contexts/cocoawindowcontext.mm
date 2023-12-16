@@ -105,7 +105,7 @@ namespace QWK {
             nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
             nswindow.movable = NO; // This line causes the window in the wrong position when
-            // become fullscreen.
+                                   // become fullscreen.
             //  For some unknown reason, we don't need the following hack in Qt versions below or
             //  equal to 6.2.4.
 #if (QT_VERSION > QT_VERSION_CHECK(6, 2, 4))
@@ -384,6 +384,17 @@ namespace QWK {
     }
 
     void CocoaWindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case ShowSystemMenuHook:
+                // TODO: mac system menu
+                return;
+            case SystemButtonAreaChangedHook:
+                // TODO: mac system button rect updated
+                return;
+            default:
+                break;
+        }
+        AbstractWindowContext::virtual_hook(id, data);
     }
 
     bool CocoaWindowContext::setupHost() {

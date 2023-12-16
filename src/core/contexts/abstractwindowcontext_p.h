@@ -36,6 +36,11 @@ namespace QWK {
         inline QObject *titleBar() const;
         bool setTitleBar(QObject *obj);
 
+#ifdef Q_OS_MAC
+        inline QRect systemButtonArea() const;
+        void setSystemButtonArea(const QRect &rect);
+#endif
+
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
@@ -45,7 +50,8 @@ namespace QWK {
             CentralizeHook = 1,
             ShowSystemMenuHook,
             DefaultColorsHook,
-            DrawWindows10BorderHook, // Only works on Windows 10
+            DrawWindows10BorderHook,     // Only works on Windows 10
+            SystemButtonAreaChangedHook, // Only works on Mac
         };
         virtual void virtual_hook(int id, void *data);
 
@@ -60,6 +66,9 @@ namespace QWK {
         QWindow *m_windowHandle{};
 
         QSet<const QObject *> m_hitTestVisibleItems;
+#ifdef Q_OS_MAC
+        QRect m_systemButtonArea;
+#endif
 
         QObject *m_titleBar{};
         std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
@@ -89,6 +98,12 @@ namespace QWK {
     inline QObject *AbstractWindowContext::titleBar() const {
         return m_titleBar;
     }
+
+#ifdef Q_OS_MAC
+    inline QRect AbstractWindowContext::systemButtonArea() const {
+        return m_systemButtonArea;
+    }
+#endif
 
 }
 

@@ -76,6 +76,13 @@ namespace QWK {
         return true;
     }
 
+#ifdef Q_OS_MAC
+    void AbstractWindowContext::setSystemButtonArea(const QRect &rect) {
+        m_systemButtonArea = rect;
+        virtual_hook(SystemButtonAreaChangedHook, nullptr);
+    }
+#endif
+
     bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
                                                   WindowAgentBase::SystemButton *button) const {
         *button = WindowAgentBase::Unknown;

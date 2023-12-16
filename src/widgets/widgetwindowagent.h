@@ -26,6 +26,11 @@ namespace QWK {
         QWidget *systemButton(SystemButton button) const;
         void setSystemButton(SystemButton button, QWidget *w);
 
+#ifdef Q_OS_MAC
+        QWidget *systemButtonArea() const;
+        void setSystemButtonArea(QWidget *widget);
+#endif
+
         bool isHitTestVisible(const QWidget *w) const;
         void setHitTestVisible(const QWidget *w, bool visible = true);
 
