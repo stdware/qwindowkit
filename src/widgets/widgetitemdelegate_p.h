@@ -27,10 +27,10 @@ namespace QWK {
         Qt::WindowFlags getWindowFlags(const QObject *host) const override;
 
         void resetQtGrabbedControl(QObject *host) const override;
-        void setWindowState(QObject *host, const Qt::WindowStates &state) const override;
-        void setCursorShape(QObject *host, const Qt::CursorShape shape) const override;
+        void setWindowState(QObject *host, Qt::WindowStates state) const override;
+        void setCursorShape(QObject *host, Qt::CursorShape shape) const override;
         void restoreCursorShape(QObject *host) const override;
-        void setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const override;
+        void setWindowFlags(QObject *host, Qt::WindowFlags flags) const override;
     };
 
 }

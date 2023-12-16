@@ -104,9 +104,10 @@ namespace QWK {
             nswindow.hasShadow = YES;
             nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
-            //nswindow.movable = NO; // This line causes the window in the wrong position when become fullscreen.
-            // For some unknown reason, we don't need the following hack in Qt versions below or
-            // equal to 6.2.4.
+            // nswindow.movable = NO; // This line causes the window in the wrong position when
+            // become fullscreen.
+            //  For some unknown reason, we don't need the following hack in Qt versions below or
+            //  equal to 6.2.4.
 #if (QT_VERSION > QT_VERSION_CHECK(6, 2, 4))
             [nswindow standardWindowButton:NSWindowCloseButton].hidden = (visible ? NO : YES);
             [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = (visible ? NO : YES);
@@ -238,9 +239,145 @@ namespace QWK {
         return it.value();
     }
 
-    CocoaWindowContext::CocoaWindowContext() : AbstractWindowContext() {}
+    class CocoaWindowEventFilter : public QObject {
+    public:
+        explicit CocoaWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
+        ~CocoaWindowEventFilter() override;
 
-    CocoaWindowContext::~CocoaWindowContext() = default;
+        enum WindowStatus {
+            Idle,
+            WaitingRelease,
+            PreparingMove,
+            Moving,
+        };
+
+    protected:
+        bool eventFilter(QObject *object, QEvent *event) override;
+
+    private:
+        AbstractWindowContext *m_context;
+        bool m_cursorShapeChanged;
+        WindowStatus m_windowStatus;
+    };
+
+    CocoaWindowEventFilter::CocoaWindowEventFilter(AbstractWindowContext *context, QObject *parent)
+        : QObject(parent), m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        m_context->window()->installEventFilter(this);
+    }
+
+    CocoaWindowEventFilter::~CocoaWindowEventFilter() = default;
+
+    bool CocoaWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+        auto type = event->type();
+        if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
+            return false;
+        }
+        QObject *host = m_context->host();
+        QWindow *window = m_context->window();
+        WindowItemDelegate *delegate = m_context->delegate();
+        auto me = static_cast<const QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QPoint scenePos = mouseEvent->scenePosition().toPoint();
+        QPoint globalPos = mouseEvent->globalPosition().toPoint();
+#else
+        QPoint scenePos = me->windowPos().toPoint();
+        QPoint globalPos = me->screenPos().toPoint();
+#endif
+        bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
+        switch (type) {
+            case QEvent::MouseButtonPress: {
+                switch (me->button()) {
+                    case Qt::LeftButton: {
+                        if (inTitleBar) {
+                            // If we call startSystemMove() now but release the mouse without actual
+                            // movement, there will be no MouseReleaseEvent, so we defer it when the
+                            // mouse is actually moving for the first time
+                            m_windowStatus = PreparingMove;
+                            event->accept();
+                            return true;
+                        }
+                        m_windowStatus = WaitingRelease;
+                        break;
+                    }
+                    case Qt::RightButton: {
+                        m_context->showSystemMenu(globalPos);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                break;
+            }
+
+            case QEvent::MouseButtonRelease: {
+                switch (m_windowStatus) {
+                    case PreparingMove:
+                    case Moving: {
+                        m_windowStatus = Idle;
+                        event->accept();
+                        return true;
+                    }
+                    case WaitingRelease: {
+                        m_windowStatus = Idle;
+                        break;
+                    }
+                    default: {
+                        if (inTitleBar) {
+                            event->accept();
+                            return true;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+
+            case QEvent::MouseMove: {
+                switch (m_windowStatus) {
+                    case Moving: {
+                        return true;
+                    }
+                    case PreparingMove: {
+                        m_windowStatus = Moving;
+                        window->startSystemMove();
+                        event->accept();
+                        return true;
+                    }
+                    default:
+                        break;
+                }
+                break;
+            }
+
+            case QEvent::MouseButtonDblClick: {
+                if (me->button() == Qt::LeftButton && inTitleBar &&
+                    !delegate->isHostSizeFixed(host)) {
+                    Qt::WindowStates windowState = delegate->getWindowState(host);
+                    if (!(windowState & Qt::WindowFullScreen)) {
+                        if (windowState & Qt::WindowMaximized) {
+                            delegate->setWindowState(host, windowState & ~Qt::WindowMaximized);
+                        } else {
+                            delegate->setWindowState(host, windowState | Qt::WindowMaximized);
+                        }
+                        event->accept();
+                        return true;
+                    }
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+        return false;
+    }
+
+    CocoaWindowContext::CocoaWindowContext() : AbstractWindowContext() {
+    }
+
+    CocoaWindowContext::~CocoaWindowContext() {
+        // TODO: deref something?
+    }
 
     QString CocoaWindowContext::key() const {
         return QStringLiteral("cocoa");
@@ -250,10 +387,12 @@ namespace QWK {
     }
 
     bool CocoaWindowContext::setupHost() {
+        windowId = m_windowHandle->winId();
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         m_windowHandle->setProperty("_q_mac_wantsLayer", 1);
 #endif
-        ensureWindowProxy(m_windowHandle->winId())->setSystemTitleBarVisible(false);
+        ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
+        std::ignore = new CocoaWindowEventFilter(this, this);
         return true;
     }
 

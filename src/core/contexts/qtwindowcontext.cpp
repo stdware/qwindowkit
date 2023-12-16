@@ -1,5 +1,7 @@
 #include "qtwindowcontext_p.h"
 
+#include <QtCore/QDebug>
+
 namespace QWK {
 
     static constexpr const quint8 kDefaultResizeBorderThickness = 8;
@@ -40,8 +42,7 @@ namespace QWK {
 #endif
     }
 
-    static inline Qt::Edges calculateWindowEdges(const QWindow *window, const QPoint &pos)
-    {
+    static inline Qt::Edges calculateWindowEdges(const QWindow *window, const QPoint &pos) {
 #ifdef Q_OS_MACOS
         Q_UNUSED(window);
         Q_UNUSED(pos);
@@ -73,94 +74,146 @@ namespace QWK {
 #endif
     }
 
-    class WindowEventFilter : public QObject {
+    class QtWindowEventFilter : public QObject {
     public:
-        explicit WindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
-        ~WindowEventFilter() override;
+        explicit QtWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
+        ~QtWindowEventFilter() override;
+
+        enum WindowStatus {
+            Idle,
+            WaitingRelease,
+            PreparingMove,
+            Moving,
+            Resizing,
+        };
 
     protected:
         bool eventFilter(QObject *object, QEvent *event) override;
 
     private:
         AbstractWindowContext *m_context;
-        bool m_leftButtonPressed;
         bool m_cursorShapeChanged;
+        WindowStatus m_windowStatus;
     };
 
-    WindowEventFilter::WindowEventFilter(AbstractWindowContext *context, QObject *parent) : QObject(parent), m_context(context), m_leftButtonPressed(false), m_cursorShapeChanged(false) {}
+    QtWindowEventFilter::QtWindowEventFilter(AbstractWindowContext *context, QObject *parent)
+        : QObject(parent), m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        m_context->window()->installEventFilter(this);
+    }
 
-    WindowEventFilter::~WindowEventFilter() = default;
+    QtWindowEventFilter::~QtWindowEventFilter() = default;
 
-    bool WindowEventFilter::eventFilter(QObject *object, QEvent *event) {
-        const auto type = event->type();
+    bool QtWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+        auto type = event->type();
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
         }
         QObject *host = m_context->host();
         QWindow *window = m_context->window();
         WindowItemDelegate *delegate = m_context->delegate();
-        const bool fixedSize = delegate->isHostSizeFixed(host);
-        const auto mouseEvent = static_cast<const QMouseEvent *>(event);
+        bool fixedSize = delegate->isHostSizeFixed(host);
+        auto me = static_cast<const QMouseEvent *>(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const QPoint scenePos = mouseEvent->scenePosition().toPoint();
-        const QPoint globalPos = mouseEvent->globalPosition().toPoint();
+        QPoint scenePos = mouseEvent->scenePosition().toPoint();
+        QPoint globalPos = mouseEvent->globalPosition().toPoint();
 #else
-        const QPoint scenePos = mouseEvent->windowPos().toPoint();
-        const QPoint globalPos = mouseEvent->screenPos().toPoint();
+        QPoint scenePos = me->windowPos().toPoint();
+        QPoint globalPos = me->screenPos().toPoint();
 #endif
-        const bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
+        bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
         switch (type) {
             case QEvent::MouseButtonPress: {
-                if (mouseEvent->button() == Qt::LeftButton) {
-                    m_leftButtonPressed = true;
-                    if (!fixedSize) {
-                        const Qt::Edges edges = calculateWindowEdges(window, scenePos);
-                        if (edges != Qt::Edges{}) {
-                            window->startSystemResize(edges);
+                switch (me->button()) {
+                    case Qt::LeftButton: {
+                        if (!fixedSize) {
+                            Qt::Edges edges = calculateWindowEdges(window, scenePos);
+                            if (edges != Qt::Edges()) {
+                                m_windowStatus = Resizing;
+                                window->startSystemResize(edges);
+                                event->accept();
+                                return true;
+                            }
+                        }
+                        if (inTitleBar) {
+                            // If we call startSystemMove() now but release the mouse without actual
+                            // movement, there will be no MouseReleaseEvent, so we defer it when the
+                            // mouse is actually moving for the first time
+                            m_windowStatus = PreparingMove;
                             event->accept();
                             return true;
                         }
+                        m_windowStatus = WaitingRelease;
+                        break;
                     }
-                    if (inTitleBar) {
-                        event->accept();
-                        return true;
+                    case Qt::RightButton: {
+                        m_context->showSystemMenu(globalPos);
+                        break;
                     }
+                    default:
+                        break;
                 }
                 break;
             }
+
             case QEvent::MouseButtonRelease: {
-                if (mouseEvent->button() == Qt::LeftButton) {
-                    m_leftButtonPressed = false;
-                    if (inTitleBar) {
+                switch (m_windowStatus) {
+                    case PreparingMove:
+                    case Moving:
+                    case Resizing: {
+                        m_windowStatus = Idle;
                         event->accept();
                         return true;
                     }
-                }
-                break;
-            }
-            case QEvent::MouseMove: {
-                if (!fixedSize) {
-                    const Qt::CursorShape shape = calculateCursorShape(window, scenePos);
-                    if (shape == Qt::ArrowCursor) {
-                        if (m_cursorShapeChanged) {
-                            delegate->restoreCursorShape(host);
-                            m_cursorShapeChanged = false;
+                    case WaitingRelease: {
+                        m_windowStatus = Idle;
+                        break;
+                    }
+                    default: {
+                        if (inTitleBar) {
+                            event->accept();
+                            return true;
                         }
-                    } else {
-                        delegate->setCursorShape(host, shape);
-                        m_cursorShapeChanged = true;
+                        break;
                     }
                 }
-                if (m_leftButtonPressed && inTitleBar) {
-                    window->startSystemMove();
-                    event->accept();
-                    return true;
+                break;
+            }
+
+            case QEvent::MouseMove: {
+                switch (m_windowStatus) {
+                    case Moving: {
+                        return true;
+                    }
+                    case PreparingMove: {
+                        m_windowStatus = Moving;
+                        window->startSystemMove();
+                        event->accept();
+                        return true;
+                    }
+                    case Idle: {
+                        if (!fixedSize) {
+                            const Qt::CursorShape shape = calculateCursorShape(window, scenePos);
+                            if (shape == Qt::ArrowCursor) {
+                                if (m_cursorShapeChanged) {
+                                    delegate->restoreCursorShape(host);
+                                    m_cursorShapeChanged = false;
+                                }
+                            } else {
+                                delegate->setCursorShape(host, shape);
+                                m_cursorShapeChanged = true;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
                 break;
             }
+
             case QEvent::MouseButtonDblClick: {
-                if (mouseEvent->button() == Qt::LeftButton && inTitleBar && !fixedSize) {
-                    const Qt::WindowStates windowState = delegate->getWindowState(host);
+                if (me->button() == Qt::LeftButton && inTitleBar && !fixedSize) {
+                    Qt::WindowStates windowState = delegate->getWindowState(host);
                     if (!(windowState & Qt::WindowFullScreen)) {
                         if (windowState & Qt::WindowMaximized) {
                             delegate->setWindowState(host, windowState & ~Qt::WindowMaximized);
@@ -173,10 +226,9 @@ namespace QWK {
                 }
                 break;
             }
-            default: {
-                Q_UNREACHABLE();
-                return false;
-            }
+
+            default:
+                break;
         }
         return false;
     }
@@ -191,11 +243,18 @@ namespace QWK {
     }
 
     void QtWindowContext::virtual_hook(int id, void *data) {
+        switch (id) {
+            case ShowSystemMenuHook:
+                return;
+            default:
+                break;
+        }
+        AbstractWindowContext::virtual_hook(id, data);
     }
 
     bool QtWindowContext::setupHost() {
         m_delegate->setWindowFlags(m_host, Qt::FramelessWindowHint);
-        m_windowHandle->installEventFilter(new WindowEventFilter(this, m_windowHandle));
+        std::ignore = new QtWindowEventFilter(this, this);
         return true;
     }
 

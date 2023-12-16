@@ -78,11 +78,11 @@ namespace QWK {
         return static_cast<const QWidget *>(host)->windowState();
     }
 
-    void WidgetItemDelegate::setWindowState(QObject *host, const Qt::WindowStates &state) const {
+    void WidgetItemDelegate::setWindowState(QObject *host, Qt::WindowStates state) const {
         static_cast<QWidget *>(host)->setWindowState(state);
     }
 
-    void WidgetItemDelegate::setCursorShape(QObject *host, const Qt::CursorShape shape) const {
+    void WidgetItemDelegate::setCursorShape(QObject *host, Qt::CursorShape shape) const {
         static_cast<QWidget *>(host)->setCursor(QCursor(shape));
     }
 
@@ -94,7 +94,7 @@ namespace QWK {
         return static_cast<const QWidget *>(host)->windowFlags();
     }
 
-    void WidgetItemDelegate::setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const {
+    void WidgetItemDelegate::setWindowFlags(QObject *host, Qt::WindowFlags flags) const {
         static_cast<QWidget *>(host)->setWindowFlags(flags);
     }
 

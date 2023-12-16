@@ -14,7 +14,7 @@ This project inherited most of [FramelessHelper](https://github.com/wangwenx190/
 
 | Component | Requirement |               Detailed               |
 |:---------:|:-----------:|:------------------------------------:|
-|    Qt     |  \>=5.15.2  |      Core, Gui, Widgets, Quick       |
+|    Qt     |   \>=5.15   |      Core, Gui, Widgets, Quick       |
 | Compiler  |  \>=C++17   |        MSVC 2019, GCC, Clang         |
 |   CMake   |   \>=3.17   |        >=3.20 is recommended         |
 

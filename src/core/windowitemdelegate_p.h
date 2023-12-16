@@ -30,10 +30,10 @@ namespace QWK {
 
         // Callbacks
         virtual void resetQtGrabbedControl(QObject *host) const;
-        virtual void setWindowState(QObject *host, const Qt::WindowStates &state) const = 0;
-        virtual void setCursorShape(QObject *host, const Qt::CursorShape shape) const = 0;
+        virtual void setWindowState(QObject *host, Qt::WindowStates state) const = 0;
+        virtual void setCursorShape(QObject *host, Qt::CursorShape shape) const = 0;
         virtual void restoreCursorShape(QObject *host) const = 0;
-        virtual void setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const = 0;
+        virtual void setWindowFlags(QObject *host, Qt::WindowFlags flags) const = 0;
 
     private:
         Q_DISABLE_COPY(WindowItemDelegate)

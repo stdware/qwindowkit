@@ -46,7 +46,7 @@ namespace QWK {
         return static_cast<const QQuickWindow *>(host)->windowStates();
     }
 
-    void QuickItemDelegate::setWindowState(QObject *host, const Qt::WindowStates &state) const {
+    void QuickItemDelegate::setWindowState(QObject *host, Qt::WindowStates state) const {
         static_cast<QQuickWindow *>(host)->setWindowStates(state);
     }
 
@@ -62,7 +62,7 @@ namespace QWK {
         return static_cast<const QQuickWindow *>(host)->flags();
     }
 
-    void QuickItemDelegate::setWindowFlags(QObject *host, const Qt::WindowFlags &flags) const {
+    void QuickItemDelegate::setWindowFlags(QObject *host, Qt::WindowFlags flags) const {
         static_cast<QQuickWindow *>(host)->setFlags(flags);
     }
 

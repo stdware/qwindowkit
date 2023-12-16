@@ -1,7 +1,6 @@
 #ifndef COCOAWINDOWCONTEXT_P_H
 #define COCOAWINDOWCONTEXT_P_H
 
-
 #include <QWKCore/private/abstractwindowcontext_p.h>
 
 namespace QWK {
