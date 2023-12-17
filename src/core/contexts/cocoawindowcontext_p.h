@@ -19,6 +19,8 @@ namespace QWK {
 
     protected:
         WId windowId = 0;
+
+        std::unique_ptr<QObject> cocoaWindowEventFilter;
     };
 
 }

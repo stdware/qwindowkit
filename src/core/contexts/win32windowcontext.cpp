@@ -780,7 +780,7 @@ namespace QWK {
         g_wndProcHash->insert(hWnd, ctx);
     }
 
-    static inline void removeManagedWindow(HWND hWnd, bool restore) {
+    static inline void removeManagedWindow(HWND hWnd) {
         // Remove window handle mapping
         if (!g_wndProcHash->remove(hWnd))
             return;
@@ -789,11 +789,6 @@ namespace QWK {
         if (g_wndProcHash->empty()) {
             WindowsNativeEventFilter::uninstall();
         }
-
-        // Restore window proc
-        if (restore) {
-            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
-        }
     }
 
     Win32WindowContext::Win32WindowContext() : AbstractWindowContext() {
@@ -801,7 +796,7 @@ namespace QWK {
 
     Win32WindowContext::~Win32WindowContext() {
         if (windowId) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId), false);
+            removeManagedWindow(reinterpret_cast<HWND>(windowId));
         }
     }
 
@@ -897,9 +892,9 @@ namespace QWK {
         return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
     }
 
-    void Win32WindowContext::winIdChanged(QWindow *oldWindow, bool destroyed) {
+    void Win32WindowContext::winIdChanged(QWindow *oldWindow) {
         if (oldWindow) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId), !destroyed);
+            removeManagedWindow(reinterpret_cast<HWND>(windowId));
         }
 
         if (!m_windowHandle) {

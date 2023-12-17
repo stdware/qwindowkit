@@ -15,7 +15,10 @@ namespace QWK {
         void virtual_hook(int id, void *data) override;
 
     protected:
-        bool winIdChanged() override;
+        void winIdChanged(QWindow *oldWindow) override;
+
+    protected:
+        std::unique_ptr<QObject> qtWindowEventFilter;
     };
 
 }

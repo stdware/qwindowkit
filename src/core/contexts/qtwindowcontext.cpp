@@ -253,10 +253,11 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    bool QtWindowContext::winIdChanged() {
-        m_delegate->setWindowFlags(m_host, Qt::FramelessWindowHint);
-        std::ignore = new QtWindowEventFilter(this, this);
-        return true;
+    void QtWindowContext::winIdChanged(QWindow *oldWindow) {
+        Q_UNUSED(oldWindow)
+        m_delegate->setWindowFlags(m_host,
+                                   m_delegate->getWindowFlags(m_host) | Qt::FramelessWindowHint);
+        qtWindowEventFilter = std::make_unique<QtWindowEventFilter>(this);
     }
 
 }

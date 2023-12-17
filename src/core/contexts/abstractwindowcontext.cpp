@@ -19,8 +19,7 @@ namespace QWK {
         m_delegate.reset(delegate);
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (m_windowHandle) {
-            m_windowHandleGuard = m_windowHandle;
-            winIdChanged(nullptr, false);
+            winIdChanged(nullptr);
         }
     }
 
@@ -176,7 +175,9 @@ namespace QWK {
     void AbstractWindowContext::notifyWinIdChange() {
         auto oldWindow = m_windowHandle;
         m_windowHandle = m_delegate->window(m_host);
-        winIdChanged(oldWindow, oldWindow && m_windowHandleGuard.isNull());
+        if (oldWindow == m_windowHandle)
+            return;
+        winIdChanged(oldWindow);
     }
 
 }

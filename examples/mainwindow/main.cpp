@@ -7,7 +7,6 @@
 int main(int argc, char *argv[]) {
     qputenv("QT_WIN_DEBUG_CONSOLE", "1");
     qputenv("QSG_INFO", "1");
-    qputenv("QT_WIDGETS_HIGHDPI_DOWNSCALE", "1");
 #if 0
     qputenv("QT_WIDGETS_RHI", "1");
     qputenv("QSG_RHI_BACKEND", "d3d12");

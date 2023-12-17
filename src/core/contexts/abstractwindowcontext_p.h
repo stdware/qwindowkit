@@ -60,13 +60,12 @@ namespace QWK {
         void notifyWinIdChange();
 
     protected:
-        virtual void winIdChanged(QWindow *oldWindow, bool destroyed) = 0;
+        virtual void winIdChanged(QWindow *oldWindow) = 0;
 
     protected:
         QObject *m_host{};
         std::unique_ptr<WindowItemDelegate> m_delegate;
         QWindow *m_windowHandle{};
-        QPointer<QWindow> m_windowHandleGuard;
 
         QSet<const QObject *> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC
