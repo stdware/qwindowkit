@@ -6,17 +6,6 @@
 #include <QtGui/QGuiApplication>
 
 namespace QWK {
-    // ### FIXME FIXME FIXME
-    // ### FIXME: Tell the user to call in the documentation, instead of automatically
-    // calling it directly.
-    // ### FIXME FIXME FIXME
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    static const struct QWK_Hook {
-        QWK_Hook() {
-            qputenv("QT_MAC_WANTS_LAYER", "1");
-        }
-    } g_hook{};
-#endif
 
     struct NSWindowProxy {
         NSWindowProxy(NSWindow *macWindow) {
@@ -402,9 +391,6 @@ namespace QWK {
 
     bool CocoaWindowContext::setupHost() {
         windowId = m_windowHandle->winId();
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        m_windowHandle->setProperty("_q_mac_wantsLayer", 1);
-#endif
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         std::ignore = new CocoaWindowEventFilter(this, this);
         return true;

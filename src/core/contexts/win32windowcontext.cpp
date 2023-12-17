@@ -79,16 +79,6 @@ namespace QWK {
     // Original Qt window proc function
     static WNDPROC g_qtWindowProc = nullptr;
 
-    // ### FIXME FIXME FIXME
-    // ### FIXME: Tell the user to call in the documentation, instead of automatically
-    // calling it directly.
-    // ### FIXME FIXME FIXME
-    static const struct QWK_Hook {
-        QWK_Hook() {
-            qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
-        }
-    } g_hook{};
-
     struct DynamicApis {
         static const DynamicApis &instance() {
             static const DynamicApis inst{};
