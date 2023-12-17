@@ -16,6 +16,7 @@ QWK--WindowBar>QLabel#win-title-label {
     border: none;
     color: #ECECEC;
     background-color: transparent;
+    min-height: 28px;
 }
 
 

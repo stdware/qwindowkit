@@ -40,14 +40,15 @@ namespace QWK {
 
     void WidgetWindowAgent::setSystemButtonArea(QWidget *widget) {
         Q_D(WidgetWindowAgent);
+        auto ctx = d->context.get();
         d->systemButtonAreaWidget = widget;
         if (!widget) {
-            systemButtonAreaWidgetEventFilter.reset();
-            d->context->setSystemButtonArea({});
+            d->systemButtonAreaWidgetEventFilter.reset();
+            ctx->setSystemButtonArea({});
             return;
         }
-        systemButtonAreaWidgetEventFilter =
-            std::make_unique<SystemButtonAreaWidgetEventFilter>(widget, d->context);
+        d->systemButtonAreaWidgetEventFilter =
+            std::make_unique<SystemButtonAreaWidgetEventFilter>(widget, ctx);
     }
 
 }
