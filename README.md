@@ -11,6 +11,7 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 + Fix `isFixedSize` code
 + Support customized system button area on Mac
 + Make Linux system move/resize more robust
++ Fix unhandled WinIdChange when adding a QWebEngineView as sub-widget
 
 ## Supported Platforms
 

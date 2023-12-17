@@ -786,14 +786,14 @@ namespace QWK {
     void Win32WindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
-                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                const auto hwnd = reinterpret_cast<HWND>(windowId);
                 moveToDesktopCenter(hwnd);
                 return;
             }
 
             case ShowSystemMenuHook: {
                 const auto &pos = *static_cast<const QPoint *>(data);
-                auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                auto hWnd = reinterpret_cast<HWND>(windowId);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 const QPoint nativeGlobalPos =
                     QHighDpi::toNativeGlobalPosition(pos, m_windowHandle);
@@ -820,7 +820,7 @@ namespace QWK {
                 auto &painter = *static_cast<QPainter *>(args[0]);
                 const auto &rect = *static_cast<const QRect *>(args[1]);
                 const auto &region = *static_cast<const QRegion *>(args[2]);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+                const auto hwnd = reinterpret_cast<HWND>(windowId);
 
                 QPen pen;
                 pen.setWidth(getWindowFrameBorderThickness(hwnd) * 2);
