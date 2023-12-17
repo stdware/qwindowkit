@@ -1548,8 +1548,9 @@ namespace QWK {
                 // the client area as a whole will shift to the left, which looks very abnormal if
                 // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
                 // But I don't know what caused the problem, or why this would solve it.
+                static constexpr const auto kBadWindowPosFlag = SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
                 const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
-                if (windowPos->flags == 0x37) {
+                if (windowPos->flags == kBadWindowPosFlag) {
                     windowPos->flags |= SWP_NOCOPYBITS;
                 }
                 break;
