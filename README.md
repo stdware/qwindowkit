@@ -1,8 +1,8 @@
 # QWindowKit
 
-Cross-platform window customization framework for Qt Widgets and Qt Quick.
+Cross-platform window customization framework for Qt Widgets and Qt Quick. Support Windows, macOS, Linux.
 
-This project inherited most of [FramelessHelper](https://github.com/wangwenx190/framelesshelper)'s implementation, with a complete refactoring and upgrading of the architecture.
+This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper) implementation, with a complete refactoring and upgrading of the architecture.
 
 ## Supported Platforms
 
@@ -30,6 +30,7 @@ This project inherited most of [FramelessHelper](https://github.com/wangwenx190/
 
 ## Dependencies
 
++ Qt 5.15 or higher
 + [qmsetup](https://github.com/stdware/qmsetup)
 
 ## Integrate
@@ -104,7 +105,7 @@ TODO
 
 ### Learn More
 
-See [examples](examples) for more demo use cases.
+See [examples](examples) for more demo use cases. The examples has no High DPI support.
 
 ## Documentatons
 
@@ -113,4 +114,4 @@ See [examples](examples) for more demo use cases.
 
 ## License
 
-QWindowKit is licensed under the [Apache 2.0 License](LICENSE).
+QWindowKit is licensed under the Apache 2.0 License.

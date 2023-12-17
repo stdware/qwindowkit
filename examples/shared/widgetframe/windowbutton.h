@@ -1,9 +1,7 @@
 #ifndef WINDOWBUTTON_H
 #define WINDOWBUTTON_H
 
-#include "QPushButton.h"
-
-#include <QtGlobal>
+#include <QtWidgets/QPushButton>
 
 namespace QWK {
 
