@@ -208,7 +208,5 @@ if(QWINDOWKIT_INSTALL)
     )
 
     # Install shared files
-    install(DIRECTORY ../share/
-        DESTINATION share/${QWINDOWKIT_INSTALL_NAME}
-    )
+    include("../share/install.cmake")
 endif()

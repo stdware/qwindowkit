@@ -32,6 +32,50 @@ This project inherited most of [FramelessHelper](https://github.com/wangwenx190/
 
 + [qmsetup](https://github.com/stdware/qmsetup)
 
+## Integrate
+
+### Build & Install
+
+```sh
+cmake -B build \
+  -Dqmsetup_DIR=<dir> \ # Optional
+  -DCMAKE_INSTALL_PREFIX=/path/install \
+  -G "Ninja Multi-Config"
+
+cmake --build build --target install --config Debug
+cmake --build build --target install --config Release
+```
+
+You can also include this directory as a sub-project if you choose CMake as your build system.
+
+For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
+
+### Import
+
+#### CMake Project
+
+```cmake
+cmake -B build -DQWindowKit_DIR=/path/install/cmake/QWindowKit
+```
+```cmake
+find_package(QWindowKit REQUIRED)
+taraget_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
+taraget_link_libraries(quick_app PUBLIC QWindowKit::Quick)
+```
+
+#### QMake Project
+```qmake
+# WidgetsApp.pro
+include("/path/install/share/QWindowKit/qmake/QWKWidgets.pri")
+
+# QuickApp.pro
+include("/path/install/share/QWindowKit/qmake/QWKQuick.pri")
+```
+
+#### Visual Studio Project
+
+TODO
+
 ## Quick Start
 
 ### Initialization
@@ -41,7 +85,7 @@ First of all, you're supposed to add the following code in your `main` function 
 ```c++
 int main(int argc, char *argv[]) {
 #ifdef Q_OS_WINDOWS
-    qApp->setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
+    QCoreApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
 #elif defined(Q_OS_MAC)
 # if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     qputenv("QT_MAC_WANTS_LAYER", "1");

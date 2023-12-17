@@ -1,0 +1,23 @@
+!defined(QMAKE_QWK_CORE_INCLUDED, var) {
+    QMAKE_QWK_CORE_INCLUDED = 1
+
+    # CMake variables
+    QMAKE_QWK_INSTALL_PREFIX = @QMAKE_QWK_INSTALL_PREFIX@
+    QMAKE_QWK_INSTALL_BINDIR = @QMAKE_QWK_INSTALL_BINDIR@
+    QMAKE_QWK_INSTALL_LIBDIR = @QMAKE_QWK_INSTALL_LIBDIR@
+    QMAKE_QWK_INSTALL_INCDIR = @QMAKE_QWK_INSTALL_INCDIR@
+
+    # Shared include directory
+    INCLUDEPATH += \
+        $$QMAKE_QWK_INSTALL_PREFIX/$$QMAKE_QWK_INSTALL_INCDIR/QWindowKit
+
+    # Shared link directory
+    LIBS += \
+        "-L$$QMAKE_QWK_INSTALL_PREFIX/$$QMAKE_QWK_INSTALL_LIBDIR"
+    
+    CONFIG(debug, debug|release) {
+        LIBS += -l@QMAKE_QWK_CORE_NAME_DEBUG@
+    } else {
+        LIBS += -l@QMAKE_QWK_CORE_NAME_RELEASE@
+    }
+}

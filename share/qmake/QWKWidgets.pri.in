@@ -1,0 +1,11 @@
+!defined(QMAKE_QWK_WIDGETS_INCLUDED, var) {
+    QMAKE_QWK_WIDGETS_INCLUDED = 1
+
+    include($$PWD/QWKCore.pri)
+
+    CONFIG(debug, debug|release) {
+        LIBS += -l@QMAKE_QWK_WIDGETS_NAME_DEBUG@
+    } else {
+        LIBS += -l@QMAKE_QWK_WIDGETS_NAME_RELEASE@
+    }
+}

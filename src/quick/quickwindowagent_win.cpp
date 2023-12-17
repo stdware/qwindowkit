@@ -8,7 +8,6 @@
 namespace QWK {
 
     class BorderItem : public QQuickPaintedItem, public NativeEventFilter {
-        Q_OBJECT
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
@@ -120,5 +119,3 @@ namespace QWK {
     }
 
 }
-
-#include "quickwindowagent_win.moc"

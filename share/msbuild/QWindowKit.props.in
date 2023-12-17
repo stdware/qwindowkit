@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <LibraryPath>@MSBUILD_QWK_INSTALL_PREFIX@\@MSBUILD_QWK_INSTALL_LIBDIR@;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings">
+    <QtHeaderSearchPath>@MSBUILD_QWK_INSTALL_PREFIX@\@MSBUILD_QWK_INSTALL_INCDIR@;$(QtHeaderSearchPath)</QtHeaderSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies Condition="'$(Configuration)'=='Debug'">@MSBUILD_QWK_LIBRARY_LIST_DEBUG@;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Configuration)'=='Release'">@MSBUILD_QWK_LIBRARY_LIST_RELEASE@;%(AdditionalDependencies);</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
