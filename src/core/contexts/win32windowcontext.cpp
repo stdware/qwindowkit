@@ -420,8 +420,10 @@ namespace QWK {
         const auto monitorInfo = getMonitorForWindow(hwnd);
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
-        const auto newX = monitorInfo.rcMonitor.left + (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
-        const auto newY = monitorInfo.rcMonitor.top + (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
+        const auto newX = monitorInfo.rcMonitor.left +
+                          (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
+        const auto newY = monitorInfo.rcMonitor.top +
+                          (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
         ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0,
                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
@@ -793,7 +795,8 @@ namespace QWK {
                 const auto &pos = *static_cast<const QPoint *>(data);
                 auto hWnd = reinterpret_cast<HWND>(m_windowHandle->winId());
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-                const QPoint nativeGlobalPos = QHighDpi::toNativeGlobalPosition(pos, m_windowHandle);
+                const QPoint nativeGlobalPos =
+                    QHighDpi::toNativeGlobalPosition(pos, m_windowHandle);
 #else
                 const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle);
 #endif
@@ -874,7 +877,8 @@ namespace QWK {
         auto hWnd = reinterpret_cast<HWND>(winId);
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-        for (const auto attr : { _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, _DWMWA_USE_IMMERSIVE_DARK_MODE }) {
+        for (const auto attr :
+             {_DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, _DWMWA_USE_IMMERSIVE_DARK_MODE}) {
             const BOOL enable = TRUE;
             DynamicApis::instance().pDwmSetWindowAttribute(hWnd, attr, &enable, sizeof(enable));
         }
@@ -1548,7 +1552,8 @@ namespace QWK {
                 // the client area as a whole will shift to the left, which looks very abnormal if
                 // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
                 // But I don't know what caused the problem, or why this would solve it.
-                static constexpr const auto kBadWindowPosFlag = SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
+                static constexpr const auto kBadWindowPosFlag =
+                    SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
                 const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
                 if (windowPos->flags == kBadWindowPosFlag) {
                     windowPos->flags |= SWP_NOCOPYBITS;

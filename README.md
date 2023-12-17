@@ -4,6 +4,14 @@ Cross-platform window customization framework for Qt Widgets and Qt Quick. Suppo
 
 This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper) implementation, with a complete refactoring and upgrading of the architecture.
 
+## TODO
+
++ Fix 5.15 window unsupported behavior
++ Fix window 10 top border color in dark background
++ Fix `isFixedSize` code
++ Support customized system button area on Mac
++ Make Linux system move/resize more robust
+
 ## Supported Platforms
 
 + Microsoft Windows (Vista ~ 11)
