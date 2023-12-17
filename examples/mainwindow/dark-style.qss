@@ -62,8 +62,8 @@ QWK--WindowBar>QAbstractButton#close-button:pressed {
 /* Icon button */
 
 QWK--WindowBar>QAbstractButton#icon-button {
-    qproperty-iconNormal: url(":/window-bar/icon.svg");
-    qproperty-iconSize: 20px 20px;
+    qproperty-iconNormal: url(":/app/example.png");
+    qproperty-iconSize: 18px 18px;
     min-width: 40px;
     border: none;
     padding: 0;

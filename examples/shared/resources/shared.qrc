@@ -2,10 +2,10 @@
     <qresource prefix="/">
         <file>window-bar/close.svg</file>
         <file>window-bar/fullscreen.svg</file>
-        <file>window-bar/icon.svg</file>
         <file>window-bar/maximize.svg</file>
         <file>window-bar/minimize.svg</file>
         <file>window-bar/restore.svg</file>
         <file>window-bar/more-line.svg</file>
+        <file>app/example.png</file>
     </qresource>
 </RCC>

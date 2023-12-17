@@ -5,8 +5,8 @@ import QWindowKit 1.0
 
 Window {
     id: window
-    width: 640
-    height: 480
+    width: 800
+    height: 600
     color: "#f0f0f0"
     title: qsTr("Hello, world!")
     Component.onCompleted: {

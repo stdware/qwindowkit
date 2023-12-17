@@ -64,7 +64,7 @@ taraget_link_libraries(quick_app PUBLIC QWindowKit::Quick)
 ```
 
 #### QMake Project
-```qmake
+```cmake
 # WidgetsApp.pro
 include("/path/install/share/QWindowKit/qmake/QWKWidgets.pri")
 
