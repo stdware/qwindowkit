@@ -259,7 +259,8 @@ namespace QWK {
 
     CocoaWindowEventFilter::~CocoaWindowEventFilter() = default;
 
-    bool CocoaWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+    bool CocoaWindowEventFilter::eventFilter(QObject *obj, QEvent *event) {
+        Q_UNUSED(obj)
         auto type = event->type();
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
@@ -389,7 +390,7 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    bool CocoaWindowContext::setupHost() {
+    bool CocoaWindowContext::winIdChanged(QWindow *oldWindow) {
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         std::ignore = new CocoaWindowEventFilter(this, this);

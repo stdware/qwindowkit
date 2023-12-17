@@ -32,9 +32,7 @@ namespace QWK {
             return false;
         }
 
-        if (!d->setup(window, new QuickItemDelegate())) {
-            return false;
-        }
+        d->setup(window, new QuickItemDelegate());
         d->hostWindow = window;
 
 #ifdef Q_OS_WINDOWS

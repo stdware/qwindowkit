@@ -11,27 +11,17 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
-    bool AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
-        if (!host || !delegate) {
-            return false;
+    void AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
+        if (m_host || !host || !delegate) {
+            return;
         }
-
-        auto windowHandle = delegate->hostWindow(host);
-        if (!windowHandle) {
-            return false;
-        }
-
         m_host = host;
         m_delegate.reset(delegate);
-        m_windowHandle = windowHandle;
-
-        if (!setupHost()) {
-            m_host = nullptr;
-            m_delegate.reset();
-            m_windowHandle = nullptr;
-            return false;
+        m_windowHandle = m_delegate->hostWindow(m_host);
+        if (m_windowHandle) {
+            m_windowHandleGuard = m_windowHandle;
+            winIdChanged(nullptr, false);
         }
-        return true;
     }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
@@ -181,6 +171,12 @@ namespace QWK {
 
     void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
         virtual_hook(ShowSystemMenuHook, &const_cast<QPoint &>(pos));
+    }
+
+    void AbstractWindowContext::notifyWinIdChange() {
+        auto oldWindow = m_windowHandle;
+        m_windowHandle = m_delegate->window(m_host);
+        winIdChanged(oldWindow, oldWindow && m_windowHandleGuard.isNull());
     }
 
 }

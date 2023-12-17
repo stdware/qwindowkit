@@ -764,18 +764,44 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
+    static inline void addManagedWindow(HWND hWnd, Win32WindowContext *ctx) {
+        // Store original window proc
+        if (!g_qtWindowProc) {
+            g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
+        }
+
+        // Hook window proc
+        ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
+
+        // Install global native event filter
+        WindowsNativeEventFilter::install();
+
+        // Save window handle mapping
+        g_wndProcHash->insert(hWnd, ctx);
+    }
+
+    static inline void removeManagedWindow(HWND hWnd, bool restore) {
+        // Remove window handle mapping
+        if (!g_wndProcHash->remove(hWnd))
+            return;
+
+        // Remove event filter if the all windows has been destroyed
+        if (g_wndProcHash->empty()) {
+            WindowsNativeEventFilter::uninstall();
+        }
+
+        // Restore window proc
+        if (restore) {
+            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
+        }
+    }
+
     Win32WindowContext::Win32WindowContext() : AbstractWindowContext() {
     }
 
     Win32WindowContext::~Win32WindowContext() {
-        // Remove window handle mapping
-        if (auto hWnd = reinterpret_cast<HWND>(windowId); hWnd) {
-            g_wndProcHash->remove(hWnd);
-
-            // Remove event filter if the all windows has been destroyed
-            if (g_wndProcHash->empty()) {
-                WindowsNativeEventFilter::uninstall();
-            }
+        if (windowId) {
+            removeManagedWindow(reinterpret_cast<HWND>(windowId), false);
         }
     }
 
@@ -871,14 +897,24 @@ namespace QWK {
         return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
     }
 
-    bool Win32WindowContext::setupHost() {
+    void Win32WindowContext::winIdChanged(QWindow *oldWindow, bool destroyed) {
+        if (oldWindow) {
+            removeManagedWindow(reinterpret_cast<HWND>(windowId), !destroyed);
+        }
+
+        if (!m_windowHandle) {
+            return;
+        }
+
         // Install window hook
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-        for (const auto attr :
-             {_DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, _DWMWA_USE_IMMERSIVE_DARK_MODE}) {
+        for (const auto attr : {
+                 _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                 _DWMWA_USE_IMMERSIVE_DARK_MODE,
+             }) {
             const BOOL enable = TRUE;
             DynamicApis::instance().pDwmSetWindowAttribute(hWnd, attr, &enable, sizeof(enable));
         }
@@ -887,24 +923,11 @@ namespace QWK {
         // Inform Qt we want and have set custom margins
         updateInternalWindowFrameMargins(hWnd, m_windowHandle);
 
-        // Store original window proc
-        if (!g_qtWindowProc) {
-            g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
-        }
+        // Add managed window
+        addManagedWindow(hWnd, this);
 
-        // Hook window proc
-        ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
-
-        // Install global native event filter
-        WindowsNativeEventFilter::install();
-
-        // Cache window ID
+        // Cache win id
         windowId = winId;
-
-        // Save window handle mapping
-        g_wndProcHash->insert(hWnd, this);
-
-        return true;
     }
 
     bool Win32WindowContext::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,

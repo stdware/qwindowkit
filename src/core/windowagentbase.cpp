@@ -42,13 +42,10 @@ namespace QWK {
 #endif
     }
 
-    bool WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
-        std::unique_ptr<AbstractWindowContext> ctx(createContext());
-        if (!ctx->setup(host, delegate)) {
-            return false;
-        }
-        context = std::move(ctx);
-        return true;
+    void WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
+        auto ctx = createContext();
+        ctx->setup(host, delegate);
+        context.reset(ctx);
     }
 
     WindowAgentBase::~WindowAgentBase() = default;

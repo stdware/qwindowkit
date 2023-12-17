@@ -15,7 +15,7 @@ namespace QWK {
         void virtual_hook(int id, void *data) override;
 
     protected:
-        bool setupHost() override;
+        void winIdChanged(QWindow *oldWindow) override;
 
     protected:
         WId windowId = 0;

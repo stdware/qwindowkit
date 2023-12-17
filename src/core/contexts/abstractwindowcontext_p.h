@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <QtCore/QSet>
+#include <QtCore/QPointer>
 #include <QtGui/QRegion>
 #include <QtGui/QWindow>
 
@@ -21,7 +22,7 @@ namespace QWK {
         ~AbstractWindowContext() override;
 
     public:
-        bool setup(QObject *host, WindowItemDelegate *delegate);
+        void setup(QObject *host, WindowItemDelegate *delegate);
 
         inline QObject *host() const;
         inline QWindow *window() const;
@@ -56,14 +57,16 @@ namespace QWK {
         virtual void virtual_hook(int id, void *data);
 
         void showSystemMenu(const QPoint &pos);
+        void notifyWinIdChange();
 
     protected:
-        virtual bool setupHost() = 0;
+        virtual void winIdChanged(QWindow *oldWindow, bool destroyed) = 0;
 
     protected:
         QObject *m_host{};
         std::unique_ptr<WindowItemDelegate> m_delegate;
         QWindow *m_windowHandle{};
+        QPointer<QWindow> m_windowHandleGuard;
 
         QSet<const QObject *> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC

@@ -18,7 +18,7 @@ namespace QWK {
 
         virtual AbstractWindowContext *createContext() const;
 
-        bool setup(QObject *host, WindowItemDelegate *delegate);
+        void setup(QObject *host, WindowItemDelegate *delegate);
 
         std::unique_ptr<AbstractWindowContext> context;
 

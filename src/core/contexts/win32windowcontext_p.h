@@ -30,7 +30,7 @@ namespace QWK {
         int borderThickness() const;
 
     protected:
-        bool setupHost() override;
+        void winIdChanged(QWindow *oldWindow, bool destroyed) override;
 
     public:
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);

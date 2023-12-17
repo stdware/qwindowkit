@@ -64,6 +64,7 @@ namespace QWK {
         }
 
         bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
             switch (event->type()) {
                 case QEvent::Paint: {
                     if (widget->windowState() & (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))

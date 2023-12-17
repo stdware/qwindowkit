@@ -15,6 +15,7 @@ namespace QWK {
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
             switch (event->type()) {
                 case QEvent::Move:
                 case QEvent::Resize: {
@@ -25,7 +26,7 @@ namespace QWK {
                 default:
                     break;
             }
-            return QObject::eventFilter(obj, event);
+            return false;
         }
 
     protected:

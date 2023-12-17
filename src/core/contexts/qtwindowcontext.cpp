@@ -103,7 +103,8 @@ namespace QWK {
 
     QtWindowEventFilter::~QtWindowEventFilter() = default;
 
-    bool QtWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+    bool QtWindowEventFilter::eventFilter(QObject *obj, QEvent *event) {
+        Q_UNUSED(obj)
         auto type = event->type();
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
@@ -252,7 +253,7 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    bool QtWindowContext::setupHost() {
+    bool QtWindowContext::winIdChanged() {
         m_delegate->setWindowFlags(m_host, Qt::FramelessWindowHint);
         std::ignore = new QtWindowEventFilter(this, this);
         return true;
