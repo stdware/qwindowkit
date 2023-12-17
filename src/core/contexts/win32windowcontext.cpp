@@ -1559,8 +1559,7 @@ namespace QWK {
                 // we don't repaint it. This exception disappears if we add SWP_NOCOPYBITS flag.
                 // But I don't know what caused the problem, or why this would solve it.
                 const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
-                if (windowPos->flags ==
-                    (SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+                if ((windowPos->flags & SWP_FRAMECHANGED) && (windowPos->flags & SWP_NOSIZE)) {
                     windowPos->flags |= SWP_NOCOPYBITS;
                 }
                 break;

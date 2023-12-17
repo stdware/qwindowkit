@@ -280,8 +280,8 @@ namespace QWK {
         WindowItemDelegate *delegate = m_context->delegate();
         auto me = static_cast<const QMouseEvent *>(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        QPoint scenePos = mouseEvent->scenePosition().toPoint();
-        QPoint globalPos = mouseEvent->globalPosition().toPoint();
+        QPoint scenePos = me->scenePosition().toPoint();
+        QPoint globalPos = me->globalPosition().toPoint();
 #else
         QPoint scenePos = me->windowPos().toPoint();
         QPoint globalPos = me->screenPos().toPoint();
