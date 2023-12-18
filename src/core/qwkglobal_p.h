@@ -2,6 +2,7 @@
 #define QWKGLOBAL_P_H
 
 #include <QtCore/QLoggingCategory>
+#include <QtGui/QMouseEvent>
 
 #include <QWKCore/qwkglobal.h>
 
@@ -29,5 +30,24 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 #  define QWK_INLINE   __attribute__((always_inline))
 #  define QWK_USED     __attribute__((used))
 #endif
+
+namespace QWK {
+
+    inline QPoint getMouseEventScenePos(const QMouseEvent *event) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        return event->scenePosition().toPoint();
+#else
+        return event->windowPos().toPoint();
+#endif
+    }
+    inline QPoint getMouseEventGlobalPos(const QMouseEvent *event) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        return event->globalPosition().toPoint();
+#else
+        return event->screenPos().toPoint();
+#endif
+    }
+    
+}
 
 #endif // QWKGLOBAL_P_H

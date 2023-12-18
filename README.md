@@ -6,12 +6,11 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 
 ## TODO
 
-+ Fix 5.15 window unsupported behavior
++ Fix 5.15 window abnormal behavior
 + Fix window 10 top border color in dark background
 + Fix `isFixedSize` code
 + Support customized system button area on Mac
 + Make Linux system move/resize more robust
-+ Fix unhandled WinIdChange when adding a QWebEngineView as sub-widget (Win32 and Qt fixed)
 
 ## Supported Platforms
 
@@ -90,30 +89,35 @@ TODO
 
 ### Qt Widgets Application
 
-First, setup `WidgetWindowAgent` for your QWidget instance. (Each widget needs its own agent.)
+First, setup `WidgetWindowAgent` for your top `QWidget` instance. (Each window needs its own agent.)
+```c++
+#include <QWKWidgets/widgetwindowagent.h>
+
+MyWidget::MyWidget(QWidget *parent) {
+    // ...
+    auto agent = new WidgetWindowAgent(w);
+    agent->setup(w);
+    // ...
+}
+```
+
+You can also initialize the agent after the window constructs.
 ```c++
 auto w = new MyWidget();
 auto agent = new WidgetWindowAgent(w);
 agent->setup(w);
 ```
 
-You can also initialize the agent in the widget constructor.
-```c++
-MyWidget::MyWidget(QWidget *parent) {
-    // ...
-    auto agent = new WidgetWindowAgent(w);
-    agent->setup(w);
-}
-```
+Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
 
-Then, construct your title bar widget, without which the window is lacking in basic interaction feature. You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container for your title bar components.
+You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container of your title bar components.
 
 Let `WidgetWindowAgent` know which widget the title bar is.
 ```c++
 agent->setTitleBarWidget(myTitleBar);
 ```
 
-Set system button hints to let `WidgetWindowAgent` know the role of the widgets, which is important for the Snap Layout to work.
+Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
 ```c++
 agent->setSystemButton(QWK::WindowAgent::Base::Maximize, maxButton);
 ```
@@ -122,7 +126,7 @@ Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desir
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
 ```
-Other region inside the title bar will be regarded as the draggable area for user to move the window.
+The rest region within the title bar will be regarded as the draggable area for the user to move the window.
 
 Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get detailed information.
 

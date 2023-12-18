@@ -2,6 +2,8 @@
 
 #include <QtCore/QDebug>
 
+#include "qwkglobal_p.h"
+
 namespace QWK {
 
     static constexpr const quint8 kDefaultResizeBorderThickness = 8;
@@ -74,6 +76,125 @@ namespace QWK {
 #endif
     }
 
+#ifdef Q_OS_LINUX
+    class WindowMoveManipulator : public QObject {
+    public:
+        explicit WindowMoveManipulator(QWindow *targetWindow)
+            : QObject(targetWindow), target(targetWindow), initialMousePosition(QCursor::pos()),
+              initialWindowPosition(targetWindow->position()) {
+            target->installEventFilter(this);
+        }
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            switch (event->type()) {
+                case QEvent::MouseMove: {
+                    auto mouseEvent = static_cast<QMouseEvent *>(event);
+                    QPoint delta = getMouseEventGlobalPos(mouseEvent) - initialMousePosition;
+                    target->setPosition(initialWindowPosition + delta);
+                    return true;
+                }
+
+                case QEvent::MouseButtonRelease: {
+                    if (target->y() < 0) {
+                        target->setPosition(target->x(), 0);
+                    }
+                    target->removeEventFilter(this);
+                    this->deleteLater();
+                }
+
+                default:
+                    break;
+            }
+            return false;
+        }
+
+    private:
+        QWindow *target;
+        QPoint initialMousePosition;
+        QPoint initialWindowPosition;
+    };
+#endif
+
+#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
+    class WindowResizeManipulator : public QObject {
+    public:
+        WindowResizeManipulator(QWindow *targetWindow, Qt::Edges edges)
+            : QObject(targetWindow), target(targetWindow), resizeEdges(edges),
+              initialMousePosition(QCursor::pos()), initialWindowRect(target->geometry()) {
+            target->installEventFilter(this);
+        }
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            switch (event->type()) {
+                case QEvent::MouseMove: {
+                    auto mouseEvent = static_cast<QMouseEvent *>(event);
+                    QPoint globalMousePos = getMouseEventGlobalPos(mouseEvent);
+                    QRect windowRect = initialWindowRect;
+
+                    if (resizeEdges & Qt::LeftEdge) {
+                        int delta = globalMousePos.x() - initialMousePosition.x();
+                        windowRect.setLeft(initialWindowRect.left() + delta);
+                    }
+                    if (resizeEdges & Qt::RightEdge) {
+                        int delta = globalMousePos.x() - initialMousePosition.x();
+                        windowRect.setRight(initialWindowRect.right() + delta);
+                    }
+                    if (resizeEdges & Qt::TopEdge) {
+                        int delta = globalMousePos.y() - initialMousePosition.y();
+                        windowRect.setTop(initialWindowRect.top() + delta);
+                    }
+                    if (resizeEdges & Qt::BottomEdge) {
+                        int delta = globalMousePos.y() - initialMousePosition.y();
+                        windowRect.setBottom(initialWindowRect.bottom() + delta);
+                    }
+
+                    target->setGeometry(windowRect);
+                    return true;
+                }
+
+                case QEvent::MouseButtonRelease: {
+                    target->removeEventFilter(this);
+                    this->deleteLater();
+                }
+
+                default:
+                    break;
+            }
+            return false;
+        }
+
+    private:
+        QWindow *target;
+        QPoint initialMousePosition;
+        QRect initialWindowRect;
+        Qt::Edges resizeEdges;
+    };
+#endif
+
+    static inline void startSystemMove(QWindow *window) {
+#ifdef Q_OS_LINUX
+        if (window->startSystemMove()) {
+            return;
+        }
+        std::ignore = new WindowMoveManipulator(window);
+#else
+        window->startSystemMove();
+#endif
+    }
+
+    static inline void startSystemResize(QWindow *window, Qt::Edges edges) {
+#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
+        if (window->startSystemResize(edges)) {
+            return;
+        }
+        std::ignore = new WindowResizeManipulator(window, edges);
+#else
+        window->startSystemResize(edges);
+#endif
+    }
+
     class QtWindowEventFilter : public QObject {
     public:
         explicit QtWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
@@ -114,13 +235,10 @@ namespace QWK {
         WindowItemDelegate *delegate = m_context->delegate();
         bool fixedSize = delegate->isHostSizeFixed(host);
         auto me = static_cast<const QMouseEvent *>(event);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        QPoint scenePos = me->scenePosition().toPoint();
-        QPoint globalPos = me->globalPosition().toPoint();
-#else
-        QPoint scenePos = me->windowPos().toPoint();
-        QPoint globalPos = me->screenPos().toPoint();
-#endif
+
+        QPoint scenePos = getMouseEventScenePos(me);
+        QPoint globalPos = getMouseEventGlobalPos(me);
+
         bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
         switch (type) {
             case QEvent::MouseButtonPress: {
@@ -130,7 +248,7 @@ namespace QWK {
                             Qt::Edges edges = calculateWindowEdges(window, scenePos);
                             if (edges != Qt::Edges()) {
                                 m_windowStatus = Resizing;
-                                window->startSystemResize(edges);
+                                startSystemResize(window, edges);
                                 event->accept();
                                 return true;
                             }
@@ -143,7 +261,6 @@ namespace QWK {
                             event->accept();
                             return true;
                         }
-                        m_windowStatus = WaitingRelease;
                         break;
                     }
                     case Qt::RightButton: {
@@ -153,6 +270,7 @@ namespace QWK {
                     default:
                         break;
                 }
+                m_windowStatus = WaitingRelease;
                 break;
             }
 
@@ -187,7 +305,7 @@ namespace QWK {
                     }
                     case PreparingMove: {
                         m_windowStatus = Moving;
-                        window->startSystemMove();
+                        startSystemMove(window);
                         event->accept();
                         return true;
                     }

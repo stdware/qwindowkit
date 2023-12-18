@@ -5,6 +5,8 @@
 
 #include <QtGui/QGuiApplication>
 
+#include "qwkglobal_p.h"
+
 namespace QWK {
 
     struct NSWindowProxy {
@@ -261,13 +263,10 @@ namespace QWK {
         QWindow *window = m_context->window();
         WindowItemDelegate *delegate = m_context->delegate();
         auto me = static_cast<const QMouseEvent *>(event);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        QPoint scenePos = me->scenePosition().toPoint();
-        QPoint globalPos = me->globalPosition().toPoint();
-#else
-        QPoint scenePos = me->windowPos().toPoint();
-        QPoint globalPos = me->screenPos().toPoint();
-#endif
+
+        QPoint scenePos = getMouseEventScenePos(me);
+        QPoint globalPos = getMouseEventGlobalPos(me);
+
         bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
         switch (type) {
             case QEvent::MouseButtonPress: {
@@ -281,7 +280,6 @@ namespace QWK {
                             event->accept();
                             return true;
                         }
-                        m_windowStatus = WaitingRelease;
                         break;
                     }
                     case Qt::RightButton: {
@@ -291,6 +289,7 @@ namespace QWK {
                     default:
                         break;
                 }
+                m_windowStatus = WaitingRelease;
                 break;
             }
 
