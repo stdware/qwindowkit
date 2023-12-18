@@ -7,11 +7,18 @@ Window {
     id: window
     width: 800
     height: 600
-    color: "#f0f0f0"
+    color: "#1E1E1E"
     title: qsTr("Hello, world!")
     Component.onCompleted: {
         windowAgent.setup(window)
         window.visible = true
+    }
+
+    Timer {
+        interval: 100
+        running: true
+        repeat: true
+        onTriggered: timeLabel.text = Qt.formatTime(new Date(), "hh:mm:ss")
     }
 
     WindowAgent {
@@ -27,16 +34,33 @@ Window {
             right: parent.right
         }
         height: 32
-        color: "white"
+        color: window.active ? "#3C3C3C" : "#505050"
         Component.onCompleted: windowAgent.setTitleBar(titleBar)
 
+        Image {
+            id: iconButton
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: parent.left
+                leftMargin: 10
+            }
+            width: 18
+            height: 18
+            mipmap: true
+            source: "qrc:///app/example.png"
+        }
+
         Text {
-            anchors.centerIn: parent
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: iconButton.right
+                leftMargin: 10
+            }
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             text: window.title
             font.pixelSize: 14
-            color: window.active ? "black" : "gray"
+            color: "#ECECEC"
         }
 
         Row {
@@ -51,7 +75,7 @@ Window {
                 height: parent.height
                 source: "qrc:///window-bar/minimize.svg"
                 onClicked: window.showMinimized()
-                Component.onCompleted: windowAgent.setHitTestVisible(minButton)
+                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
             }
 
             QWKButton {
@@ -65,16 +89,40 @@ Window {
                         window.showMaximized()
                     }
                 }
-                Component.onCompleted: windowAgent.setHitTestVisible(maxButton)
+                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
             }
 
             QWKButton {
                 id: closeButton
                 height: parent.height
                 source: "qrc:///window-bar/close.svg"
+                background: Rectangle {
+                    color: {
+                        if (!closeButton.enabled) {
+                            return "gray";
+                        }
+                        if (closeButton.pressed) {
+                            return "#e81123";
+                        }
+                        if (closeButton.hovered) {
+                            return "#e81123";
+                        }
+                        return "transparent";
+                    }
+                }
                 onClicked: window.close()
-                Component.onCompleted: windowAgent.setHitTestVisible(closeButton)
+                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Close, closeButton)
             }
         }
+    }
+
+    Label {
+        id: timeLabel
+        anchors.centerIn: parent
+        font {
+            pointSize: 75
+            bold: true
+        }
+        color: "#FEFEFE"
     }
 }

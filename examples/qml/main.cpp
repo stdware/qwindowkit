@@ -6,8 +6,12 @@
 int main(int argc, char *argv[]) {
     qputenv("QT_WIN_DEBUG_CONSOLE", "1");
     qputenv("QSG_INFO", "1");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
-#if 1
+#else
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Default");
+#endif
+#if 0
     qputenv("QSG_RHI_BACKEND", "d3d12");
     qputenv("QSG_RHI_HDR", "scrgb");
     qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");

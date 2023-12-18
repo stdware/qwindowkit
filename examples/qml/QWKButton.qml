@@ -4,20 +4,25 @@ import QtQuick.Controls 2.15
 Button {
     id: root
     width: height * 1.5
+    leftPadding: 0
+    topPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
+    leftInset: 0
+    topInset: 0
+    rightInset: 0
+    bottomInset: 0
     property alias source: image.source
     contentItem: Item {
-        anchors.fill: parent
-
         Image {
             id: image
             anchors.centerIn: parent
             mipmap: true
-            width: 10
-            height: 10
+            width: 12
+            height: 12
         }
     }
     background: Rectangle {
-        anchors.fill: parent
         color: {
             if (!root.enabled) {
                 return "gray";
