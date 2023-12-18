@@ -22,6 +22,7 @@ Window {
         id: titleBar
         anchors {
             top: parent.top
+            topMargin: 1
             left: parent.left
             right: parent.right
         }
@@ -36,6 +37,44 @@ Window {
             text: window.title
             font.pixelSize: 14
             color: window.active ? "black" : "gray"
+        }
+
+        Row {
+            anchors {
+                top: parent.top
+                right: parent.right
+            }
+            height: parent.height
+
+            QWKButton {
+                id: minButton
+                height: parent.height
+                source: "qrc:///window-bar/minimize.svg"
+                onClicked: window.showMinimized()
+                Component.onCompleted: windowAgent.setHitTestVisible(minButton)
+            }
+
+            QWKButton {
+                id: maxButton
+                height: parent.height
+                source: window.visibility === Window.Maximized ? "qrc:///window-bar/restore.svg" : "qrc:///window-bar/maximize.svg"
+                onClicked: {
+                    if (window.visibility === Window.Maximized) {
+                        window.showNormal()
+                    } else {
+                        window.showMaximized()
+                    }
+                }
+                Component.onCompleted: windowAgent.setHitTestVisible(maxButton)
+            }
+
+            QWKButton {
+                id: closeButton
+                height: parent.height
+                source: "qrc:///window-bar/close.svg"
+                onClicked: window.close()
+                Component.onCompleted: windowAgent.setHitTestVisible(closeButton)
+            }
         }
     }
 }
