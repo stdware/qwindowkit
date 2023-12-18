@@ -383,9 +383,11 @@ namespace QWK {
     }
 
     void CocoaWindowContext::winIdChanged(QWindow *oldWindow) {
-        if (windowId) {
-            releaseWindowProxy(windowId);
+        releaseWindowProxy(windowId);
+        if (!m_windowHandle) {
+            return;
         }
+        
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);

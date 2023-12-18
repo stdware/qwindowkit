@@ -117,7 +117,7 @@ namespace QWK {
     private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
-    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
+  p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
@@ -332,7 +332,7 @@ namespace QWK {
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) {         // Win10
+        if (apis.pGetDpiForWindow) { // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -893,10 +893,7 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(QWindow *oldWindow) {
-        if (oldWindow) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId));
-        }
-
+        removeManagedWindow(reinterpret_cast<HWND>(windowId));
         if (!m_windowHandle) {
             return;
         }
