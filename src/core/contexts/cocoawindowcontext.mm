@@ -207,26 +207,12 @@ namespace QWK {
         return [nsview window];
     }
 
-    static inline void cleanupProxy() {
-        if (g_proxyList()->isEmpty()) {
-            return;
-        }
-        const auto &data = *g_proxyList();
-        qDeleteAll(data);
-        g_proxyList()->clear();
-    }
-
     static inline NSWindowProxy *ensureWindowProxy(const WId windowId) {
         auto it = g_proxyList()->find(windowId);
         if (it == g_proxyList()->end()) {
             NSWindow *nswindow = mac_getNSWindow(windowId);
             const auto proxy = new NSWindowProxy(nswindow);
             it = g_proxyList()->insert(windowId, proxy);
-        }
-        static bool cleanerInstalled = false;
-        if (!cleanerInstalled) {
-            cleanerInstalled = true;
-            qAddPostRoutine(cleanupProxy);
         }
         return it.value();
     }
@@ -369,7 +355,9 @@ namespace QWK {
     }
 
     CocoaWindowContext::~CocoaWindowContext() {
-        // TODO: deref something?
+        if (const auto proxy = g_proxyList()->take(windowId)) {
+            delete proxy;
+        }
     }
 
     QString CocoaWindowContext::key() const {
