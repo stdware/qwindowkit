@@ -382,12 +382,13 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    void CocoaWindowContext::winIdChanged(QWindow *oldWindow, bool destroyed) {
-        releaseWindowProxy(windowId);
+    void CocoaWindowContext::winIdChanged(QWindow *oldWindow) {
+        if (windowId) {
+            releaseWindowProxy(windowId);
+        }
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);
-        return true;
     }
 
 }
