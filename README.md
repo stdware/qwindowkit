@@ -88,25 +88,47 @@ TODO
 
 ## Quick Start
 
-### Initialization
+### Qt Widgets Application
 
-First of all, you're supposed to add the following code in your `main` function in a very early stage (MUST before the construction of any `Q(Gui|Core)Application` objects).
+First, setup `WidgetWindowAgent` for your QWidget instance. (Each widget needs its own agent.)
 
 ```c++
-int main(int argc, char *argv[]) {
-#ifdef Q_OS_WINDOWS
-    QCoreApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
-#elif defined(Q_OS_MAC)
-# if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    qputenv("QT_MAC_WANTS_LAYER", "1");
-# endif
-#endif
+auto w = new MyWidget();
+auto agent = new WidgetWindowAgent(w);
+agent->setup(w);
+```
+
+You can also initialize the agent in the widget constructor.
+
+```c++
+MyWidget::MyWidget(QWidget *parent) {
+    // ...
+    auto agent = new WidgetWindowAgent(w);
+    agent->setup(w);
 }
 ```
 
-### Qt Widgets Application
+Then, construct your titlebar widget, without which the window is lacking in basic interaction feature. You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container for your titlebar components.
 
-TODO
+```c++
+auto titleLabel = new QLabel();
+auto menuBar = new QMenuBar();
+
+auto windowBar = new QWK::WindowBar();
+windowBar->setMenuBar(menuBar);
+windowBar->setTitleLabel(titleLabel);
+windowBar->setHostWidget(this);
+
+auto iconButton = new QPushButton("😄");
+auto minButton = new QPushButton("─");
+auto maxButton = new QPushButton("▢");
+auto closeButton = new QPushButton("✕");
+agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
+agent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
+agent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
+agent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
+
+```
 
 ### Qt Quick Application
 
