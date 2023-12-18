@@ -56,7 +56,7 @@ cmake --build build --target install --config Debug
 cmake --build build --target install --config Release
 ```
 
-You can also include this directory as a sub-project if you choose CMake as your build system.
+You can also include this directory as a subproject if you choose CMake as your build system.
 
 For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
 
@@ -64,13 +64,13 @@ For other build systems, you need to install with CMake first and include the co
 
 #### CMake Project
 
-```cmake
+```sh
 cmake -B build -DQWindowKit_DIR=/path/install/cmake/QWindowKit
 ```
 ```cmake
 find_package(QWindowKit REQUIRED)
-taraget_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
-taraget_link_libraries(quick_app PUBLIC QWindowKit::Quick)
+target_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
+target_link_libraries(quick_app PUBLIC QWindowKit::Quick)
 ```
 
 #### QMake Project
@@ -91,7 +91,6 @@ TODO
 ### Qt Widgets Application
 
 First, setup `WidgetWindowAgent` for your QWidget instance. (Each widget needs its own agent.)
-
 ```c++
 auto w = new MyWidget();
 auto agent = new WidgetWindowAgent(w);
@@ -99,7 +98,6 @@ agent->setup(w);
 ```
 
 You can also initialize the agent in the widget constructor.
-
 ```c++
 MyWidget::MyWidget(QWidget *parent) {
     // ...
@@ -108,27 +106,25 @@ MyWidget::MyWidget(QWidget *parent) {
 }
 ```
 
-Then, construct your titlebar widget, without which the window is lacking in basic interaction feature. You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container for your titlebar components.
+Then, construct your title bar widget, without which the window is lacking in basic interaction feature. You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container for your title bar components.
 
+Let `WidgetWindowAgent` know which widget the title bar is.
 ```c++
-auto titleLabel = new QLabel();
-auto menuBar = new QMenuBar();
-
-auto windowBar = new QWK::WindowBar();
-windowBar->setMenuBar(menuBar);
-windowBar->setTitleLabel(titleLabel);
-windowBar->setHostWidget(this);
-
-auto iconButton = new QPushButton("😄");
-auto minButton = new QPushButton("─");
-auto maxButton = new QPushButton("▢");
-auto closeButton = new QPushButton("✕");
-agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
-agent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
-agent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
-agent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
-
+agent->setTitleBarWidget(myTitleBar);
 ```
+
+Set system button hints to let `WidgetWindowAgent` know the role of the widgets, which is important for the Snap Layout to work.
+```c++
+agent->setSystemButton(QWK::WindowAgent::Base::Maximize, maxButton);
+```
+
+Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desire to receive mouse events. 
+```c++
+agent->setHitTestVisible(myTitleBar->menuBar(), true);
+```
+Other region inside the title bar will be regarded as the draggable area for user to move the window.
+
+Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get detailed information.
 
 ### Qt Quick Application
 
@@ -136,12 +132,12 @@ TODO
 
 ### Learn More
 
-See [examples](examples) for more demo use cases. The examples has no High DPI support.
+See [examples](examples) for more demo use cases. The examples have no High DPI support.
 
-## Documentatons
+## Documentations
 
 + Examples (TODO)
-+ [Framelesshelper Related](docs/framelesshelper-related.md)
++ [FramelessHelper Related](docs/framelesshelper-related.md)
 
 ## License
 
