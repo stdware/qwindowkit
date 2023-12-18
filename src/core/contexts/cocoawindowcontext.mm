@@ -217,6 +217,12 @@ namespace QWK {
         return it.value();
     }
 
+    static inline void releaseWindowProxy(const WId windowId) {
+        if (const auto proxy = g_proxyList()->take(windowId)) {
+            delete proxy;
+        }
+    }
+
     class CocoaWindowEventFilter : public QObject {
     public:
         explicit CocoaWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
@@ -355,9 +361,7 @@ namespace QWK {
     }
 
     CocoaWindowContext::~CocoaWindowContext() {
-        if (const auto proxy = g_proxyList()->take(windowId)) {
-            delete proxy;
-        }
+        releaseWindowProxy(windowId);
     }
 
     QString CocoaWindowContext::key() const {
@@ -379,6 +383,7 @@ namespace QWK {
     }
 
     void CocoaWindowContext::winIdChanged(QWindow *oldWindow, bool destroyed) {
+        releaseWindowProxy(windowId);
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);
