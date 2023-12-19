@@ -108,8 +108,8 @@ First, setup `WidgetWindowAgent` for your top `QWidget` instance. (Each window n
 
 MyWidget::MyWidget(QWidget *parent) {
     // ...
-    auto agent = new QWK::WidgetWindowAgent(w);
-    agent->setup(w);
+    auto agent = new QWK::WidgetWindowAgent(this);
+    agent->setup(this);
     // ...
 }
 ```
@@ -132,7 +132,7 @@ Let `WidgetWindowAgent` know which widget the title bar is.
 agent->setTitleBarWidget(myTitleBar);
 ```
 
-Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
+Next, set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
 
 ```c++
 agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, myTitleBar->iconButton());
@@ -140,8 +140,11 @@ agent->setSystemButton(QWK::WindowAgentBase::Minimize, myTitleBar->minButton());
 agent->setSystemButton(QWK::WindowAgentBase::Maximize, myTitleBar->maxButton());
 agent->setSystemButton(QWK::WindowAgentBase::Close, myTitleBar->closeButton());
 ```
+Doing this does not mean that these buttons' click events are automatically associated with window events, you still need to manually connect the signals and slots to emulate the native window's behaviors.
 
-Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desire to receive mouse events.
+On macOS, this step can be skipped because it is more appropriate to use the buttons provided by the system.
+
+Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse events.
 
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
