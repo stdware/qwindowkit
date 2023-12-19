@@ -156,17 +156,21 @@ namespace QWK {
         switch (id) {
             case CentralizeHook: {
                 QRect screenGeometry = m_windowHandle->screen()->geometry();
-                int x = screenGeometry.width() / 2 - m_windowHandle->width() / 2;
-                int y = screenGeometry.height() / 2 - m_windowHandle->height() / 2;
-                m_windowHandle->setPosition(x, y);
-                break;
+                int x = (screenGeometry.width() - m_windowHandle->width()) / 2;
+                int y = (screenGeometry.height() - m_windowHandle->height()) / 2;
+                QPoint pos(x, y);
+                pos += screenGeometry.topLeft();
+                m_windowHandle->setPosition(pos);
+                return;
             }
 
             case RaiseWindowHook: {
-                if (m_windowHandle->windowStates() & Qt::WindowMinimized)
-                    m_windowHandle->showNormal();
-                m_windowHandle->raise();
-                break;
+                Qt::WindowStates state = m_delegate->getWindowState(m_host);
+                if (state & Qt::WindowMinimized) {
+                    m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);
+                }
+                m_delegate->bringWindowToTop(m_host);
+                return;
             }
 
             case DefaultColorsHook: {

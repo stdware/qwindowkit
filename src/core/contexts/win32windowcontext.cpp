@@ -813,22 +813,7 @@ namespace QWK {
             }
 
             case RaiseWindowHook: {
-                if (m_windowHandle->windowStates() & Qt::WindowMinimized)
-                    m_windowHandle->showNormal();
-
-                auto hWnd = reinterpret_cast<HWND>(windowId);
-
-                // I have no idea what this does, but it works mostly
-                // https://www.codeproject.com/Articles/1724/Some-handy-dialog-box-tricks-tips-and-workarounds
-
-                ::AttachThreadInput(::GetWindowThreadProcessId(::GetForegroundWindow(), nullptr),
-                                    ::GetCurrentThreadId(), TRUE);
-
-                ::SetForegroundWindow(hWnd);
-                ::SetFocus(hWnd);
-
-                ::AttachThreadInput(GetWindowThreadProcessId(GetForegroundWindow(), nullptr),
-                                    GetCurrentThreadId(), FALSE);
+                // FIXME
                 return;
             }
 

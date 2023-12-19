@@ -98,4 +98,8 @@ namespace QWK {
         static_cast<QWidget *>(host)->setWindowFlags(flags);
     }
 
+    void WidgetItemDelegate::bringWindowToTop(QObject *host) const {
+        static_cast<QWidget *>(host)->raise();
+    }
+
 }
