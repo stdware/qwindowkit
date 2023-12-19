@@ -21,9 +21,9 @@ Support as many system native features as possible without requiring additional 
 ### Windows 10 (And 7, Vista)
 ![image](./docs/images/win10.png)
 
-### MacOS & Linux
+### macOS & Linux
 
-|              MacOS              |       Linux (Ubuntu 20.04)        |
+|              macOS              |       Linux (Ubuntu 20.04)        |
 |:-------------------------------:|:---------------------------------:|
 | ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
 

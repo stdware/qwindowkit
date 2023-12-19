@@ -480,21 +480,10 @@ namespace QWK {
         // so we use this small technique to pretend the foreground window is ours.
         ::AttachThreadInput(windowThreadProcessId, currentThreadId, TRUE);
 
-        struct Cleaner {
-            Cleaner(DWORD idAttach, DWORD idAttachTo)
-                : m_idAttach(idAttach), m_idAttachTo(idAttachTo) {
-            }
-            ~Cleaner() {
-                ::AttachThreadInput(m_idAttach, m_idAttachTo, FALSE);
-            }
-
-        private:
-            DWORD m_idAttach;
-            DWORD m_idAttachTo;
-
-            Q_DISABLE_COPY(Cleaner)
-        };
-        [[maybe_unused]] Cleaner cleaner{windowThreadProcessId, currentThreadId};
+        [[maybe_unused]] const auto &cleaner =
+            qScopeGuard([windowThreadProcessId, currentThreadId]() {
+                ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE); //
+            });
 
         ::BringWindowToTop(hwnd);
         // Activate the window too. This will force us to the virtual desktop this
@@ -1450,21 +1439,9 @@ namespace QWK {
                 // Terminal does, however, later I found that if we choose a proper
                 // color, our homemade top border can almost have exactly the same
                 // appearance with the system's one.
-                struct HitTestRecorder {
-                    HitTestRecorder(Win32WindowContext *ctx, LRESULT *result)
-                        : ctx(ctx), result(result) {
-                    }
-                    ~HitTestRecorder() {
-                        ctx->lastHitTestResult = getHitWindowPart(int(*result));
-                    }
-
-                private:
-                    Win32WindowContext *ctx;
-                    LRESULT *result;
-
-                    Q_DISABLE_COPY(HitTestRecorder)
-                };
-                [[maybe_unused]] HitTestRecorder hitTestRecorder{this, result};
+                [[maybe_unused]] const auto &hitTestRecorder = qScopeGuard([this, result]() {
+                    lastHitTestResult = getHitWindowPart(int(*result)); //
+                });
 
                 POINT nativeGlobalPos{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 POINT nativeLocalPos = nativeGlobalPos;
