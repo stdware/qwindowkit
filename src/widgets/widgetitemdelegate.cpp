@@ -4,7 +4,7 @@
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QApplication>
 
-extern Q_WIDGETS_EXPORT QWidget *qt_button_down;
+extern Q_DECL_IMPORT QWidget *qt_button_down;
 
 namespace QWK {
 

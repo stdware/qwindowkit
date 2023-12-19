@@ -902,7 +902,7 @@ namespace QWK {
                 const auto &key = *static_cast<const QString *>(args[0]);
                 const auto &newVar = *static_cast<const QVariant *>(args[1]);
                 const auto &oldVar = *static_cast<const QVariant *>(args[2]);
-                
+
                 if (key == QStringLiteral("no-frame-shadow")) {
                     if (newVar.toBool()) {
                         // TODO: set off
@@ -911,7 +911,7 @@ namespace QWK {
                     }
                 }
 
-                break;
+                return;
             }
 
             case DefaultColorsHook: {
@@ -965,7 +965,6 @@ namespace QWK {
             }
 
             default: {
-                // unreachable
                 break;
             }
         }
@@ -1268,6 +1267,53 @@ namespace QWK {
                 const WindowPart currentWindowPart = lastHitTestResult;
                 if (message == WM_NCMOUSEMOVE) {
                     if (currentWindowPart != WindowPart::ChromeButton) {
+                        // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qwidgetwindow.cpp#L472
+                        // When the mouse press event arrives, QWidgetWindow will implicitly grab
+                        // the top widget right under the mouse, and set `qt_button_down` to this
+                        // widget. At this time, no other widgets will accept the mouse event until
+                        // QWidgetWindow receives the mouse release event, then set `qt_button_down`
+                        // to null.
+
+                        // Imagine the following situation, now the main window has a pop-up menu,
+                        // the focus is not on the main window, if we click outside the pop-up menu,
+                        // the menu will close, which seems to be completely fine. But if we close
+                        // the menu by clicking on the title bar draggable area, then other widgets
+                        // won't accept the mouse message afterwards.
+
+                        // Here's the reason.
+                        // When the mouse is placed in the draggable area of the title bar, there
+                        // are two situations.
+
+                        // 1. If the focus is on the main window, and the last result of
+                        // WM_NCHITTEST is HTCAPTION, the mouse click event in the title bar is
+                        // taken over by Windows and Qt does not receive the mouse click event.
+
+                        // 2. If the main window has a pop-up menu, it is completely different. When
+                        // the mouse is pressed on the title bar, Windows sends the WM_LBUTTONDOWN
+                        // message to the window plane of the pop-up menu, the menu is closed, but
+                        // Qt will continue to forward the event to the QWidget under the mouse, and
+                        // the event will be processed by QWidgetWindow, causing the title bar
+                        // widget to be implicitly grabbed. After the menu is closed, Windows
+                        // immediately sends WM_NCHITTEST, because the mouse is in the title bar
+                        // draggable area, the result is HTCAPTION, so when the mouse is released,
+                        // Windows sends WM_NCLBUTTONUP, which is a non-client area message, and it
+                        // will be ignored by Qt. As a consequence, QWidgetWindow can't receive a
+                        // mouse release messages in the client area, so the grab remains, and other
+                        // widgets cannot receive mouse events.
+
+                        // Since we didn't watch the menu window, we cannot capture any mouse
+                        // press events sent by Windows, so we cannot solve this problem by
+                        // recording mouse events. Fortunately, we found that the main window will
+                        // receive a WM_NCMOUSEMOVE message immediately after the menu is closed, so
+                        // we just manually send a mouse release event when this message arrives and
+                        // set qt_button_down to null. Don't worry, when receiving WM_NCMOUSEMOVE,
+                        // there shouldn't be any control in the state of being grabbed.
+
+                        // In the native window, although QWidgetWindow handles the forwarded mouse
+                        // press event when the menu is closed, since the native title bar is not a
+                        // QWidget, no widget will be grabbed, and `qt_button_down` remains empty,
+                        // the above problems would not arise.
+
                         m_delegate->resetQtGrabbedControl(m_host);
                         if (mouseLeaveBlocked) {
                             emulateClientAreaMessage(hWnd, message, wParam, lParam,
@@ -1330,6 +1376,8 @@ namespace QWK {
                         // window from client area, which means we will get previous window part as
                         // HTCLIENT if the mouse leaves window from client area and enters window
                         // from non-client area, but it has no bad effect.
+
+                        // Why do we need to call this function here?
                         m_delegate->resetQtGrabbedControl(m_host);
                     }
                 }

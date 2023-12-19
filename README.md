@@ -47,7 +47,7 @@ Support as many system native features as possible without requiring additional 
 
 ## Dependencies
 
-+ Qt 5.15 or higher
++ Qt 5.12 or higher
 + [qmsetup](https://github.com/stdware/qmsetup)
 
 ## Integrate

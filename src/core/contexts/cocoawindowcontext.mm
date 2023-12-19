@@ -384,7 +384,7 @@ namespace QWK {
                 const auto &key = *static_cast<const QString *>(args[0]);
                 const auto &newVar = *static_cast<const QVariant *>(args[1]);
                 const auto &oldVar = *static_cast<const QVariant *>(args[2]);
-                
+
                 if (key == QStringLiteral("no-system-buttons")) {
                     if (newVar.toBool()) {
                         // TODO: set off
@@ -392,7 +392,7 @@ namespace QWK {
                         // TODO: set on
                     }
                 }
-                break;
+                return;
             }
 
             default:
