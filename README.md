@@ -8,7 +8,7 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 
 ### Windows
 
-![image](./docs/images/win32.png)
+![image](./docs/images/win11.png)
 
 ### Linux
 
