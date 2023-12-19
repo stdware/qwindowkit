@@ -1,6 +1,15 @@
 #ifndef NATIVEEVENTFILTER_P_H
 #define NATIVEEVENTFILTER_P_H
 
+//
+//  W A R N I N G !!!
+//  -----------------
+//
+// This file is not part of the QWindowKit API. It is used purely as an
+// implementation detail. This header file may change from version to
+// version without notice, or may even be removed.
+//
+
 #include <QWKCore/qwkglobal.h>
 
 namespace QWK {

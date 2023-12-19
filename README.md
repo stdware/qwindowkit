@@ -2,21 +2,20 @@
 
 Cross-platform window customization framework for Qt Widgets and Qt Quick. Support Windows, macOS, Linux.
 
-This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper) implementation, with a complete refactoring and upgrading of the architecture.
+This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper)
+implementation, with a complete refactoring and upgrading of the architecture.
 
-## Screenshots
+## Gallery
 
-### Windows
+### Basic
+
+|            Windows 10             |              MacOS              |               Linux               |
+|:---------------------------------:|:-------------------------------:|:---------------------------------:|
+| ![image](./docs/images/win10.png) | ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
+
+### Windows 11 Snap Layout
 
 ![image](./docs/images/win11.png)
-
-### Linux
-
-![image](./docs/images/linux.png)
-
-### macOS
-
-![image](./docs/images/mac.png)
 
 ## TODO
 
@@ -35,21 +34,21 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 
 ## Requirements
 
-| Component | Requirement |               Details                |
-|:---------:|:-----------:|:------------------------------------:|
-|    Qt     |   \>=5.15   |      Core, Gui, Widgets, Quick       |
-| Compiler  |  \>=C++17   |        MSVC 2019, GCC, Clang         |
-|   CMake   |   \>=3.17   |        >=3.20 is recommended         |
+| Component | Requirement |          Details          |
+|:---------:|:-----------:|:-------------------------:|
+|    Qt     |   \>=5.15   | Core, Gui, Widgets, Quick |
+| Compiler  |  \>=C++17   |   MSVC 2019, GCC, Clang   |
+|   CMake   |   \>=3.17   |   >=3.20 is recommended   |
 
 ### Tested Compilers
 
 + Windows
-  + MSVC: 2019, 2022
-  + MinGW (GCC): 13.2.0
+    + MSVC: 2019, 2022
+    + MinGW (GCC): 13.2.0
 + macOS
-  + Clang 14.0.3
+    + Clang 14.0.3
 + Ubuntu
-  + GCC: 9.4.0
+    + GCC: 9.4.0
 
 ## Dependencies
 
@@ -72,7 +71,8 @@ cmake --build build --target install --config Release
 
 You can also include this directory as a subproject if you choose CMake as your build system.
 
-For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
+For other build systems, you need to install with CMake first and include the corresponding configuration files in your
+project.
 
 ### Import
 
@@ -81,6 +81,7 @@ For other build systems, you need to install with CMake first and include the co
 ```sh
 cmake -B build -DQWindowKit_DIR=/path/install/cmake/QWindowKit
 ```
+
 ```cmake
 find_package(QWindowKit REQUIRED)
 target_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
@@ -88,6 +89,7 @@ target_link_libraries(quick_app PUBLIC QWindowKit::Quick)
 ```
 
 #### QMake Project
+
 ```cmake
 # WidgetsApp.pro
 include("/path/install/share/QWindowKit/qmake/QWKWidgets.pri")
@@ -105,6 +107,7 @@ TODO
 ### Qt Widgets Application
 
 First, setup `WidgetWindowAgent` for your top `QWidget` instance. (Each window needs its own agent.)
+
 ```c++
 #include <QWKWidgets/widgetwindowagent.h>
 
@@ -117,32 +120,38 @@ MyWidget::MyWidget(QWidget *parent) {
 ```
 
 You can also initialize the agent after the window constructs.
+
 ```c++
 auto w = new MyWidget();
 auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
 
+Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to
+put it into the window's layout.
 
-
-Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
-
-You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container of your title bar components.
+You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the
+container of your title bar components.
 
 Let `WidgetWindowAgent` know which widget the title bar is.
+
 ```c++
 agent->setTitleBarWidget(myTitleBar);
 ```
 
-Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
+Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap
+Layout to work.
+
 ```c++
 agent->setSystemButton(QWK::WindowAgent::Base::Maximize, maxButton);
 ```
 
-Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desire to receive mouse events. 
+Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desire to receive mouse events.
+
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
 ```
+
 The rest region within the title bar will be regarded as the draggable area for the user to move the window.
 
 Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get detailed information.
