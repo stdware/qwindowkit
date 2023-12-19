@@ -414,10 +414,10 @@ namespace QWK {
         monitorInfo.cbSize = sizeof(monitorInfo);
         ::GetMonitorInfoW(monitor, &monitorInfo);
         return monitorInfo;
-    };
+    }
 
-    static inline void moveToDesktopCenter(HWND hwnd) {
-        const auto monitorInfo = getMonitorForWindow(hwnd);
+    static inline void moveWindowToDesktopCenter(HWND hwnd) {
+        MONITORINFOEXW monitorInfo = getMonitorForWindow(hwnd);
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
         const auto newX = monitorInfo.rcMonitor.left +
@@ -426,6 +426,71 @@ namespace QWK {
                           (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
         ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0,
                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
+    static inline void moveWindowToMonitor(HWND hwnd, const MONITORINFOEXW &activeMonitor) {
+        RECT currentMonitorRect = getMonitorForWindow(hwnd).rcMonitor;
+        RECT activeMonitorRect = activeMonitor.rcMonitor;
+        // We are in the same monitor, nothing to adjust here.
+        if (currentMonitorRect == activeMonitorRect) {
+            return;
+        }
+        RECT currentWindowRect{};
+        ::GetWindowRect(hwnd, &currentWindowRect);
+        auto newWindowX = activeMonitorRect.left + (currentWindowRect.left - currentMonitorRect.left);
+        auto newWindowY = activeMonitorRect.top + (currentWindowRect.top - currentMonitorRect.top);
+        ::SetWindowPos(hwnd, nullptr, newWindowX, newWindowY, RECT_WIDTH(currentWindowRect), RECT_HEIGHT(currentWindowRect), SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
+    static inline void bringWindowToFront(HWND hwnd) {
+        HWND oldForegroundWindow = ::GetForegroundWindow();
+        if (!oldForegroundWindow) {
+            // The foreground window can be NULL, it's not an API error.
+            return;
+        }
+        MONITORINFOEXW activeMonitor = getMonitorForWindow(oldForegroundWindow);
+        // We need to show the window first, otherwise we won't be able to bring it to front.
+        if (!::IsWindowVisible(hwnd)) {
+            ::ShowWindow(hwnd, SW_SHOW);
+        }
+        if (IsMinimized(hwnd)) {
+            // Restore the window if it is minimized.
+            ::ShowWindow(hwnd, SW_RESTORE);
+            // Once we've been restored, throw us on the active monitor.
+            moveWindowToMonitor(hwnd, activeMonitor);
+            // When the window is restored, it will always become the foreground window.
+            // So return early here, we don't need the following code to bring it to front.
+            return;
+        }
+        // OK, our window is not minimized, so now we will try to bring it to front manually.
+        // First try to send a message to the current foreground window to check whether
+        // it is currently hanging or not.
+        if (!::SendMessageTimeoutW(oldForegroundWindow, WM_NULL, 0, 0,
+                                  SMTO_BLOCK | SMTO_ABORTIFHUNG | SMTO_NOTIMEOUTIFNOTHUNG, 1000, nullptr)) {
+            // The foreground window hangs, can't activate current window.
+            return;
+        }
+        DWORD windowThreadProcessId = ::GetWindowThreadProcessId(oldForegroundWindow, nullptr);
+        DWORD currentThreadId = ::GetCurrentThreadId();
+        // We won't be able to change a window's Z order if it's not our own window,
+        // so we use this small technique to pretend the foreground window is ours.
+        ::AttachThreadInput(windowThreadProcessId, currentThreadId, TRUE);
+        QWK_USED struct Cleaner {
+            Cleaner(DWORD idAttach, DWORD idAttachTo) : m_idAttach(idAttach), m_idAttachTo(idAttachTo) {}
+            ~Cleaner() {
+                ::AttachThreadInput(m_idAttach, m_idAttachTo, FALSE);
+            }
+        private:
+            Q_DISABLE_COPY(Cleaner)
+            DWORD m_idAttach;
+            DWORD m_idAttachTo;
+        } cleaner{ windowThreadProcessId, currentThreadId };
+        ::BringWindowToTop(hwnd);
+        // Activate the window too. This will force us to the virtual desktop this
+        // window is on, if it's on another virtual desktop.
+        ::SetActiveWindow(hwnd);
+        // Throw us on the active monitor.
+        moveWindowToMonitor(hwnd, activeMonitor);
     }
 
     static inline bool isFullScreen(HWND hwnd) {
@@ -808,12 +873,13 @@ namespace QWK {
         switch (id) {
             case CentralizeHook: {
                 const auto hwnd = reinterpret_cast<HWND>(windowId);
-                moveToDesktopCenter(hwnd);
+                moveWindowToDesktopCenter(hwnd);
                 return;
             }
 
             case RaiseWindowHook: {
-                // FIXME
+                const auto hwnd = reinterpret_cast<HWND>(windowId);
+                bringWindowToFront(hwnd);
                 return;
             }
 
@@ -1286,7 +1352,7 @@ namespace QWK {
                     // function.
                     if (wParam && !lParam) {
                         centered = true;
-                        moveToDesktopCenter(hWnd);
+                        moveWindowToDesktopCenter(hWnd);
                     }
                 }
                 break;
