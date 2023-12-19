@@ -38,6 +38,12 @@ namespace QWK {
         QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent = nullptr);
     };
 
+    inline QuickWindowAgent *QWK_Initialize(QQuickWindow *window) {
+        auto agent = new QuickWindowAgent(window);
+        agent->setup(window);
+        return agent;
+    }
+
 }
 
 #endif // QUICKWINDOWAGENT_H
