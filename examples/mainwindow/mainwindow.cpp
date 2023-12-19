@@ -42,6 +42,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     }
 
     setWindowTitle(tr("Example MainWindow"));
+    resize(800, 600);
 }
 
 static inline void emulateLeaveEvent(QWidget *widget) {
@@ -106,11 +107,11 @@ bool MainWindow::event(QEvent *event) {
 
 void MainWindow::installWindowAgent() {
     // 1. Setup window agent
-    QWK::WidgetWindowAgent *agent = QWK::setupWidgetWindow(this);
-
+    
     // Equivalent to:
     // auto agent = new QWK::WidgetWindowAgent(w);
     // agent->setup(w);
+    QWK::WidgetWindowAgent *agent = QWK::setupWidgetWindow(this);
 
     // 2. Construct your title bar
     auto menuBar = []() {
