@@ -108,6 +108,10 @@ void MainWindow::installWindowAgent() {
     // 1. Setup window agent
     QWK::WidgetWindowAgent *agent = QWK::setupWidgetWindow(this);
 
+    // Equivalent to:
+    // auto agent = new QWK::WidgetWindowAgent(w);
+    // agent->setup(w);
+
     // 2. Construct your title bar
     auto menuBar = []() {
         auto menuBar = new QMenuBar();

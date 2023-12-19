@@ -143,7 +143,10 @@ Set system button hints to let `WidgetWindowAgent` know the role of the child wi
 Layout to work.
 
 ```c++
-agent->setSystemButton(QWK::WindowAgent::Base::Maximize, maxButton);
+agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, myTitleBar->iconButton());
+agent->setSystemButton(QWK::WindowAgentBase::Minimize, myTitleBar->minButton());
+agent->setSystemButton(QWK::WindowAgentBase::Maximize, myTitleBar->maxButton());
+agent->setSystemButton(QWK::WindowAgentBase::Close, myTitleBar->closeButton());
 ```
 
 Set hit-test visible hint to let `WidgetWindowAgent` know the widgets that desire to receive mouse events.
@@ -161,9 +164,7 @@ Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get det
 Make sure you have registered QWK into QtQuick:
 
 ```cpp
-// ...
 #include <QWKQuick/qwkquickglobal.h>
-// ...
 
 int main(int argc, char *argv[])
 {
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-Then you can use QWK data types and classes by importing it's URI:
+Then you can use `QWindowKit` data types and classes by importing it's URI:
 
 ```qml
 import QtQuick 2.15
