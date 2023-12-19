@@ -437,9 +437,12 @@ namespace QWK {
         }
         RECT currentWindowRect{};
         ::GetWindowRect(hwnd, &currentWindowRect);
-        auto newWindowX = activeMonitorRect.left + (currentWindowRect.left - currentMonitorRect.left);
+        auto newWindowX =
+            activeMonitorRect.left + (currentWindowRect.left - currentMonitorRect.left);
         auto newWindowY = activeMonitorRect.top + (currentWindowRect.top - currentMonitorRect.top);
-        ::SetWindowPos(hwnd, nullptr, newWindowX, newWindowY, RECT_WIDTH(currentWindowRect), RECT_HEIGHT(currentWindowRect), SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        ::SetWindowPos(hwnd, nullptr, newWindowX, newWindowY, RECT_WIDTH(currentWindowRect),
+                       RECT_HEIGHT(currentWindowRect),
+                       SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
 
     static inline void bringWindowToFront(HWND hwnd) {
@@ -466,7 +469,8 @@ namespace QWK {
         // First try to send a message to the current foreground window to check whether
         // it is currently hanging or not.
         if (!::SendMessageTimeoutW(oldForegroundWindow, WM_NULL, 0, 0,
-                                  SMTO_BLOCK | SMTO_ABORTIFHUNG | SMTO_NOTIMEOUTIFNOTHUNG, 1000, nullptr)) {
+                                   SMTO_BLOCK | SMTO_ABORTIFHUNG | SMTO_NOTIMEOUTIFNOTHUNG, 1000,
+                                   nullptr)) {
             // The foreground window hangs, can't activate current window.
             return;
         }
@@ -475,16 +479,23 @@ namespace QWK {
         // We won't be able to change a window's Z order if it's not our own window,
         // so we use this small technique to pretend the foreground window is ours.
         ::AttachThreadInput(windowThreadProcessId, currentThreadId, TRUE);
-        QWK_USED struct Cleaner {
-            Cleaner(DWORD idAttach, DWORD idAttachTo) : m_idAttach(idAttach), m_idAttachTo(idAttachTo) {}
+
+        struct Cleaner {
+            Cleaner(DWORD idAttach, DWORD idAttachTo)
+                : m_idAttach(idAttach), m_idAttachTo(idAttachTo) {
+            }
             ~Cleaner() {
                 ::AttachThreadInput(m_idAttach, m_idAttachTo, FALSE);
             }
+
         private:
-            Q_DISABLE_COPY(Cleaner)
             DWORD m_idAttach;
             DWORD m_idAttachTo;
-        } cleaner{ windowThreadProcessId, currentThreadId };
+
+            Q_DISABLE_COPY(Cleaner)
+        };
+        [[maybe_unused]] Cleaner cleaner{windowThreadProcessId, currentThreadId};
+
         ::BringWindowToTop(hwnd);
         // Activate the window too. This will force us to the virtual desktop this
         // window is on, if it's on another virtual desktop.
@@ -1439,10 +1450,21 @@ namespace QWK {
                 // Terminal does, however, later I found that if we choose a proper
                 // color, our homemade top border can almost have exactly the same
                 // appearance with the system's one.
+                struct HitTestRecorder {
+                    HitTestRecorder(Win32WindowContext *ctx, LRESULT *result)
+                        : ctx(ctx), result(result) {
+                    }
+                    ~HitTestRecorder() {
+                        ctx->lastHitTestResult = getHitWindowPart(int(*result));
+                    }
 
-                [[maybe_unused]] const auto &hitTestRecorder = qScopeGuard([this, result]() {
-                    lastHitTestResult = getHitWindowPart(int(*result)); //
-                });
+                private:
+                    Win32WindowContext *ctx;
+                    LRESULT *result;
+
+                    Q_DISABLE_COPY(HitTestRecorder)
+                };
+                [[maybe_unused]] HitTestRecorder hitTestRecorder{this, result};
 
                 POINT nativeGlobalPos{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 POINT nativeLocalPos = nativeGlobalPos;

@@ -16,6 +16,15 @@ int main(int argc, char *argv[]) {
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication a(argc, argv);
 
+#if 0 && defined(Q_OS_WINDOWS) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QApplication::setFont([]() {
+        QFont f("Microsoft YaHei");
+        f.setStyleStrategy(QFont::PreferAntialias);
+        f.setPixelSize(15);
+        return f;
+    }());
+#endif
+
     MainWindow w;
     w.show();
     return a.exec();
