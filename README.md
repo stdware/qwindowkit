@@ -4,6 +4,20 @@ Cross-platform window customization framework for Qt Widgets and Qt Quick. Suppo
 
 This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper) implementation, with a complete refactoring and upgrading of the architecture.
 
+## Screenshots
+
+### Windows
+
+![image](./docs/images/win32.png)
+
+### Linux
+
+![image](./docs/images/linux.png)
+
+### macOS
+
+![image](./docs/images/mac.png)
+
 ## TODO
 
 + Fix 5.15 window abnormal behavior
@@ -15,13 +29,13 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 
 ## Supported Platforms
 
-+ Microsoft Windows (Vista ~ 11)
-+ Apple Mac OSX (11+)
-+ GNU/Linux (Tested on Ubuntu)
++ Microsoft Windows
++ Apple macOS (11+)
++ GNU/Linux
 
 ## Requirements
 
-| Component | Requirement |               Detailed               |
+| Component | Requirement |               Details                |
 |:---------:|:-----------:|:------------------------------------:|
 |    Qt     |   \>=5.15   |      Core, Gui, Widgets, Quick       |
 | Compiler  |  \>=C++17   |        MSVC 2019, GCC, Clang         |
@@ -31,8 +45,8 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 
 + Windows
   + MSVC: 2019, 2022
-  + MinGW: 13.2.0
-+ MacOSX
+  + MinGW (GCC): 13.2.0
++ macOS
   + Clang 14.0.3
 + Ubuntu
   + GCC: 9.4.0
@@ -135,7 +149,44 @@ Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get det
 
 ### Qt Quick Application
 
-TODO
+Make sure you have registered QWK into QtQuick:
+
+```cpp
+// ...
+#include <QWKQuick/qwkquickglobal.h>
+// ...
+
+int main(int argc, char *argv[])
+{
+    // ...
+    QQmlApplicationEngine engine;
+    // ...
+    QWK::registerTypes(&engine);
+    // ...
+}
+```
+
+Then you can use QWK data types and classes by importing it's URI:
+
+```qml
+import QtQuick 2.15
+import QtQuick.Window 2.15
+import QWindowKit 1.0
+
+Window {
+    id: window
+    visible: false // We hide it first, so we can move the window to our desired position silently.
+    Component.onCompleted: {
+        windowAgent.setup(window)
+        window.visible = true
+    }
+    WindowAgent {
+      // ...
+    }
+}
+```
+
+You can omit the version number or use "auto" instead of "1.0" for the module URI if you are using Qt6.
 
 ### Learn More
 
