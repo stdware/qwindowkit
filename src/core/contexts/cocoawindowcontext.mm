@@ -369,12 +369,32 @@ namespace QWK {
 
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case ShowSystemMenuHook:
+            case ShowSystemMenuHook: {
                 // TODO: mac system menu
                 return;
-            case SystemButtonAreaChangedHook:
+            }
+
+            case SystemButtonAreaChangedHook: {
                 // TODO: mac system button rect updated
                 return;
+            }
+
+            case WindowAttributeChangedHook: {
+                auto args = static_cast<void **>(data);
+                const auto &key = *static_cast<const QString *>(args[0]);
+                const auto &newVar = *static_cast<const QVariant *>(args[1]);
+                const auto &oldVar = *static_cast<const QVariant *>(args[2]);
+                
+                if (key == QStringLiteral("no-system-buttons")) {
+                    if (newVar.toBool()) {
+                        // TODO: set off
+                    } else {
+                        // TODO: set on
+                    }
+                }
+                break;
+            }
+
             default:
                 break;
         }
@@ -386,7 +406,7 @@ namespace QWK {
         if (!m_windowHandle) {
             return;
         }
-        
+
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);

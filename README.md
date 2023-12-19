@@ -31,7 +31,7 @@ Support as many system native features as possible without requiring additional 
 
 | Component | Requirement |          Details          |
 |:---------:|:-----------:|:-------------------------:|
-|    Qt     |   \>=5.15   | Core, Gui, Widgets, Quick |
+|    Qt     |   \>=5.12   | Core, Gui, Widgets, Quick |
 | Compiler  |  \>=C++17   |   MSVC 2019, GCC, Clang   |
 |   CMake   |   \>=3.17   |   >=3.20 is recommended   |
 
@@ -140,9 +140,9 @@ agent->setSystemButton(QWK::WindowAgentBase::Minimize, myTitleBar->minButton());
 agent->setSystemButton(QWK::WindowAgentBase::Maximize, myTitleBar->maxButton());
 agent->setSystemButton(QWK::WindowAgentBase::Close, myTitleBar->closeButton());
 ```
-Doing this does not mean that these buttons' click events are automatically associated with window events, you still need to manually connect the signals and slots to emulate the native window's behaviors.
+Doing this does not mean that these buttons' click events are automatically associated with window actions, you still need to manually connect the signals and slots to emulate the native window behaviors.
 
-On macOS, this step can be skipped because it is more appropriate to use the buttons provided by the system.
+On macOS, this step can be skipped because it is better to use the buttons provided by the system.
 
 Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse events.
 
@@ -156,7 +156,7 @@ Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get det
 
 ### Qt Quick Application
 
-Make sure you have registered QWK into QtQuick:
+Make sure you have registered `QWindowKit` into QtQuick:
 
 ```cpp
 #include <QWKQuick/qwkquickglobal.h>

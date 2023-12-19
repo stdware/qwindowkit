@@ -45,7 +45,7 @@ namespace QWK {
                             target->setPosition(target->x(), 0);
                         }
                         target->removeEventFilter(this);
-                        this->deleteLater();
+                        deleteLater();
                     }
 
                     default:
@@ -99,7 +99,7 @@ namespace QWK {
 
                     case QEvent::MouseButtonRelease: {
                         target->removeEventFilter(this);
-                        this->deleteLater();
+                        deleteLater();
                     }
 
                     default:
@@ -120,7 +120,7 @@ namespace QWK {
     // QWindow::startSystemMove() and QWindow::startSystemResize() is first supported at Qt 5.15
     // QWindow::startSystemResize() returns false on macOS
     // QWindow::startSystemMove() and QWindow::startSystemResize() returns false on Linux Unity DE
-    
+
     // When the new API fails, we emulate the window actions using the classical API.
 
     static inline void startSystemMove(QWindow *window) {
