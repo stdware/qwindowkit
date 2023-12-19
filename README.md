@@ -5,32 +5,27 @@ Cross-platform window customization framework for Qt Widgets and Qt Quick. Suppo
 This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper)
 implementation, with a complete refactoring and upgrading of the architecture.
 
-## Gallery
-
-### Basic
-
-|            Windows 10             |              MacOS              |               Linux               |
-|:---------------------------------:|:-------------------------------:|:---------------------------------:|
-| ![image](./docs/images/win10.png) | ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
-
-### Windows 11 Snap Layout
-
-![image](./docs/images/win11.png)
-
-## TODO
-
-+ Fix 5.15 window abnormal behavior
-+ Fix window 10 top border color in dark background
-+ Fix `isFixedSize` code
-+ Support customized system button area on Mac
-+ Implement Mac window context hook
-+ Support window attribute switching on Windows
+Support as many system native features as possible without requiring additional dependencies.
 
 ## Supported Platforms
 
 + Microsoft Windows
 + Apple macOS (11+)
 + GNU/Linux
+
+## Gallery
+
+### Windows 11 (With Snap Layout)
+![image](./docs/images/win11.png)
+
+### Windows 10 (And 7, Vista)
+![image](./docs/images/win10.png)
+
+### MacOS & Linux
+
+|              MacOS              |       Linux (Ubuntu 20.04)        |
+|:-------------------------------:|:---------------------------------:|
+| ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
 
 ## Requirements
 
@@ -127,11 +122,9 @@ auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
 
-Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to
-put it into the window's layout.
+Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
 
-You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the
-container of your title bar components.
+You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container of your title bar components.
 
 Let `WidgetWindowAgent` know which widget the title bar is.
 
@@ -139,8 +132,7 @@ Let `WidgetWindowAgent` know which widget the title bar is.
 agent->setTitleBarWidget(myTitleBar);
 ```
 
-Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap
-Layout to work.
+Set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
 
 ```c++
 agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, myTitleBar->iconButton());
@@ -206,6 +198,15 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 
 + Examples (TODO)
 + [FramelessHelper Related](docs/framelesshelper-related.md)
+
+## TODO
+
++ Fix 5.15 window abnormal behavior
++ Fix window 10 top border color in dark background
++ Fix `isFixedSize` code
++ Support customized system button area on Mac
++ Implement Mac window context hook
++ Support window attribute switching on Windows
 
 ## License
 
