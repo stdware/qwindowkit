@@ -10,7 +10,6 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 + Fix window 10 top border color in dark background
 + Fix `isFixedSize` code
 + Support customized system button area on Mac
-+ Make Linux system move/resize more robust
 
 ## Supported Platforms
 
@@ -95,7 +94,7 @@ First, setup `WidgetWindowAgent` for your top `QWidget` instance. (Each window n
 
 MyWidget::MyWidget(QWidget *parent) {
     // ...
-    auto agent = new WidgetWindowAgent(w);
+    auto agent = new QWK::WidgetWindowAgent(w);
     agent->setup(w);
     // ...
 }
@@ -104,9 +103,11 @@ MyWidget::MyWidget(QWidget *parent) {
 You can also initialize the agent after the window constructs.
 ```c++
 auto w = new MyWidget();
-auto agent = new WidgetWindowAgent(w);
+auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
+
+
 
 Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
 

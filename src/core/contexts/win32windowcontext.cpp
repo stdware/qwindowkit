@@ -117,7 +117,7 @@ namespace QWK {
     private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
-  p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
+    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
@@ -332,7 +332,7 @@ namespace QWK {
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) { // Win10
+        if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -824,6 +824,23 @@ namespace QWK {
                 showSystemMenu2(hWnd, qpoint2point(nativeGlobalPos), false,
                                 m_delegate->isHostSizeFixed(m_host));
                 return;
+            }
+
+            case WindowAttributeChangedHook: {
+                auto args = static_cast<void **>(data);
+                const auto &key = *static_cast<const QString *>(args[0]);
+                const auto &newVar = *static_cast<const QVariant *>(args[1]);
+                const auto &oldVar = *static_cast<const QVariant *>(args[2]);
+
+                if (key == QStringLiteral("no-frame-shadow")) {
+                    if (newVar.toBool()) {
+                        // TODO: set off
+                    } else {
+                        // TODO: set on
+                    }
+                }
+
+                break;
             }
 
             case DefaultColorsHook: {

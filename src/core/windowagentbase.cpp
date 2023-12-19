@@ -50,37 +50,29 @@ namespace QWK {
 
     WindowAgentBase::~WindowAgentBase() = default;
 
+    QVariant WindowAgentBase::windowAttribute(const QString &key) const {
+        Q_D(const WindowAgentBase);
+        return d->context->windowAttribute(key);
+    }
+
+    void WindowAgentBase::setWindowAttribute(const QString &key, const QVariant &var) {
+        Q_D(WindowAgentBase);
+        d->context->setWindowAttribute(key, var);
+    }
+
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
         Q_D(WindowAgentBase);
         d->context->showSystemMenu(pos);
     }
 
-    void WindowAgentBase::startSystemMove(const QPoint &pos) {
-        Q_D(WindowAgentBase);
-        auto win = d->context->window();
-        if (!win) {
-            return;
-        }
-
-        Q_UNUSED(pos)
-        win->startSystemMove();
-    }
-
-    void WindowAgentBase::startSystemResize(Qt::Edges edges, const QPoint &pos) {
-        Q_D(WindowAgentBase);
-        auto win = d->context->window();
-        if (!win) {
-            return;
-        }
-
-        Q_UNUSED(pos)
-        win->startSystemResize(edges);
-    }
-
     void WindowAgentBase::centralize() {
+        Q_D(WindowAgentBase);
+        d->context->virtual_hook(AbstractWindowContext::CentralizeHook, nullptr);
     }
 
     void WindowAgentBase::raise() {
+        Q_D(WindowAgentBase);
+        d->context->virtual_hook(AbstractWindowContext::RaiseWindowHook, nullptr);
     }
 
     WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)

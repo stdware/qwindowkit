@@ -28,10 +28,11 @@ namespace QWK {
         };
         Q_ENUM(SystemButton)
 
+        QVariant windowAttribute(const QString &key) const;
+        void setWindowAttribute(const QString &key, const QVariant &var);
+
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos);
-        void startSystemMove(const QPoint &pos);
-        void startSystemResize(Qt::Edges edges, const QPoint &pos);
         void centralize();
         void raise();
 
