@@ -18,12 +18,10 @@ if(TRUE)
     set(QMAKE_QWK_CORE_NAME_RELEASE QWKCore)
     set(QMAKE_QWK_WIDGETS_NAME_RELEASE QWKWidgets)
     set(QMAKE_QWK_QUICK_NAME_RELEASE QWKQuick)
-    set(QMAKE_QWK_STYLESUPPORT_NAME_RELEASE QWKStyleSupport)
 
     set(QMAKE_QWK_CORE_NAME_DEBUG QWKCore${CMAKE_DEBUG_POSTFIX})
     set(QMAKE_QWK_WIDGETS_NAME_DEBUG QWKWidgets${CMAKE_DEBUG_POSTFIX})
     set(QMAKE_QWK_QUICK_NAME_DEBUG QWKQuick${CMAKE_DEBUG_POSTFIX})
-    set(QMAKE_QWK_STYLESUPPORT_NAME_DEBUG QWKStyleSupport${CMAKE_DEBUG_POSTFIX})
 
     file(GLOB _qmake_components "${CMAKE_CURRENT_LIST_DIR}/qmake/*.pri.in")
 
@@ -60,14 +58,12 @@ if(MSVC)
         QWKCore${CMAKE_DEBUG_POSTFIX}.lib
         QWKWidgets${CMAKE_DEBUG_POSTFIX}.lib
         QWKQuick${CMAKE_DEBUG_POSTFIX}.lib
-        QWKStyleSupport${CMAKE_DEBUG_POSTFIX}.lib
     )
 
     set(MSBUILD_QWK_LIBRARY_LIST_RELEASE
         QWKCore.lib
         QWKWidgets.lib
         QWKQuick.lib
-        QWKStyleSupport.lib
     )
 
     to_dos_separator(MSBUILD_QWK_INSTALL_PREFIX)

@@ -39,9 +39,8 @@ namespace QWK {
 
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
-        Q_ASSERT(obj);
         Q_ASSERT(button != WindowAgentBase::Unknown);
-        if (!obj || (button == WindowAgentBase::Unknown)) {
+        if (button == WindowAgentBase::Unknown) {
             return false;
         }
 
@@ -54,10 +53,6 @@ namespace QWK {
 
     bool AbstractWindowContext::setTitleBar(QObject *item) {
         Q_ASSERT(item);
-        if (!item) {
-            return false;
-        }
-
         if (m_titleBar == item) {
             return false;
         }

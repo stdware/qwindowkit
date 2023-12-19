@@ -40,6 +40,7 @@ namespace QWK {
         return event->windowPos().toPoint();
 #endif
     }
+    
     inline QPoint getMouseEventGlobalPos(const QMouseEvent *event) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return event->globalPosition().toPoint();

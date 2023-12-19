@@ -13,6 +13,7 @@ set(_src
     windowitemdelegate.cpp
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
+    kernel/systemwindow_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
 )

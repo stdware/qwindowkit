@@ -42,7 +42,7 @@ namespace QWK {
         WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent = nullptr);
     };
 
-    inline WidgetWindowAgent *QWK_Initialize(QWidget *w) {
+    inline WidgetWindowAgent *setupWidgetWindow(QWidget *w) {
         auto agent = new WidgetWindowAgent(w);
         agent->setup(w);
         return agent;

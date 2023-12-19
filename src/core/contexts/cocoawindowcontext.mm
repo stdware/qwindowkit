@@ -6,7 +6,7 @@
 #include <QtGui/QGuiApplication>
 
 #include "qwkglobal_p.h"
-
+#include "systemwindow_p.h"
 namespace QWK {
 
     struct NSWindowProxy {
@@ -259,9 +259,9 @@ namespace QWK {
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
         }
-        QObject *host = m_context->host();
-        QWindow *window = m_context->window();
-        WindowItemDelegate *delegate = m_context->delegate();
+        auto host = m_context->host();
+        auto window = m_context->window();
+        auto delegate = m_context->delegate();
         auto me = static_cast<const QMouseEvent *>(event);
 
         QPoint scenePos = getMouseEventScenePos(me);
@@ -323,7 +323,7 @@ namespace QWK {
                     }
                     case PreparingMove: {
                         m_windowStatus = Moving;
-                        window->startSystemMove();
+                        startSystemMove(window);
                         event->accept();
                         return true;
                     }
