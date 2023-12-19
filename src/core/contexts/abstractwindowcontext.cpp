@@ -2,6 +2,7 @@
 
 #include <QtGui/QPen>
 #include <QtGui/QPainter>
+#include <QtGui/QScreen>
 
 #include "qwkglobal_p.h"
 
@@ -154,12 +155,17 @@ namespace QWK {
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
-                // TODO: Qt
+                QRect screenGeometry = m_windowHandle->screen()->geometry();
+                int x = screenGeometry.width() / 2 - m_windowHandle->width() / 2;
+                int y = screenGeometry.height() / 2 - m_windowHandle->height() / 2;
+                m_windowHandle->setPosition(x, y);
                 break;
             }
 
-            case ShowSystemMenuHook: {
-                // TODO: Qt
+            case RaiseWindowHook: {
+                if (m_windowHandle->windowStates() & Qt::WindowMinimized)
+                    m_windowHandle->showNormal();
+                m_windowHandle->raise();
                 break;
             }
 

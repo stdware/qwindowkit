@@ -244,12 +244,6 @@ namespace QWK {
     }
 
     void QtWindowContext::virtual_hook(int id, void *data) {
-        switch (id) {
-            case ShowSystemMenuHook:
-                return;
-            default:
-                break;
-        }
         AbstractWindowContext::virtual_hook(id, data);
     }
 

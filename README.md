@@ -10,6 +10,8 @@ This project inherited most of [wangwenx190 FramelessHelper](https://github.com/
 + Fix window 10 top border color in dark background
 + Fix `isFixedSize` code
 + Support customized system button area on Mac
++ Implement Mac window context hook
++ Support window attribute switching on Windows
 
 ## Supported Platforms
 
