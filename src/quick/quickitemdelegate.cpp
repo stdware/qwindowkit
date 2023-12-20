@@ -34,8 +34,10 @@ namespace QWK {
     }
 
     bool QuickItemDelegate::isHostSizeFixed(const QObject *host) const {
-        // ### TOOD
-        return false;
+        const auto window = static_cast<const QQuickWindow *>(host);
+        const auto minSize = window->minimumSize();
+        const auto maxSize = window->maximumSize();
+        return !minSize.isEmpty() && !maxSize.isEmpty() && minSize == maxSize;
     }
 
     bool QuickItemDelegate::isWindowActive(const QObject *host) const {
