@@ -117,7 +117,7 @@ namespace QWK {
     private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
-  p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
+    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);

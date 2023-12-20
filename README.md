@@ -114,7 +114,7 @@ MyWidget::MyWidget(QWidget *parent) {
 }
 ```
 
-You can also initialize the agent after the window constructs.
+If you don't want to derive a new widget class or change the constructor, you can initialize the agent after the window constructs.
 
 ```c++
 auto w = new MyWidget();
