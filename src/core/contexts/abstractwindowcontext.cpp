@@ -28,12 +28,12 @@ namespace QWK {
 
         auto newVar = var;
         auto oldVar = it.value();
-        void *a[] = {
+        void *args[] = {
             &const_cast<QString &>(key),
             &newVar,
             &oldVar,
         };
-        virtual_hook(WindowAttributeChangedHook, a);
+        virtual_hook(WindowAttributeChangedHook, args);
     }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {

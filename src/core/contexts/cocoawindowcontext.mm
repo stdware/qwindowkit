@@ -7,6 +7,7 @@
 
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
+
 namespace QWK {
 
     struct NSWindowProxy {
@@ -221,6 +222,7 @@ namespace QWK {
 
     static inline void releaseWindowProxy(const WId windowId) {
         if (const auto proxy = g_proxyList()->take(windowId)) {
+            proxy->setSystemTitleBarVisible(true);
             delete proxy;
         }
     }
