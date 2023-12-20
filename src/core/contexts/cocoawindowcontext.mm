@@ -404,11 +404,18 @@ namespace QWK {
     }
 
     void CocoaWindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
-        releaseWindowProxy(windowId);
+        // If the original window id is valid, remove all resources related
+        if (windowId) {
+            releaseWindowProxy(windowId);
+            windowId = 0;
+            cocoaWindowEventFilter.reset();
+        }
+
         if (!m_windowHandle) {
             return;
         }
 
+        // Allocate new resources
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);

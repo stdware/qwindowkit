@@ -67,7 +67,11 @@ namespace QWK {
 
     void WindowAgentBase::setEnabled(bool enabled) {
         Q_D(WindowAgentBase);
+        if (enabled == d->context->isEnabled()) {
+            return;
+        }
         d->context->setEnabled(enabled);
+        Q_EMIT enabledChanged(enabled);
     }
 
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {

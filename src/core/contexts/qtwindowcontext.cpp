@@ -248,7 +248,20 @@ namespace QWK {
     }
 
     void QtWindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
-        Q_UNUSED(oldWindow)
+        Q_UNUSED(isDestroyed)
+
+        // If the original window id is valid, remove all resources related
+        if (oldWindow) {
+            qtWindowEventFilter.reset();
+        }
+
+        if (!m_windowHandle) {
+            m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) &
+                                                   ~Qt::FramelessWindowHint);
+            return;
+        }
+
+        // Allocate new resources
         m_delegate->setWindowFlags(m_host,
                                    m_delegate->getWindowFlags(m_host) | Qt::FramelessWindowHint);
         qtWindowEventFilter = std::make_unique<QtWindowEventFilter>(this);

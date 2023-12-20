@@ -39,6 +39,9 @@ namespace QWK {
         void centralize();
         void raise();
 
+    Q_SIGNALS:
+        void enabledChanged(bool enabled);
+
     protected:
         explicit WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent = nullptr);
 

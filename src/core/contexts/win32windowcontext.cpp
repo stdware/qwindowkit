@@ -117,7 +117,7 @@ namespace QWK {
     private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
-    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
+  p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
@@ -985,11 +985,18 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
-        if (isDestroyed) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId));
-        } else {
-            removeManagedWindow<false>(reinterpret_cast<HWND>(windowId));
+        Q_UNUSED(isDestroyed)
+
+        // If the original window id is valid, remove all resources related
+        if (windowId) {
+            if (isDestroyed) {
+                removeManagedWindow(reinterpret_cast<HWND>(windowId));
+            } else {
+                removeManagedWindow<false>(reinterpret_cast<HWND>(windowId));
+            }
+            windowId = 0;
         }
+
         if (!m_windowHandle) {
             return;
         }

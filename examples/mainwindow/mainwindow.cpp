@@ -36,10 +36,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     clockWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setCentralWidget(clockWidget);
 
-    if (QFile qss(QStringLiteral(":/dark-style.qss"));
-        qss.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        setStyleSheet(QString::fromUtf8(qss.readAll()));
-    }
+    loadStyleSheet(Dark);
 
     setWindowTitle(tr("Example MainWindow"));
     resize(800, 600);
@@ -111,18 +108,46 @@ void MainWindow::installWindowAgent() {
     agent->setup(this);
 
     // 2. Construct your title bar
-    auto menuBar = []() {
+    auto menuBar = [this, agent]() {
         auto menuBar = new QMenuBar();
+
+        // Virtual menu
         auto file = new QMenu(tr("File(&F)"), menuBar);
         file->addAction(new QAction(tr("New(&N)"), menuBar));
         file->addAction(new QAction(tr("Open(&O)"), menuBar));
+        file->addSeparator();
 
         auto edit = new QMenu(tr("Edit(&E)"), menuBar);
         edit->addAction(new QAction(tr("Undo(&U)"), menuBar));
         edit->addAction(new QAction(tr("Redo(&R)"), menuBar));
 
+        // Theme action
+        auto darkAction = new QAction(tr("Dark Theme"), menuBar);
+        darkAction->setCheckable(true);
+        connect(darkAction, &QAction::triggered, this, [this](bool checked) {
+            loadStyleSheet(checked ? Dark : Light); //
+        });
+        connect(this, &MainWindow::themeChanged, darkAction, [this, darkAction]() {
+            darkAction->setChecked(currentTheme == Dark); //
+        });
+
+        // Agent action
+        auto framelessOnAction = new QAction(tr("Enable Frameless"), menuBar);
+        framelessOnAction->setCheckable(true);
+        framelessOnAction->setChecked(true);
+        connect(framelessOnAction, &QAction::triggered, agent, &QWK::WindowAgentBase::setEnabled);
+        connect(agent, &QWK::WindowAgentBase::enabledChanged, framelessOnAction,
+                &QAction::setChecked);
+
+        // Real menu
+        auto settings = new QMenu(tr("Settings(&S)"), menuBar);
+        settings->addAction(darkAction);
+        settings->addSeparator();
+        settings->addAction(framelessOnAction);
+
         menuBar->addMenu(file);
         menuBar->addMenu(edit);
+        menuBar->addMenu(settings);
         return menuBar;
     }();
     menuBar->setObjectName(QStringLiteral("win-menu-bar"));
@@ -210,4 +235,16 @@ void MainWindow::installWindowAgent() {
     });
     connect(windowBar, &QWK::WindowBar::closeRequested, this, &QWidget::close);
 #endif
+}
+
+void MainWindow::loadStyleSheet(Theme theme) {
+    if (!styleSheet().isEmpty() && theme == currentTheme)
+        return;
+    currentTheme = theme;
+    if (QFile qss(theme == Dark ? QStringLiteral(":/dark-style.qss")
+                                : QStringLiteral(":/light-style.qss"));
+        qss.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        setStyleSheet(QString::fromUtf8(qss.readAll()));
+        Q_EMIT themeChanged();
+    }
 }

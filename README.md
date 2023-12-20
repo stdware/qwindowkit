@@ -129,7 +129,7 @@ You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided 
 Let `WidgetWindowAgent` know which widget the title bar is.
 
 ```c++
-agent->setTitleBarWidget(myTitleBar);
+agent->setTitleBar(myTitleBar);
 ```
 
 Next, set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
