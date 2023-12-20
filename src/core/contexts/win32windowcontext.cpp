@@ -845,6 +845,7 @@ namespace QWK {
         g_wndProcHash->insert(hWnd, ctx);
     }
 
+    template <bool Destroyed = true>
     static inline void removeManagedWindow(HWND hWnd) {
         // Remove window handle mapping
         if (!g_wndProcHash->remove(hWnd))
@@ -853,6 +854,11 @@ namespace QWK {
         // Remove event filter if the all windows has been destroyed
         if (g_wndProcHash->empty()) {
             WindowsNativeEventFilter::uninstall();
+        }
+
+        // Restore window proc
+        if constexpr (!Destroyed) {
+            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
         }
     }
 
@@ -964,9 +970,8 @@ namespace QWK {
                 return;
             }
 
-            default: {
+            default:
                 break;
-            }
         }
         AbstractWindowContext::virtual_hook(id, data);
     }
@@ -979,8 +984,12 @@ namespace QWK {
         return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
     }
 
-    void Win32WindowContext::winIdChanged(QWindow *oldWindow) {
-        removeManagedWindow(reinterpret_cast<HWND>(windowId));
+    void Win32WindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
+        if (isDestroyed) {
+            removeManagedWindow(reinterpret_cast<HWND>(windowId));
+        } else {
+            removeManagedWindow<false>(reinterpret_cast<HWND>(windowId));
+        }
         if (!m_windowHandle) {
             return;
         }
@@ -1000,7 +1009,7 @@ namespace QWK {
 #endif
 
         // Inform Qt we want and have set custom margins
-        updateInternalWindowFrameMargins(hWnd, m_windowHandle);
+        updateInternalWindowFrameMargins(hWnd, m_windowHandle); // TODO: Restore?
 
         // Add managed window
         addManagedWindow(hWnd, this);
@@ -1296,9 +1305,9 @@ namespace QWK {
                         // widget to be implicitly grabbed. After the menu is closed, Windows
                         // immediately sends WM_NCHITTEST, because the mouse is in the title bar
                         // draggable area, the result is HTCAPTION, so when the mouse is released,
-                        // Windows sends WM_NCLBUTTONUP, which is a non-client area message, and it
+                        // Windows sends WM_NCLBUTTONUP, which is a non-client message, and it
                         // will be ignored by Qt. As a consequence, QWidgetWindow can't receive a
-                        // mouse release messages in the client area, so the grab remains, and other
+                        // mouse release message in the client area, so the grab remains, and other
                         // widgets cannot receive mouse events.
 
                         // Since we didn't watch the menu window, we cannot capture any mouse
@@ -1609,7 +1618,7 @@ namespace QWK {
                         *result = (isTitleBar ? HTCAPTION : HTCLIENT);
                         return true;
                     }
-                    // At this point, we know that the cursor is inside the client area
+                    // At this point, we know that the cursor is inside the client area,
                     // so it has to be either the little border at the top of our custom
                     // title bar or the drag bar. Apparently, it must be the drag bar or
                     // the little border at the top which the user can use to move or

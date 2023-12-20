@@ -31,6 +31,9 @@ namespace QWK {
         QVariant windowAttribute(const QString &key) const;
         void setWindowAttribute(const QString &key, const QVariant &var);
 
+        bool isEnabled() const;
+        void setEnabled(bool enabled);
+
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos);
         void centralize();

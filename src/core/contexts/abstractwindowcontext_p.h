@@ -73,8 +73,11 @@ namespace QWK {
         void showSystemMenu(const QPoint &pos);
         void notifyWinIdChange();
 
+        inline bool isEnabled() const;
+        void setEnabled(bool enabled);
+
     protected:
-        virtual void winIdChanged(QWindow *oldWindow) = 0;
+        virtual void winIdChanged(QWindow *oldWindow, bool isDestroyed) = 0;
 
     protected:
         QObject *m_host{};
@@ -90,6 +93,10 @@ namespace QWK {
         std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
 
         QVariantHash m_windowAttributes;
+
+    private:
+        bool m_internalEnabled = false;
+        QPointer<QWindow> m_windowHandleCache;
     };
 
     inline QObject *AbstractWindowContext::host() const {
@@ -126,6 +133,10 @@ namespace QWK {
         return m_systemButtonArea;
     }
 #endif
+
+    inline bool AbstractWindowContext::isEnabled() const {
+        return m_internalEnabled;
+    }
 
 }
 

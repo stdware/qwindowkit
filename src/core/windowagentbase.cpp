@@ -60,6 +60,16 @@ namespace QWK {
         d->context->setWindowAttribute(key, var);
     }
 
+    bool WindowAgentBase::isEnabled() const {
+        Q_D(const WindowAgentBase);
+        return d->context->isEnabled();
+    }
+
+    void WindowAgentBase::setEnabled(bool enabled) {
+        Q_D(WindowAgentBase);
+        d->context->setEnabled(enabled);
+    }
+
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
         Q_D(WindowAgentBase);
         d->context->showSystemMenu(pos);

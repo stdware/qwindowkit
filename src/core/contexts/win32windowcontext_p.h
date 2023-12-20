@@ -39,7 +39,7 @@ namespace QWK {
         int borderThickness() const;
 
     protected:
-        void winIdChanged(QWindow *oldWindow) override;
+        void winIdChanged(QWindow *oldWindow, bool isDestroyed) override;
 
     public:
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
