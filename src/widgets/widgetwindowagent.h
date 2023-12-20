@@ -26,6 +26,7 @@ namespace QWK {
         QWidget *systemButton(SystemButton button) const;
         void setSystemButton(SystemButton button, QWidget *w);
 
+        // Not implement, don't use now
 #ifdef Q_OS_MAC
         QWidget *systemButtonArea() const;
         void setSystemButtonArea(QWidget *widget);

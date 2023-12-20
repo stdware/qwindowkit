@@ -18,7 +18,11 @@ namespace QWK {
         }
         m_host = host;
         m_delegate.reset(delegate);
-        setEnabled(true);
+
+        m_windowHandle = m_delegate->window(m_host);
+        if (m_windowHandle) {
+            winIdChanged();
+        }
     }
 
     void AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &var) {
@@ -152,6 +156,9 @@ namespace QWK {
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
+                if (!m_windowHandle)
+                    return;
+
                 QRect screenGeometry = m_windowHandle->screen()->geometry();
                 int x = (screenGeometry.width() - m_windowHandle->width()) / 2;
                 int y = (screenGeometry.height() - m_windowHandle->height()) / 2;
@@ -190,39 +197,11 @@ namespace QWK {
     }
 
     void AbstractWindowContext::notifyWinIdChange() {
-        if (!m_internalEnabled)
-            return;
-
         auto oldWindow = m_windowHandle;
+        m_windowHandle = m_delegate->window(m_host);
         if (oldWindow == m_windowHandle)
             return;
-        auto isDestroyed = oldWindow && m_windowHandleCache.isNull();
-        m_windowHandle = m_delegate->window(m_host);
-        m_windowHandleCache = m_windowHandle;
-        winIdChanged(oldWindow, isDestroyed);
-    }
-
-    void AbstractWindowContext::setEnabled(bool enabled) {
-        if (enabled == m_internalEnabled)
-            return;
-        m_internalEnabled = enabled;
-
-        if (enabled) {
-            m_windowHandle = m_delegate->window(m_host);
-            m_windowHandleCache = m_windowHandle;
-            if (m_windowHandle) {
-                winIdChanged(nullptr, false);
-            }
-            return;
-        }
-
-        if (!m_windowHandle)
-            return;
-
-        auto oldWindow = m_windowHandle;
-        m_windowHandle = nullptr;
-        m_windowHandleCache.clear();
-        winIdChanged(oldWindow, false);
+        winIdChanged();
     }
 
 }

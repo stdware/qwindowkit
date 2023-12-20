@@ -379,16 +379,7 @@ namespace QWK {
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
-    static void updateInternalWindowFrameMargins(HWND hwnd, QWindow *window) {
-        const auto margins = [hwnd]() -> QMargins {
-            const auto titleBarHeight = int(getTitleBarHeight(hwnd));
-            if (isWin10OrGreater()) {
-                return {0, -titleBarHeight, 0, 0};
-            } else {
-                const auto frameSize = int(getResizeBorderThickness(hwnd));
-                return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
-            }
-        }();
+    static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
         const QVariant marginsVar = QVariant::fromValue(margins);
         window->setProperty("_q_windowsCustomMargins", marginsVar);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -829,7 +820,20 @@ namespace QWK {
         return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
     }
 
-    static inline void addManagedWindow(HWND hWnd, Win32WindowContext *ctx) {
+    static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
+        const auto margins = [hWnd]() -> QMargins {
+            const auto titleBarHeight = int(getTitleBarHeight(hWnd));
+            if (isWin10OrGreater()) {
+                return {0, -titleBarHeight, 0, 0};
+            } else {
+                const auto frameSize = int(getResizeBorderThickness(hWnd));
+                return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
+            }
+        }();
+
+        // Inform Qt we want and have set custom margins
+        setInternalWindowFrameMargins(window, margins);
+
         // Store original window proc
         if (!g_qtWindowProc) {
             g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
@@ -845,7 +849,6 @@ namespace QWK {
         g_wndProcHash->insert(hWnd, ctx);
     }
 
-    template <bool Destroyed = true>
     static inline void removeManagedWindow(HWND hWnd) {
         // Remove window handle mapping
         if (!g_wndProcHash->remove(hWnd))
@@ -854,11 +857,6 @@ namespace QWK {
         // Remove event filter if the all windows has been destroyed
         if (g_wndProcHash->empty()) {
             WindowsNativeEventFilter::uninstall();
-        }
-
-        // Restore window proc
-        if constexpr (!Destroyed) {
-            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
         }
     }
 
@@ -878,18 +876,24 @@ namespace QWK {
     void Win32WindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
+                if (!windowId)
+                    return;
                 const auto hwnd = reinterpret_cast<HWND>(windowId);
                 moveWindowToDesktopCenter(hwnd);
                 return;
             }
 
             case RaiseWindowHook: {
+                if (!windowId)
+                    return;
                 const auto hwnd = reinterpret_cast<HWND>(windowId);
                 bringWindowToFront(hwnd);
                 return;
             }
 
             case ShowSystemMenuHook: {
+                if (!windowId)
+                    return;
                 const auto &pos = *static_cast<const QPoint *>(data);
                 auto hWnd = reinterpret_cast<HWND>(windowId);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -931,6 +935,9 @@ namespace QWK {
             }
 
             case DrawWindows10BorderHook: {
+                if (!windowId)
+                    return;
+
                 auto args = static_cast<void **>(data);
                 auto &painter = *static_cast<QPainter *>(args[0]);
                 const auto &rect = *static_cast<const QRect *>(args[1]);
@@ -984,16 +991,10 @@ namespace QWK {
         return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
     }
 
-    void Win32WindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
-        Q_UNUSED(isDestroyed)
-
+    void Win32WindowContext::winIdChanged() {
         // If the original window id is valid, remove all resources related
         if (windowId) {
-            if (isDestroyed) {
-                removeManagedWindow(reinterpret_cast<HWND>(windowId));
-            } else {
-                removeManagedWindow<false>(reinterpret_cast<HWND>(windowId));
-            }
+            removeManagedWindow(reinterpret_cast<HWND>(windowId));
             windowId = 0;
         }
 
@@ -1015,11 +1016,8 @@ namespace QWK {
         }
 #endif
 
-        // Inform Qt we want and have set custom margins
-        updateInternalWindowFrameMargins(hWnd, m_windowHandle); // TODO: Restore?
-
         // Add managed window
-        addManagedWindow(hWnd, this);
+        addManagedWindow(m_windowHandle, hWnd, this);
 
         // Cache win id
         windowId = winId;

@@ -247,17 +247,11 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    void QtWindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
-        Q_UNUSED(isDestroyed)
-
-        // If the original window id is valid, remove all resources related
-        if (oldWindow) {
-            qtWindowEventFilter.reset();
-        }
-
+    void QtWindowContext::winIdChanged() {
         if (!m_windowHandle) {
             m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) &
                                                    ~Qt::FramelessWindowHint);
+            qtWindowEventFilter.reset();
             return;
         }
 

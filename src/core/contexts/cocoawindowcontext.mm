@@ -403,7 +403,7 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    void CocoaWindowContext::winIdChanged(QWindow *oldWindow, bool isDestroyed) {
+    void CocoaWindowContext::winIdChanged() {
         // If the original window id is valid, remove all resources related
         if (windowId) {
             releaseWindowProxy(windowId);

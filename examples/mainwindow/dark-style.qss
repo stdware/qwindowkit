@@ -104,7 +104,7 @@ QMenuBar::item:selected {
 QMenu {
     padding: 4px;
     background: #303030;
-    border: 1.25px solid transparent;
+    border: 1px solid transparent;
 }
 
 QMenu::indicator {

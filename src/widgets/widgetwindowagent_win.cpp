@@ -67,7 +67,8 @@ namespace QWK {
             Q_UNUSED(obj)
             switch (event->type()) {
                 case QEvent::Paint: {
-                    if (widget->windowState() & (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))
+                    if (widget->windowState() &
+                        (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))
                         break;
 
                     auto paintEvent = static_cast<QPaintEvent *>(event);

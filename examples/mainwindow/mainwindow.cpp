@@ -131,19 +131,10 @@ void MainWindow::installWindowAgent() {
             darkAction->setChecked(currentTheme == Dark); //
         });
 
-        // Agent action
-        auto framelessOnAction = new QAction(tr("Enable Frameless"), menuBar);
-        framelessOnAction->setCheckable(true);
-        framelessOnAction->setChecked(true);
-        connect(framelessOnAction, &QAction::triggered, agent, &QWK::WindowAgentBase::setEnabled);
-        connect(agent, &QWK::WindowAgentBase::enabledChanged, framelessOnAction,
-                &QAction::setChecked);
-
         // Real menu
         auto settings = new QMenu(tr("Settings(&S)"), menuBar);
         settings->addAction(darkAction);
         settings->addSeparator();
-        settings->addAction(framelessOnAction);
 
         menuBar->addMenu(file);
         menuBar->addMenu(edit);

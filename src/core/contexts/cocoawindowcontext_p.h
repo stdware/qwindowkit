@@ -24,7 +24,7 @@ namespace QWK {
         void virtual_hook(int id, void *data) override;
 
     protected:
-        void winIdChanged(QWindow *oldWindow, bool isDestroyed) override;
+        void winIdChanged() override;
 
     protected:
         WId windowId = 0;
