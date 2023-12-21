@@ -38,7 +38,7 @@ namespace QWK {
         inline WindowItemDelegate *delegate() const;
 
         inline QVariant windowAttribute(const QString &key) const;
-        void setWindowAttribute(const QString &key, const QVariant &var);
+        bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
         inline bool isHitTestVisible(const QObject *obj) const;
         bool setHitTestVisible(const QObject *obj, bool visible);

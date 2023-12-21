@@ -109,10 +109,10 @@ namespace QWK {
         ACCENT_DISABLED = 0,
         ACCENT_ENABLE_GRADIENT = 1,
         ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-        ACCENT_ENABLE_BLURBEHIND = 3, // Traditional DWM blur
+        ACCENT_ENABLE_BLURBEHIND = 3,        // Traditional DWM blur
         ACCENT_ENABLE_ACRYLICBLURBEHIND = 4, // RS4 1803
-        ACCENT_ENABLE_HOST_BACKDROP = 5, // RS5 1809
-        ACCENT_INVALID_STATE = 6 // Using this value will remove the window background
+        ACCENT_ENABLE_HOST_BACKDROP = 5,     // RS5 1809
+        ACCENT_INVALID_STATE = 6             // Using this value will remove the window background
     };
 
     enum ACCENT_FLAG {
@@ -998,6 +998,7 @@ namespace QWK {
                 const auto &key = *static_cast<const QString *>(args[0]);
                 const auto &newVar = *static_cast<const QVariant *>(args[1]);
                 const auto &oldVar = *static_cast<const QVariant *>(args[2]);
+                auto &res = *static_cast<bool *>(args[3]);
 
                 if (!windowId)
                     return;
@@ -1021,21 +1022,27 @@ namespace QWK {
                         static constexpr const MARGINS margins = {-1, -1, -1, -1};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
                         if (isWin1122H2OrGreater()) {
-                            // Use official DWM API to enable Mica, available since Windows 11 22H2 (10.0.22621).
+                            // Use official DWM API to enable Mica, available since Windows 11 22H2
+                            // (10.0.22621).
                             const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_MAINWINDOW;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE,
+                                                        &backdropType, sizeof(backdropType));
                         } else {
-                            // Use undocumented DWM API to enable Mica, available since Windows 11 (10.0.22000).
+                            // Use undocumented DWM API to enable Mica, available since Windows 11
+                            // (10.0.22000).
                             const BOOL enable = TRUE;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable,
+                                                        sizeof(enable));
                         }
                     } else {
                         if (isWin1122H2OrGreater()) {
                             const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE,
+                                                        &backdropType, sizeof(backdropType));
                         } else {
                             const BOOL enable = FALSE;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable,
+                                                        sizeof(enable));
                         }
                         static constexpr const MARGINS margins = {0, 0, 0, 0};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
@@ -1049,30 +1056,39 @@ namespace QWK {
                         // to see the blurred window background.
                         static constexpr const MARGINS margins = {-1, -1, -1, -1};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
-                        // Use official DWM API to enable Mica Alt, available since Windows 11 22H2 (10.0.22621).
+                        // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
+                        // (10.0.22621).
                         const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
-                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
+                                                    sizeof(backdropType));
                     } else {
                         const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
+                                                    sizeof(backdropType));
                         static constexpr const MARGINS margins = {0, 0, 0, 0};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
                     }
+                    res = true;
                 } else if (key == QStringLiteral("acrylic-material")) {
-                    if (newVar.toBool()) {
+                    if (newVar.type() == QVariant::Color) {
                         // We need to extend the window frame into the whole client area to be able
                         // to see the blurred window background.
                         static constexpr const MARGINS margins = {-1, -1, -1, -1};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
                         if (isWin11OrGreater()) {
                             const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE,
+                                                        &backdropType, sizeof(backdropType));
                         } else {
+                            auto gradientColor = newVar.value<QColor>();
+
                             ACCENT_POLICY policy{};
                             policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
                             policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
                             // This API expects the #AABBGGRR format.
-                            //policy.dwGradientColor = DWORD(qRgba(gradientColor.blue(), gradientColor.green(), gradientColor.red(), gradientColor.alpha()));
+                            policy.dwGradientColor =
+                                DWORD(qRgba(gradientColor.blue(), gradientColor.green(),
+                                            gradientColor.red(), gradientColor.alpha()));
                             WINDOWCOMPOSITIONATTRIBDATA wcad{};
                             wcad.Attrib = WCA_ACCENT_POLICY;
                             wcad.pvData = &policy;
@@ -1082,7 +1098,8 @@ namespace QWK {
                     } else {
                         if (isWin11OrGreater()) {
                             const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE,
+                                                        &backdropType, sizeof(backdropType));
                         } else {
                             ACCENT_POLICY policy{};
                             policy.dwAccentState = ACCENT_DISABLED;
@@ -1096,6 +1113,7 @@ namespace QWK {
                         static constexpr const MARGINS margins = {0, 0, 0, 0};
                         apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
                     }
+                    res = true;
                 }
                 return;
             }

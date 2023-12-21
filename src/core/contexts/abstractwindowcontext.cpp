@@ -25,19 +25,25 @@ namespace QWK {
         }
     }
 
-    void AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &var) {
+    bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
         auto it = m_windowAttributes.find(key);
-        if (it.value() == var)
-            return;
+        if (it.value() == attribute)
+            return true;
 
-        auto newVar = var;
+        auto newVar = attribute;
         auto oldVar = it.value();
+        bool res = false;
         void *args[] = {
             &const_cast<QString &>(key),
             &newVar,
             &oldVar,
+            &res,
         };
         virtual_hook(WindowAttributeChangedHook, args);
+        if (res) {
+            it.value() = newVar;
+        }
+        return res;
     }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {

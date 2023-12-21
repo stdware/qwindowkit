@@ -55,9 +55,9 @@ namespace QWK {
         return d->context->windowAttribute(key);
     }
 
-    void WindowAgentBase::setWindowAttribute(const QString &key, const QVariant &var) {
+    bool WindowAgentBase::setWindowAttribute(const QString &key, const QVariant &attribute) {
         Q_D(WindowAgentBase);
-        d->context->setWindowAttribute(key, var);
+        return d->context->setWindowAttribute(key, attribute);
     }
 
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
