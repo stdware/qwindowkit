@@ -19,12 +19,22 @@ namespace QWK {
         explicit StyleAgent(QObject *parent = nullptr);
         ~StyleAgent() override;
 
+        enum SystemTheme {
+            Unknown,
+            Light,
+            Dark,
+            HighContrast,
+        };
+        Q_ENUM(SystemTheme)
+
     public:
+        SystemTheme systemTheme() const;
+
         QVariant windowAttribute(QWindow *window, const QString &key) const;
         bool setWindowAttribute(QWindow *window, const QString &key, const QVariant &attribute);
 
     Q_SIGNALS:
-        void systemThemeChanged();
+        void systemThemeChanged(); // Do we need wallpaper change notify?
 
     protected:
         StyleAgent(StyleAgentPrivate &d, QObject *parent = nullptr);

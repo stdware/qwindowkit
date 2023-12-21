@@ -8,11 +8,18 @@ namespace QWK {
     StyleAgentPrivate::StyleAgentPrivate() {
     }
 
-    StyleAgentPrivate::~StyleAgentPrivate() {
-    }
+    StyleAgentPrivate::~StyleAgentPrivate() = default;
 
     void StyleAgentPrivate::init() {
-        setupSystemThemeHook();
+    }
+
+    void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
+        if (theme == systemTheme)
+            return;
+        systemTheme = theme;
+
+        Q_Q(StyleAgent);
+        Q_EMIT q->systemThemeChanged();
     }
 
     void StyleAgentPrivate::_q_windowDestroyed() {
@@ -20,9 +27,18 @@ namespace QWK {
     }
 
     StyleAgent::StyleAgent(QObject *parent) : StyleAgent(*new StyleAgentPrivate(), parent) {
+        Q_D(StyleAgent);
+        d->setupSystemThemeHook();
     }
 
     StyleAgent::~StyleAgent() {
+        Q_D(StyleAgent);
+        d->removeSystemThemeHook();
+    }
+
+    StyleAgent::SystemTheme StyleAgent::systemTheme() const {
+        Q_D(const StyleAgent);
+        return d->systemTheme;
     }
 
     QVariant StyleAgent::windowAttribute(QWindow *window, const QString &key) const {
