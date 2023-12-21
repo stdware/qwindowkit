@@ -914,13 +914,38 @@ namespace QWK {
                 const auto &oldVar = *static_cast<const QVariant *>(args[2]);
 
                 if (key == QStringLiteral("no-frame-shadow")) {
+                    if (!windowId)
+                        return;
                     if (newVar.toBool()) {
                         // TODO: set off
                     } else {
                         // TODO: set on
                     }
-                }
+                } else if (key == QStringLiteral("mica-material")) {
+                    if (!windowId || !isWin11OrGreater())
+                        return;
+                    const auto hwnd = reinterpret_cast<HWND>(windowId);
+                    if (newVar.toBool()) {
+                        /*
 
+                        // We need to extend the window frame into the whole client area to be able
+                        // to see the blurred window background.
+                        static constexpr const MARGINS margins = {-1, -1, -1, -1};
+                        ::DwmExtendFrameIntoClientArea(hwnd, &margins);
+
+                        // Use official DWM API to enable Mica/Mica Alt, available since Windows 11
+                        // (10.0.22000).
+                        const DWM_SYSTEMBACKDROP_TYPE blurType =
+                            DWMSBT_MAINWINDOW; // This one is Mica, if you want to enable Mica Alt,
+                                               // use DWMSBT_TABBEDWINDOW instead.
+                        DynamicApis::instance().pDwmSetWindowAttribute(
+                            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &blurType, sizeof(blurType));
+
+                        */
+                    } else {
+                        // TODO: set off
+                    }
+                }
                 return;
             }
 

@@ -32,7 +32,7 @@ namespace QWK {
         void setWindowAttribute(const QString &key, const QVariant &var);
 
     public Q_SLOTS:
-        void showSystemMenu(const QPoint &pos);
+        void showSystemMenu(const QPoint &pos); // Only available on Windows now
         void centralize();
         void raise();
 

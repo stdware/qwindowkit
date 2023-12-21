@@ -371,11 +371,6 @@ namespace QWK {
 
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case ShowSystemMenuHook: {
-                // TODO: mac system menu
-                return;
-            }
-
             case SystemButtonAreaChangedHook: {
                 // TODO: mac system button rect updated
                 return;
