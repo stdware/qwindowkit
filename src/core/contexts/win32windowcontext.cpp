@@ -1200,6 +1200,11 @@ namespace QWK {
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
+        if (!isWin10OrGreater()) {
+            static constexpr const MARGINS margins = {1, 1, 1, 1};
+            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
+        }
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
         for (const auto attr : {
                  _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
