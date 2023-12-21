@@ -5,10 +5,10 @@
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
 #include <QtGui/QPainter>
-#include <QtGui/QActionGroup>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QActionGroup>
 
 #include <QWKWidgets/widgetwindowagent.h>
 #include <QWKStyleSupport/styleagent.h>
