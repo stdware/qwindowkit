@@ -9,27 +9,6 @@
 
 namespace QWK {
 
-    class WidgetWinIdChangeEventFilter : public QObject {
-    public:
-        explicit WidgetWinIdChangeEventFilter(QWidget *widget, AbstractWindowContext *ctx)
-            : QObject(ctx), widget(widget), ctx(ctx) {
-            widget->installEventFilter(this);
-        }
-
-    protected:
-        bool eventFilter(QObject *obj, QEvent *event) override {
-            Q_UNUSED(obj)
-            if (event->type() == QEvent::WinIdChange) {
-                ctx->notifyWinIdChange();
-            }
-            return false;
-        }
-
-    protected:
-        QWidget *widget;
-        AbstractWindowContext *ctx;
-    };
-
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() = default;
 
     WidgetWindowAgentPrivate::~WidgetWindowAgentPrivate() = default;
@@ -63,8 +42,6 @@ namespace QWK {
 #ifdef Q_OS_WINDOWS
         d->setupWindows10BorderWorkaround();
 #endif
-        std::ignore = new WidgetWinIdChangeEventFilter(w, d->context.get());
-
         return true;
     }
 

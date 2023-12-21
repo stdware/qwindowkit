@@ -13,25 +13,20 @@ set(_src
     windowitemdelegate.cpp
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
-    kernel/systemwindow_p.h
+    shared/systemwindow_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
 )
 
-set(_defines_private)
 set(_links_private)
 
 if(WIN32)
     list(APPEND _src
         qwindowkit_windows.h
         qwindowkit_windows.cpp
+        shared/qwkwindowsextra_p.h
     )
 elseif(APPLE)
-    list(APPEND _links_private
-        "-framework Foundation"
-        "-framework Cocoa"
-        "-framework AppKit"
-    )
 else()
     list(APPEND _src
         qwindowkit_linux.h
@@ -54,6 +49,11 @@ else()
             contexts/cocoawindowcontext_p.h
             contexts/cocoawindowcontext.mm
         )
+        list(APPEND _links_private
+            "-framework Foundation"
+            "-framework Cocoa"
+            "-framework AppKit"
+        )
     else()
         list(APPEND _src
             contexts/qtwindowcontext_p.h
@@ -64,12 +64,11 @@ endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
-    DEFINES_PRIVATE ${_defines_private}
     LINKS
     LINKS_PRIVATE ${_links_private}
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
-    INCLUDE_PRIVATE kernel contexts platforms
+    INCLUDE_PRIVATE kernel contexts shared
     PREFIX QWK_CORE
 )
 

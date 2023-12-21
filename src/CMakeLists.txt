@@ -130,6 +130,10 @@ if(QWINDOWKIT_BUILD_QUICK)
     add_subdirectory(quick)
 endif()
 
+if(QWINDOWKIT_BUILD_STYLESUPPORT)
+    add_subdirectory(stylesupport)
+endif()
+
 # ----------------------------------
 # Documentation
 # ----------------------------------

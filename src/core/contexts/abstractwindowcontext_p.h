@@ -37,9 +37,6 @@ namespace QWK {
         inline QWindow *window() const;
         inline WindowItemDelegate *delegate() const;
 
-        inline QVariant windowAttribute(const QString &key) const;
-        bool setWindowAttribute(const QString &key, const QVariant &attribute);
-
         inline bool isHitTestVisible(const QObject *obj) const;
         bool setHitTestVisible(const QObject *obj, bool visible);
 
@@ -64,7 +61,6 @@ namespace QWK {
             RaiseWindowHook,
             ShowSystemMenuHook,
             DefaultColorsHook,
-            WindowAttributeChangedHook,
             DrawWindows10BorderHook,     // Only works on Windows 10
             SystemButtonAreaChangedHook, // Only works on Mac
         };
@@ -89,7 +85,7 @@ namespace QWK {
         QObject *m_titleBar{};
         std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
 
-        QVariantHash m_windowAttributes;
+        std::unique_ptr<QObject> m_winIdChangeEventFilter;
     };
 
     inline QObject *AbstractWindowContext::host() const {
@@ -102,10 +98,6 @@ namespace QWK {
 
     inline WindowItemDelegate *AbstractWindowContext::delegate() const {
         return m_delegate.get();
-    }
-
-    inline QVariant AbstractWindowContext::windowAttribute(const QString &key) const {
-        return m_windowAttributes.value(key);
     }
 
     inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {

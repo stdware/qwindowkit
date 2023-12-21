@@ -28,9 +28,6 @@ namespace QWK {
         };
         Q_ENUM(SystemButton)
 
-        QVariant windowAttribute(const QString &key) const;
-        bool setWindowAttribute(const QString &key, const QVariant &attribute);
-
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos); // Only available on Windows now
         void centralize();

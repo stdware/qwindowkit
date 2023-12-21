@@ -3,6 +3,11 @@
 
 #include <QtWidgets/QMainWindow>
 
+namespace QWK {
+    class WidgetWindowAgent;
+    class StyleAgent;
+}
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -26,6 +31,9 @@ private:
     void loadStyleSheet(Theme theme);
 
     Theme currentTheme{};
+
+    QWK::WidgetWindowAgent *windowAgent;
+    QWK::StyleAgent *styleAgent;
 };
 
 #endif // MAINWINDOW_H
