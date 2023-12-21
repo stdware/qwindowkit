@@ -51,10 +51,11 @@ namespace QWK {
 
     QWK_CORE_EXPORT RTL_OSVERSIONINFOW GetRealOSVersion();
 
-    inline bool IsWindows10OrGreater_Real() {
+    inline bool IsWindows1122H2OrGreater_Real() {
         RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
         return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0);
+               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                rovi.dwBuildNumber >= 22621);
     }
 
     inline bool IsWindows11OrGreater_Real() {
@@ -62,6 +63,12 @@ namespace QWK {
         return (rovi.dwMajorVersion > 10) ||
                (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
                 rovi.dwBuildNumber >= 22000);
+    }
+
+    inline bool IsWindows10OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0);
     }
 
     inline bool IsWindows8Point1OrGreater_Real() {

@@ -62,6 +62,82 @@ namespace QWK {
         _DWMWA_MICA_EFFECT = 1029
     };
 
+    // Types used with DWMWA_SYSTEMBACKDROP_TYPE
+    enum _DWM_SYSTEMBACKDROP_TYPE {
+        _DWMSBT_AUTO,             // [Default] Let DWM automatically decide the system-drawn backdrop for this window.
+        _DWMSBT_NONE,             // [Disable] Do not draw any system backdrop.
+        _DWMSBT_MAINWINDOW,       // [Mica] Draw the backdrop material effect corresponding to a long-lived window.
+        _DWMSBT_TRANSIENTWINDOW,  // [Acrylic] Draw the backdrop material effect corresponding to a transient window.
+        _DWMSBT_TABBEDWINDOW,     // [Mica Alt] Draw the backdrop material effect corresponding to a window with a tabbed title bar.
+    };
+
+    enum WINDOWCOMPOSITIONATTRIB {
+        WCA_UNDEFINED = 0,
+        WCA_NCRENDERING_ENABLED = 1,
+        WCA_NCRENDERING_POLICY = 2,
+        WCA_TRANSITIONS_FORCEDISABLED = 3,
+        WCA_ALLOW_NCPAINT = 4,
+        WCA_CAPTION_BUTTON_BOUNDS = 5,
+        WCA_NONCLIENT_RTL_LAYOUT = 6,
+        WCA_FORCE_ICONIC_REPRESENTATION = 7,
+        WCA_EXTENDED_FRAME_BOUNDS = 8,
+        WCA_HAS_ICONIC_BITMAP = 9,
+        WCA_THEME_ATTRIBUTES = 10,
+        WCA_NCRENDERING_EXILED = 11,
+        WCA_NCADORNMENTINFO = 12,
+        WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+        WCA_VIDEO_OVERLAY_ACTIVE = 14,
+        WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+        WCA_DISALLOW_PEEK = 16,
+        WCA_CLOAK = 17,
+        WCA_CLOAKED = 18,
+        WCA_ACCENT_POLICY = 19,
+        WCA_FREEZE_REPRESENTATION = 20,
+        WCA_EVER_UNCLOAKED = 21,
+        WCA_VISUAL_OWNER = 22,
+        WCA_HOLOGRAPHIC = 23,
+        WCA_EXCLUDED_FROM_DDA = 24,
+        WCA_PASSIVEUPDATEMODE = 25,
+        WCA_USEDARKMODECOLORS = 26,
+        WCA_CORNER_STYLE = 27,
+        WCA_PART_COLOR = 28,
+        WCA_DISABLE_MOVESIZE_FEEDBACK = 29,
+        WCA_LAST = 30
+    };
+
+    enum ACCENT_STATE {
+        ACCENT_DISABLED = 0,
+        ACCENT_ENABLE_GRADIENT = 1,
+        ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+        ACCENT_ENABLE_BLURBEHIND = 3, // Traditional DWM blur
+        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4, // RS4 1803
+        ACCENT_ENABLE_HOST_BACKDROP = 5, // RS5 1809
+        ACCENT_INVALID_STATE = 6 // Using this value will remove the window background
+    };
+
+    enum ACCENT_FLAG {
+        ACCENT_NONE = 0,
+        ACCENT_ENABLE_ACRYLIC = 1,
+        ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY = 482
+    };
+
+    struct ACCENT_POLICY {
+        DWORD dwAccentState;
+        DWORD dwAccentFlags;
+        DWORD dwGradientColor; // #AABBGGRR
+        DWORD dwAnimationId;
+    };
+    using PACCENT_POLICY = ACCENT_POLICY *;
+
+    struct WINDOWCOMPOSITIONATTRIBDATA {
+        WINDOWCOMPOSITIONATTRIB Attrib;
+        PVOID pvData;
+        SIZE_T cbData;
+    };
+    using PWINDOWCOMPOSITIONATTRIBDATA = WINDOWCOMPOSITIONATTRIBDATA *;
+
+    using SetWindowCompositionAttributePtr = BOOL(WINAPI *)(HWND, PWINDOWCOMPOSITIONATTRIBDATA);
+
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const quint8 kAutoHideTaskBarThickness = 2;
 
@@ -105,6 +181,7 @@ namespace QWK {
         DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
         DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
         DYNAMIC_API_DECLARE(DwmSetWindowAttribute);
+        DYNAMIC_API_DECLARE(DwmExtendFrameIntoClientArea);
         DYNAMIC_API_DECLARE(GetDpiForWindow);
         DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
         DYNAMIC_API_DECLARE(GetDpiForMonitor);
@@ -114,6 +191,8 @@ namespace QWK {
 
 #undef DYNAMIC_API_DECLARE
 
+        SetWindowCompositionAttributePtr pSetWindowCompositionAttribute = nullptr;
+
     private:
         DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
@@ -122,6 +201,7 @@ namespace QWK {
             QSystemLibrary user32(QStringLiteral("user32"));
             DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
             DYNAMIC_API_RESOLVE(user32, GetSystemMetricsForDpi);
+            DYNAMIC_API_RESOLVE(user32, SetWindowCompositionAttribute);
 
             QSystemLibrary shcore(QStringLiteral("shcore"));
             DYNAMIC_API_RESOLVE(shcore, GetDpiForMonitor);
@@ -132,6 +212,7 @@ namespace QWK {
             DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
             DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
             DYNAMIC_API_RESOLVE(dwmapi, DwmSetWindowAttribute);
+            DYNAMIC_API_RESOLVE(dwmapi, DwmExtendFrameIntoClientArea);
 
             QSystemLibrary winmm(QStringLiteral("winmm"));
             DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
@@ -243,6 +324,11 @@ namespace QWK {
 
     static inline bool isWin11OrGreater() {
         static const bool result = IsWindows11OrGreater_Real();
+        return result;
+    }
+
+    static inline bool isWin1122H2OrGreater() {
+        static const bool result = IsWindows1122H2OrGreater_Real();
         return result;
     }
 
@@ -913,37 +999,102 @@ namespace QWK {
                 const auto &newVar = *static_cast<const QVariant *>(args[1]);
                 const auto &oldVar = *static_cast<const QVariant *>(args[2]);
 
-                if (key == QStringLiteral("no-frame-shadow")) {
-                    if (!windowId)
-                        return;
+                if (!windowId)
+                    return;
+                const auto hwnd = reinterpret_cast<HWND>(windowId);
+
+                const DynamicApis &apis = DynamicApis::instance();
+
+                if (key == QStringLiteral("frame-shadow")) {
                     if (newVar.toBool()) {
                         // TODO: set off
                     } else {
                         // TODO: set on
                     }
-                } else if (key == QStringLiteral("mica-material")) {
-                    if (!windowId || !isWin11OrGreater())
+                } else if (key == QStringLiteral("mica")) {
+                    if (!isWin11OrGreater()) {
                         return;
-                    const auto hwnd = reinterpret_cast<HWND>(windowId);
+                    }
                     if (newVar.toBool()) {
-                        /*
-
                         // We need to extend the window frame into the whole client area to be able
                         // to see the blurred window background.
                         static constexpr const MARGINS margins = {-1, -1, -1, -1};
-                        ::DwmExtendFrameIntoClientArea(hwnd, &margins);
-
-                        // Use official DWM API to enable Mica/Mica Alt, available since Windows 11
-                        // (10.0.22000).
-                        const DWM_SYSTEMBACKDROP_TYPE blurType =
-                            DWMSBT_MAINWINDOW; // This one is Mica, if you want to enable Mica Alt,
-                                               // use DWMSBT_TABBEDWINDOW instead.
-                        DynamicApis::instance().pDwmSetWindowAttribute(
-                            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &blurType, sizeof(blurType));
-
-                        */
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                        if (isWin1122H2OrGreater()) {
+                            // Use official DWM API to enable Mica, available since Windows 11 22H2 (10.0.22621).
+                            const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_MAINWINDOW;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        } else {
+                            // Use undocumented DWM API to enable Mica, available since Windows 11 (10.0.22000).
+                            const BOOL enable = TRUE;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
+                        }
                     } else {
-                        // TODO: set off
+                        if (isWin1122H2OrGreater()) {
+                            const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        } else {
+                            const BOOL enable = FALSE;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
+                        }
+                        static constexpr const MARGINS margins = {0, 0, 0, 0};
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                    }
+                } else if (key == QStringLiteral("mica-alt")) {
+                    if (!isWin1122H2OrGreater()) {
+                        return;
+                    }
+                    if (newVar.toBool()) {
+                        // We need to extend the window frame into the whole client area to be able
+                        // to see the blurred window background.
+                        static constexpr const MARGINS margins = {-1, -1, -1, -1};
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                        // Use official DWM API to enable Mica Alt, available since Windows 11 22H2 (10.0.22621).
+                        const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
+                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                    } else {
+                        const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
+                        apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        static constexpr const MARGINS margins = {0, 0, 0, 0};
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                    }
+                } else if (key == QStringLiteral("acrylic-material")) {
+                    if (newVar.toBool()) {
+                        // We need to extend the window frame into the whole client area to be able
+                        // to see the blurred window background.
+                        static constexpr const MARGINS margins = {-1, -1, -1, -1};
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                        if (isWin11OrGreater()) {
+                            const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        } else {
+                            ACCENT_POLICY policy{};
+                            policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
+                            policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
+                            // This API expects the #AABBGGRR format.
+                            //policy.dwGradientColor = DWORD(qRgba(gradientColor.blue(), gradientColor.green(), gradientColor.red(), gradientColor.alpha()));
+                            WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                            wcad.Attrib = WCA_ACCENT_POLICY;
+                            wcad.pvData = &policy;
+                            wcad.cbData = sizeof(policy);
+                            apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+                        }
+                    } else {
+                        if (isWin11OrGreater()) {
+                            const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
+                            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(backdropType));
+                        } else {
+                            ACCENT_POLICY policy{};
+                            policy.dwAccentState = ACCENT_DISABLED;
+                            policy.dwAccentFlags = ACCENT_NONE;
+                            WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                            wcad.Attrib = WCA_ACCENT_POLICY;
+                            wcad.pvData = &policy;
+                            wcad.cbData = sizeof(policy);
+                            apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+                        }
+                        static constexpr const MARGINS margins = {0, 0, 0, 0};
+                        apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
                     }
                 }
                 return;
