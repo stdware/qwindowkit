@@ -142,7 +142,11 @@ QMenu::separator {
 
 /* Window */
 
-MainWindow {
+MainWindow[custom-style=true] {
+    background-color: transparent;
+}
+
+MainWindow[custom-style=false] {
     background-color: #1E1E1E;
 }
 

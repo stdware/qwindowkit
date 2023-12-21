@@ -4,11 +4,14 @@
 #include <QtCore/QFile>
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
+#include <QtGui/QPainter>
+#include <QtGui/QActionGroup>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QPushButton>
 
 #include <QWKWidgets/widgetwindowagent.h>
+#include <QWKStyleSupport/styleagent.h>
 
 #include <widgetframe/windowbar.h>
 #include <widgetframe/windowbutton.h>
@@ -30,6 +33,8 @@ protected:
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     installWindowAgent();
+
+    styleAgent = new QWK::StyleAgent(this);
 
     auto clockWidget = new ClockWidget();
     clockWidget->setObjectName(QStringLiteral("clock-widget"));
@@ -104,11 +109,11 @@ bool MainWindow::event(QEvent *event) {
 
 void MainWindow::installWindowAgent() {
     // 1. Setup window agent
-    auto agent = new QWK::WidgetWindowAgent(this);
-    agent->setup(this);
+    windowAgent = new QWK::WidgetWindowAgent(this);
+    windowAgent->setup(this);
 
     // 2. Construct your title bar
-    auto menuBar = [this, agent]() {
+    auto menuBar = [this]() {
         auto menuBar = new QMenuBar();
 
         // Virtual menu
@@ -122,7 +127,7 @@ void MainWindow::installWindowAgent() {
         edit->addAction(new QAction(tr("Redo(&R)"), menuBar));
 
         // Theme action
-        auto darkAction = new QAction(tr("Dark Theme"), menuBar);
+        auto darkAction = new QAction(tr("Enable dark theme"), menuBar);
         darkAction->setCheckable(true);
         connect(darkAction, &QAction::triggered, this, [this](bool checked) {
             loadStyleSheet(checked ? Dark : Light); //
@@ -131,10 +136,60 @@ void MainWindow::installWindowAgent() {
             darkAction->setChecked(currentTheme == Dark); //
         });
 
+#ifdef Q_OS_WIN
+        auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
+        dwmBlurAction->setCheckable(true);
+        connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked){
+            QWindow *w = windowHandle();
+            styleAgent->setWindowAttribute(w, QStringLiteral("dwm-blur"), checked);
+            setProperty("custom-style", checked);
+            style()->polish(this);
+        });
+
+        auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
+        acrylicAction->setCheckable(true);
+        connect(acrylicAction, &QAction::triggered, this, [this](bool checked){
+            QWindow *w = windowHandle();
+            styleAgent->setWindowAttribute(w, QStringLiteral("acrylic-material"), QColor());
+            setProperty("custom-style", checked);
+            style()->polish(this);
+        });
+
+        auto micaAction = new QAction(tr("Enable mica"), menuBar);
+        micaAction->setCheckable(true);
+        connect(micaAction, &QAction::triggered, this, [this](bool checked){
+            QWindow *w = windowHandle();
+            styleAgent->setWindowAttribute(w, QStringLiteral("mica"), checked);
+            setProperty("custom-style", checked);
+            style()->polish(this);
+        });
+
+        auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
+        micaAltAction->setCheckable(true);
+        connect(micaAltAction, &QAction::triggered, this, [this](bool checked){
+            QWindow *w = windowHandle();
+            styleAgent->setWindowAttribute(w, QStringLiteral("mica-alt"), checked);
+            setProperty("custom-style", checked);
+            style()->polish(this);
+        });
+
+        auto winStyleGroup = new QActionGroup(menuBar);
+        winStyleGroup->addAction(dwmBlurAction);
+        winStyleGroup->addAction(acrylicAction);
+        winStyleGroup->addAction(micaAction);
+        winStyleGroup->addAction(micaAltAction);
+#endif
+
         // Real menu
         auto settings = new QMenu(tr("Settings(&S)"), menuBar);
         settings->addAction(darkAction);
+#ifdef Q_OS_WIN
         settings->addSeparator();
+        settings->addAction(dwmBlurAction);
+        settings->addAction(acrylicAction);
+        settings->addAction(micaAction);
+        settings->addAction(micaAltAction);
+#endif
 
         menuBar->addMenu(file);
         menuBar->addMenu(edit);
@@ -180,28 +235,28 @@ void MainWindow::installWindowAgent() {
     windowBar->setTitleLabel(titleLabel);
     windowBar->setHostWidget(this);
 
-    agent->setTitleBar(windowBar);
+    windowAgent->setTitleBar(windowBar);
 #ifndef Q_OS_MAC
-    agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
-    agent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
-    agent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
-    agent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
+    windowAgent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
+    windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
+    windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
+    windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
 #endif
-    agent->setHitTestVisible(menuBar, true);
+    windowAgent->setHitTestVisible(menuBar, true);
 
     setMenuWidget(windowBar);
 
     // 3. Adds simulated mouse events to the title bar buttons
 #ifdef Q_OS_WINDOWS
     // Emulate Window system menu button behaviors
-    connect(iconButton, &QAbstractButton::clicked, agent, [iconButton, agent] {
+    connect(iconButton, &QAbstractButton::clicked, windowAgent, [this, iconButton] {
         iconButton->setProperty("double-click-close", false);
 
         // Pick a suitable time threshold
-        QTimer::singleShot(75, agent, [iconButton, agent]() {
+        QTimer::singleShot(75, windowAgent, [this, iconButton]() {
             if (iconButton->property("double-click-close").toBool())
                 return;
-            agent->showSystemMenu(iconButton->mapToGlobal(QPoint{0, iconButton->height()}));
+            windowAgent->showSystemMenu(iconButton->mapToGlobal(QPoint{0, iconButton->height()}));
         });
     });
     connect(iconButton, &QWK::WindowButton::doubleClicked, this, [iconButton, this]() {

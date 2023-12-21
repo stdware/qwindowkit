@@ -2,6 +2,7 @@
 #define STYLEAGENTPRIVATE_H
 
 #include <QWKStyleSupport/styleagent.h>
+#include <QtCore/QHash>
 
 namespace QWK {
 

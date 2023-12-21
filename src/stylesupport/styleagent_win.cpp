@@ -2,6 +2,7 @@
 
 #include <QtCore/QSet>
 #include <QtCore/QVariant>
+#include <QtGui/QColor>
 
 #include <QWKCore/private/qwkwindowsextra_p.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
@@ -88,13 +89,7 @@ namespace QWK {
         const auto hwnd = reinterpret_cast<HWND>(window->winId());
         const DynamicApis &apis = DynamicApis::instance();
 
-        if (key == QStringLiteral("frame-shadow")) {
-            if (attribute.toBool()) {
-                // TODO: set off
-            } else {
-                // TODO: set on
-            }
-        } else if (key == QStringLiteral("mica")) {
+        if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
             }
@@ -151,7 +146,10 @@ namespace QWK {
             }
             return true;
         } else if (key == QStringLiteral("acrylic-material")) {
-            if (attribute.type() == QVariant::Color) {
+            if (!isWin10OrGreater()) {
+                return false;
+            }
+            if (attribute.userType() == QMetaType::QColor) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
                 static constexpr const MARGINS margins = {-1, -1, -1, -1};
@@ -190,6 +188,48 @@ namespace QWK {
                     wcad.pvData = &policy;
                     wcad.cbData = sizeof(policy);
                     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+                }
+                static constexpr const MARGINS margins = {0, 0, 0, 0};
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+            }
+            return true;
+        } else if (key == QStringLiteral("dwm-blur")) {
+            if (attribute.toBool()) {
+                // We need to extend the window frame into the whole client area to be able
+                // to see the blurred window background.
+                static constexpr const MARGINS margins = {-1, -1, -1, -1};
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                if (isWin8OrGreater()) {
+                    ACCENT_POLICY policy{};
+                    policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
+                    policy.dwAccentFlags = ACCENT_NONE;
+                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                    wcad.Attrib = WCA_ACCENT_POLICY;
+                    wcad.pvData = &policy;
+                    wcad.cbData = sizeof(policy);
+                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+                } else {
+                    DWM_BLURBEHIND bb{};
+                    bb.fEnable = TRUE;
+                    bb.fTransitionOnMaximized = TRUE;
+                    bb.dwFlags = DWM_BB_ENABLE | DWM_BB_TRANSITIONONMAXIMIZED;
+                    apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
+                }
+            } else {
+                if (isWin8OrGreater()) {
+                    ACCENT_POLICY policy{};
+                    policy.dwAccentState = ACCENT_DISABLED;
+                    policy.dwAccentFlags = ACCENT_NONE;
+                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                    wcad.Attrib = WCA_ACCENT_POLICY;
+                    wcad.pvData = &policy;
+                    wcad.cbData = sizeof(policy);
+                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+                } else {
+                    DWM_BLURBEHIND bb{};
+                    bb.fEnable = FALSE;
+                    bb.dwFlags = DWM_BB_ENABLE;
+                    apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
                 static constexpr const MARGINS margins = {0, 0, 0, 0};
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);

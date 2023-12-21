@@ -16,6 +16,9 @@
 
 #include <QWKCore/qwindowkit_windows.h>
 
+#include <QtGui/QStyleHints>
+#include <QtGui/QPalette>
+
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtCore/private/qwinregistry_p.h>
 
@@ -146,6 +149,7 @@ namespace QWK {
             DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmSetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmExtendFrameIntoClientArea);
+            DYNAMIC_API_DECLARE(DwmEnableBlurBehindWindow);
             DYNAMIC_API_DECLARE(GetDpiForWindow);
             DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
             DYNAMIC_API_DECLARE(GetDpiForMonitor);
@@ -177,6 +181,7 @@ namespace QWK {
                 DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmSetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmExtendFrameIntoClientArea);
+                DYNAMIC_API_RESOLVE(dwmapi, DwmEnableBlurBehindWindow);
 
                 QSystemLibrary winmm(QStringLiteral("winmm"));
                 DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
