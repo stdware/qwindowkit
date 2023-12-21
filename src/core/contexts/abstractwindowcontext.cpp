@@ -3,10 +3,32 @@
 #include <QtGui/QPen>
 #include <QtGui/QPainter>
 #include <QtGui/QScreen>
+#include <memory>
 
 #include "qwkglobal_p.h"
 
 namespace QWK {
+
+    class WinIdChangeEventFilter : public QObject {
+    public:
+        explicit WinIdChangeEventFilter(QObject *widget, AbstractWindowContext *ctx,
+                                        QObject *parent = nullptr)
+            : QObject(parent), ctx(ctx) {
+            widget->installEventFilter(this);
+        }
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
+            if (event->type() == QEvent::WinIdChange) {
+                ctx->notifyWinIdChange();
+            }
+            return false;
+        }
+
+    protected:
+        AbstractWindowContext *ctx;
+    };
 
     AbstractWindowContext::AbstractWindowContext() = default;
 
@@ -18,32 +40,12 @@ namespace QWK {
         }
         m_host = host;
         m_delegate.reset(delegate);
+        m_winIdChangeEventFilter = std::make_unique<WinIdChangeEventFilter>(host, this);
 
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (m_windowHandle) {
             winIdChanged();
         }
-    }
-
-    bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
-        auto it = m_windowAttributes.find(key);
-        if (it.value() == attribute)
-            return true;
-
-        auto newVar = attribute;
-        auto oldVar = it.value();
-        bool res = false;
-        void *args[] = {
-            &const_cast<QString &>(key),
-            &newVar,
-            &oldVar,
-            &res,
-        };
-        virtual_hook(WindowAttributeChangedHook, args);
-        if (res) {
-            it.value() = newVar;
-        }
-        return res;
     }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
