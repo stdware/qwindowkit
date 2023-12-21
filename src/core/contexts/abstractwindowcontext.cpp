@@ -81,6 +81,15 @@ namespace QWK {
         if (m_titleBar == item) {
             return false;
         }
+
+        if (m_titleBar) {
+            // Since the title bar is changed, all items inside it should be dereferenced right away
+            for (auto &button : m_systemButtons) {
+                button = nullptr;
+            }
+            m_hitTestVisibleItems.clear();
+        }
+
         m_titleBar = item;
         return true;
     }

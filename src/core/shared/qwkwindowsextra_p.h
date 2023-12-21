@@ -16,11 +16,11 @@
 
 #include <QWKCore/qwindowkit_windows.h>
 
-#include <QtGui/QStyleHints>
-#include <QtGui/QPalette>
-
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtCore/private/qwinregistry_p.h>
+
+#include <QtGui/QStyleHints>
+#include <QtGui/QPalette>
 
 // Don't include this header in any header files.
 
