@@ -1667,7 +1667,6 @@ namespace QWK {
         Q_UNUSED(message)
         Q_UNUSED(this)
 
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         // Windows是根据这个消息的返回值来设置窗口的客户区（窗口中真正显示的内容）
         // 和非客户区（标题栏、窗口边框、菜单栏和状态栏等Windows系统自行提供的部分
         // ，不过对于Qt来说，除了标题栏和窗口边框，非客户区基本也都是自绘的）的范
@@ -1755,6 +1754,7 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         if (isWin10OrGreater()) {
             // Store the original top margin before the default window procedure applies the
             // default frame.
@@ -1782,6 +1782,7 @@ namespace QWK {
             // technique to bring the top border back.
             clientRect->top = originalTop;
         }
+#endif
         const bool max = IsMaximized(hWnd);
         const bool full = isFullScreen(hWnd);
         // We don't need this correction when we're fullscreen. We will
@@ -1875,7 +1876,6 @@ namespace QWK {
                 }
             }
         }
-#endif
         // We should call this function only before the function returns.
         syncPaintEventWithDwm();
         // By returning WVR_REDRAW we can make the window resizing look
