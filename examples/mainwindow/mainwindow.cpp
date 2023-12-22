@@ -10,8 +10,8 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QActionGroup>
 
+#include <QWKCore/styleagent.h>
 #include <QWKWidgets/widgetwindowagent.h>
-#include <QWKStyleSupport/styleagent.h>
 
 #include <widgetframe/windowbar.h>
 #include <widgetframe/windowbutton.h>
@@ -33,8 +33,7 @@ protected:
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     installWindowAgent();
-
-    styleAgent = new QWK::StyleAgent(this);
+    installStyleAgent();
 
     auto clockWidget = new ClockWidget();
     clockWidget->setObjectName(QStringLiteral("clock-widget"));
@@ -139,7 +138,7 @@ void MainWindow::installWindowAgent() {
 #ifdef Q_OS_WIN
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
         dwmBlurAction->setCheckable(true);
-        connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked){
+        connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked) {
             QWindow *w = windowHandle();
             styleAgent->setWindowAttribute(w, QStringLiteral("dwm-blur"), checked);
             setProperty("custom-style", checked);
@@ -148,7 +147,7 @@ void MainWindow::installWindowAgent() {
 
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
         acrylicAction->setCheckable(true);
-        connect(acrylicAction, &QAction::triggered, this, [this](bool checked){
+        connect(acrylicAction, &QAction::triggered, this, [this](bool checked) {
             QWindow *w = windowHandle();
             styleAgent->setWindowAttribute(w, QStringLiteral("acrylic-material"), QColor());
             setProperty("custom-style", checked);
@@ -157,7 +156,7 @@ void MainWindow::installWindowAgent() {
 
         auto micaAction = new QAction(tr("Enable mica"), menuBar);
         micaAction->setCheckable(true);
-        connect(micaAction, &QAction::triggered, this, [this](bool checked){
+        connect(micaAction, &QAction::triggered, this, [this](bool checked) {
             QWindow *w = windowHandle();
             styleAgent->setWindowAttribute(w, QStringLiteral("mica"), checked);
             setProperty("custom-style", checked);
@@ -166,7 +165,7 @@ void MainWindow::installWindowAgent() {
 
         auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
         micaAltAction->setCheckable(true);
-        connect(micaAltAction, &QAction::triggered, this, [this](bool checked){
+        connect(micaAltAction, &QAction::triggered, this, [this](bool checked) {
             QWindow *w = windowHandle();
             styleAgent->setWindowAttribute(w, QStringLiteral("mica-alt"), checked);
             setProperty("custom-style", checked);
@@ -283,10 +282,15 @@ void MainWindow::installWindowAgent() {
 #endif
 }
 
+void MainWindow::installStyleAgent() {
+    styleAgent = new QWK::StyleAgent(this);
+}
+
 void MainWindow::loadStyleSheet(Theme theme) {
     if (!styleSheet().isEmpty() && theme == currentTheme)
         return;
     currentTheme = theme;
+
     if (QFile qss(theme == Dark ? QStringLiteral(":/dark-style.qss")
                                 : QStringLiteral(":/light-style.qss"));
         qss.open(QIODevice::ReadOnly | QIODevice::Text)) {

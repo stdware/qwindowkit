@@ -142,12 +142,12 @@ QMenu::separator {
 
 /* Window */
 
-MainWindow[custom-style=true] {
-    background-color: transparent;
+MainWindow {
+    background-color: #1E1E1E;
 }
 
-MainWindow[custom-style=false] {
-    background-color: #1E1E1E;
+MainWindow[custom-style=true] {
+    background-color: transparent;
 }
 
 QWidget#clock-widget {

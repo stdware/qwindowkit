@@ -400,4 +400,17 @@ namespace QWK {
         cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);
     }
 
+    bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
+                                                    const QVariant &oldAttribute) {
+        if (key == QStringLiteral("no-system-buttons")) {
+            if (attribute.toBool()) {
+                // TODO: set off
+            } else {
+                // TODO: set on
+            }
+            return true;
+        }
+        return false;
+    }
+
 }

@@ -28,6 +28,7 @@ protected:
 
 private:
     void installWindowAgent();
+    void installStyleAgent();
     void loadStyleSheet(Theme theme);
 
     Theme currentTheme{};

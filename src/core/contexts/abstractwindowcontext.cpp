@@ -48,6 +48,33 @@ namespace QWK {
         }
     }
 
+    bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
+        auto it = m_windowAttributes.find(key);
+        if (it == m_windowAttributes.end()) {
+            if (!attribute.isValid()) {
+                return true;
+            }
+            if (m_windowHandle && !windowAttributeChanged(key, attribute, {})) {
+                return false;
+            }
+            m_windowAttributes.insert(key, attribute);
+            return true;
+        }
+
+        if (it.value() == attribute)
+            return true;
+        if (m_windowHandle && !windowAttributeChanged(key, attribute, it.value())) {
+            return false;
+        }
+
+        if (attribute.isValid()) {
+            it.value() = attribute;
+        } else {
+            m_windowAttributes.erase(it);
+        }
+        return true;
+    }
+
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);
         if (!obj) {
@@ -219,6 +246,24 @@ namespace QWK {
         if (oldWindow == m_windowHandle)
             return;
         winIdChanged();
+
+        if (m_windowHandle) {
+            // Refresh window attributes
+            auto attributes = m_windowAttributes;
+            m_windowAttributes.clear();
+            for (auto it = attributes.begin(); it != attributes.end(); ++it) {
+                if (!windowAttributeChanged(it.key(), it.value(), {})) {
+                    continue;
+                }
+                m_windowAttributes.insert(it.key(), it.value());
+            }
+        }
+    }
+
+    bool AbstractWindowContext::windowAttributeChanged(const QString &key,
+                                                       const QVariant &attribute,
+                                                       const QVariant &oldAttribute) {
+        return false;
     }
 
 }

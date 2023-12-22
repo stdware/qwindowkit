@@ -62,6 +62,22 @@ else()
     endif()
 endif()
 
+if(QWINDOWKIT_ENABLE_STYLE_AGENT)
+    list(APPEND _src
+        style/styleagent.h
+        style/styleagent_p.h
+        style/styleagent.cpp
+    )
+
+    if(WIN32)
+        list(APPEND _src style/styleagent_win.cpp)
+    elseif(APPLE)
+        list(APPEND _src style/styleagent_mac.mm)
+    else()
+        list(APPEND _src style/styleagent_linux.cpp)
+    endif()
+endif()
+
 qwk_add_library(${PROJECT_NAME} AUTOGEN
     SOURCES ${_src}
     LINKS
