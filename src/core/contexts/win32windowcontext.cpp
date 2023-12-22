@@ -789,8 +789,10 @@ namespace QWK {
 
     bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
                                                     const QVariant &oldAttribute) {
-        const auto hwnd = reinterpret_cast<HWND>(window->winId());
+        const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
         const DynamicApis &apis = DynamicApis::instance();
+        static constexpr const MARGINS extendMargins = {-1, -1, -1, -1};
+        static const auto defaultMargins = isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
         if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
@@ -798,8 +800,7 @@ namespace QWK {
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                static constexpr const MARGINS margins = {-1, -1, -1, -1};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
                 if (isWin1122H2OrGreater()) {
                     // Use official DWM API to enable Mica, available since Windows 11 22H2
                     // (10.0.22621).
@@ -821,8 +822,7 @@ namespace QWK {
                     const BOOL enable = FALSE;
                     apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
                 }
-                static constexpr const MARGINS margins = {0, 0, 0, 0};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
         } else if (key == QStringLiteral("mica-alt")) {
@@ -832,8 +832,7 @@ namespace QWK {
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                static constexpr const MARGINS margins = {-1, -1, -1, -1};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
                 // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
                 // (10.0.22621).
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
@@ -843,8 +842,7 @@ namespace QWK {
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
                                             sizeof(backdropType));
-                static constexpr const MARGINS margins = {0, 0, 0, 0};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
         } else if (key == QStringLiteral("acrylic-material")) {
@@ -854,8 +852,7 @@ namespace QWK {
             if (attribute.userType() == QMetaType::QColor) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                static constexpr const MARGINS margins = {-1, -1, -1, -1};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
                 if (isWin11OrGreater()) {
                     const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
                     apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
@@ -891,16 +888,14 @@ namespace QWK {
                     wcad.cbData = sizeof(policy);
                     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
                 }
-                static constexpr const MARGINS margins = {0, 0, 0, 0};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
         } else if (key == QStringLiteral("dwm-blur")) {
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                static constexpr const MARGINS margins = {-1, -1, -1, -1};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
                 if (isWin8OrGreater()) {
                     ACCENT_POLICY policy{};
                     policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
@@ -913,8 +908,7 @@ namespace QWK {
                 } else {
                     DWM_BLURBEHIND bb{};
                     bb.fEnable = TRUE;
-                    bb.fTransitionOnMaximized = TRUE;
-                    bb.dwFlags = DWM_BB_ENABLE | DWM_BB_TRANSITIONONMAXIMIZED;
+                    bb.dwFlags = DWM_BB_ENABLE;
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
             } else {
@@ -933,8 +927,7 @@ namespace QWK {
                     bb.dwFlags = DWM_BB_ENABLE;
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
-                static constexpr const MARGINS margins = {0, 0, 0, 0};
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
         }

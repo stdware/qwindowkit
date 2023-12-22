@@ -8,7 +8,11 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QPushButton>
-#include <QtWidgets/QActionGroup>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#  include <QtGui/QActionGroup>
+#else
+#  include <QtWidgets/QActionGroup>
+#endif
 
 #include <QWKCore/styleagent.h>
 #include <QWKWidgets/widgetwindowagent.h>
@@ -139,8 +143,7 @@ void MainWindow::installWindowAgent() {
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
         dwmBlurAction->setCheckable(true);
         connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked) {
-            QWindow *w = windowHandle();
-            styleAgent->setWindowAttribute(w, QStringLiteral("dwm-blur"), checked);
+            windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), checked);
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -148,8 +151,7 @@ void MainWindow::installWindowAgent() {
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
         acrylicAction->setCheckable(true);
         connect(acrylicAction, &QAction::triggered, this, [this](bool checked) {
-            QWindow *w = windowHandle();
-            styleAgent->setWindowAttribute(w, QStringLiteral("acrylic-material"), QColor());
+            windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), QColor::fromRgbF(1.f, 1.f, 1.f, 0.6f));
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -157,8 +159,7 @@ void MainWindow::installWindowAgent() {
         auto micaAction = new QAction(tr("Enable mica"), menuBar);
         micaAction->setCheckable(true);
         connect(micaAction, &QAction::triggered, this, [this](bool checked) {
-            QWindow *w = windowHandle();
-            styleAgent->setWindowAttribute(w, QStringLiteral("mica"), checked);
+            windowAgent->setWindowAttribute(QStringLiteral("mica"), checked);
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -166,8 +167,7 @@ void MainWindow::installWindowAgent() {
         auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
         micaAltAction->setCheckable(true);
         connect(micaAltAction, &QAction::triggered, this, [this](bool checked) {
-            QWindow *w = windowHandle();
-            styleAgent->setWindowAttribute(w, QStringLiteral("mica-alt"), checked);
+            windowAgent->setWindowAttribute(QStringLiteral("mica-alt"), checked);
             setProperty("custom-style", checked);
             style()->polish(this);
         });
