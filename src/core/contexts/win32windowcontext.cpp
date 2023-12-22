@@ -1472,11 +1472,7 @@ namespace QWK {
                         // window activation state change.
                         *result = ::DefWindowProcW(hWnd, WM_NCACTIVATE, wParam, -1);
                     } else {
-                        if (wParam) {
-                            *result = FALSE;
-                        } else {
-                            *result = TRUE;
-                        }
+                        *result = TRUE;
                     }
                     return true;
                 }
