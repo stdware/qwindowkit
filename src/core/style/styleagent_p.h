@@ -26,7 +26,7 @@ namespace QWK {
 
         StyleAgent *q_ptr;
 
-        StyleAgent::SystemTheme systemTheme = StyleAgent::Dark;
+        StyleAgent::SystemTheme systemTheme = StyleAgent::Unknown;
 
         virtual void setupSystemThemeHook();
         virtual void removeSystemThemeHook();

@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 
 int main(int argc, char *argv[]) {
-    qputenv("QT_WIN_DEBUG_CONSOLE", "1");
+    qputenv("QT_WIN_DEBUG_CONSOLE", "attach");
     qputenv("QSG_INFO", "1");
 #if 0
     qputenv("QT_WIDGETS_RHI", "1");

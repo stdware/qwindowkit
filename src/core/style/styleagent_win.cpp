@@ -21,27 +21,47 @@ namespace QWK {
                 return false;
             }
 
-            const auto msg = static_cast<const MSG *>(message);
-            switch (msg->message) {
-                case WM_THEMECHANGED:
-                case WM_SYSCOLORCHANGE:
-                case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                    // TODO: walk through `g_styleAgentSet`
-                    break;
-                }
+            auto themeChanged = [message]() -> bool {
+                const auto msg = static_cast<const MSG *>(message);
+                switch (msg->message) {
+                    case WM_THEMECHANGED:
+                    case WM_SYSCOLORCHANGE:
+                    case WM_DWMCOLORIZATIONCOLORCHANGED:
+                        return true;
 
-                case WM_SETTINGCHANGE: {
-                    if (!msg->wParam && msg->lParam &&
-                        std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
+                    case WM_SETTINGCHANGE: {
+                        if (!msg->wParam && msg->lParam &&
+                            std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
                             0) {
-                        // TODO: walk through `g_styleAgentSet`
+                            return true;
+                        }
+                        break;
                     }
-                    break;
-                }
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+                return false;
+            }();
+
+            if (themeChanged) {
+                auto theme = []() -> StyleAgent::SystemTheme {
+                    if (isHighContrastModeEnabled()) {
+                        return StyleAgent::HighContrast;
+                    } else if (isDarkThemeActive()) {
+                        return StyleAgent::Dark;
+                    } else {
+                        return StyleAgent::Light;
+                    }
+                }();
+                for (auto &&ap : std::as_const(*g_styleAgentSet())) {
+                    if (ap->systemTheme != theme) {
+                        ap->systemTheme = theme;
+                        ap->notifyThemeChanged(theme);
+                    }
+                }
             }
+
             return false;
         }
 
@@ -65,11 +85,19 @@ namespace QWK {
 
     SystemSettingEventFilter *SystemSettingEventFilter::instance = nullptr;
 
+    void StyleAgentPrivate::init() {
+        if (isHighContrastModeEnabled()) {
+            systemTheme = StyleAgent::HighContrast;
+        } else if (isDarkThemeActive()) {
+            systemTheme = StyleAgent::Dark;
+        } else {
+            systemTheme = StyleAgent::Light;
+        }
+    }
+
     void StyleAgentPrivate::setupSystemThemeHook() {
         g_styleAgentSet->insert(this);
         SystemSettingEventFilter::install();
-
-        // Initialize `systemTheme` variable
     }
 
     void StyleAgentPrivate::removeSystemThemeHook() {

@@ -10,9 +10,6 @@ namespace QWK {
 
     StyleAgentPrivate::~StyleAgentPrivate() = default;
 
-    void StyleAgentPrivate::init() {
-    }
-
     void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
         if (theme == systemTheme)
             return;

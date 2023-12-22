@@ -327,6 +327,13 @@ namespace QWK {
         return value.first;
     }
 
+    static inline bool isHighContrastModeEnabled() {
+        HIGHCONTRASTW hc{};
+        hc.cbSize = sizeof(hc);
+        ::SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(hc), &hc, FALSE);
+        return (hc.dwFlags & HCF_HIGHCONTRASTON);
+    }
+
     static inline bool isDarkThemeActive() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
