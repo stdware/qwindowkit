@@ -724,8 +724,8 @@ namespace QWK {
 
 #if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         {
-            DWORD style = ::GetWindowLongW(hWnd, GWL_STYLE);
-            ::SetWindowLongW(hWnd, GWL_STYLE, style | WS_THICKFRAME | WS_CAPTION);
+            auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
+            ::SetWindowLongPtrW(hWnd, GWL_STYLE, style | WS_THICKFRAME | WS_CAPTION);
         }
 #endif
 
