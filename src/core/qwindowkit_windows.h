@@ -65,6 +65,13 @@ namespace QWK {
                 rovi.dwBuildNumber >= 22000);
     }
 
+    inline bool IsWindows101903OrGreater_Real() {
+        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                rovi.dwBuildNumber >= 18362);
+    }
+
     inline bool IsWindows101809OrGreater_Real() {
         RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
         return (rovi.dwMajorVersion > 10) ||

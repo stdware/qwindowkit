@@ -132,7 +132,24 @@ namespace QWK {
     };
     using PWINDOWCOMPOSITIONATTRIBDATA = WINDOWCOMPOSITIONATTRIBDATA *;
 
+    enum PREFERRED_APP_MODE
+    {
+        PAM_DEFAULT = 0, // Default behavior on systems before Win10 1809. It indicates the application doesn't support dark mode at all.
+        PAM_AUTO = 1, // Available since Win10 1809, let system decide whether to enable dark mode or not.
+        PAM_DARK = 2, // Available since Win10 1903, force dark mode regardless of the system theme.
+        PAM_LIGHT = 3, // Available since Win10 1903, force light mode regardless of the system theme.
+        PAM_MAX = 4
+    };
+
     using SetWindowCompositionAttributePtr = BOOL(WINAPI *)(HWND, PWINDOWCOMPOSITIONATTRIBDATA);
+
+    // Win10 1809 (10.0.17763)
+    using RefreshImmersiveColorPolicyStatePtr = VOID(WINAPI *)(VOID); // Ordinal 104
+    using AllowDarkModeForWindowPtr = BOOL(WINAPI *)(HWND, BOOL); // Ordinal 133
+    using AllowDarkModeForAppPtr = BOOL(WINAPI *)(BOOL); // Ordinal 135
+    using FlushMenuThemesPtr = VOID(WINAPI *)(VOID); // Ordinal 136
+    // Win10 1903 (10.0.18362)
+    using SetPreferredAppModePtr = PREFERRED_APP_MODE(WINAPI *)(PREFERRED_APP_MODE); // Ordinal 135
 
     namespace {
 
@@ -161,6 +178,11 @@ namespace QWK {
 #undef DYNAMIC_API_DECLARE
 
             SetWindowCompositionAttributePtr pSetWindowCompositionAttribute = nullptr;
+            RefreshImmersiveColorPolicyStatePtr pRefreshImmersiveColorPolicyState = nullptr;
+            AllowDarkModeForWindowPtr pAllowDarkModeForWindow = nullptr;
+            AllowDarkModeForAppPtr pAllowDarkModeForApp = nullptr;
+            FlushMenuThemesPtr pFlushMenuThemes = nullptr;
+            SetPreferredAppModePtr pSetPreferredAppMode = nullptr;
 
         private:
             DynamicApis() {
@@ -190,6 +212,18 @@ namespace QWK {
                 DYNAMIC_API_RESOLVE(winmm, timeEndPeriod);
 
 #undef DYNAMIC_API_RESOLVE
+
+#define UNDOC_API_RESOLVE(DLL, NAME, ORDINAL)                                                             \
+    p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(MAKEINTRESOURCEA(ORDINAL)))
+
+                QSystemLibrary uxtheme(QStringLiteral("uxtheme"));
+                UNDOC_API_RESOLVE(uxtheme, RefreshImmersiveColorPolicyState, 104);
+                UNDOC_API_RESOLVE(uxtheme, AllowDarkModeForWindow, 133);
+                UNDOC_API_RESOLVE(uxtheme, AllowDarkModeForApp, 135);
+                UNDOC_API_RESOLVE(uxtheme, FlushMenuThemes, 136);
+                UNDOC_API_RESOLVE(uxtheme, SetPreferredAppMode, 135);
+
+#undef UNDOC_API_RESOLVE
             }
 
             ~DynamicApis() = default;
@@ -296,6 +330,11 @@ namespace QWK {
 
     static inline bool isWin101809OrGreater() {
         static const bool result = IsWindows101809OrGreater_Real();
+        return result;
+    }
+
+    static inline bool isWin101903OrGreater() {
+        static const bool result = IsWindows101903OrGreater_Real();
         return result;
     }
 

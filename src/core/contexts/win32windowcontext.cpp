@@ -937,18 +937,24 @@ namespace QWK {
             if (!isWin101809OrGreater()) {
                 return false;
             }
+
             BOOL enable = attribute.toBool();
+
+            if (isWin101903OrGreater()) {
+                apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
+            } else {
+                apis.pAllowDarkModeForApp(enable);
+            }
+
             for (const auto attr : {
                     _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
                     _DWMWA_USE_IMMERSIVE_DARK_MODE,
             }) {
                 apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
             }
-            WINDOWCOMPOSITIONATTRIBDATA wcad{};
-            wcad.Attrib = WCA_USEDARKMODECOLORS;
-            wcad.pvData = &enable;
-            wcad.cbData = sizeof(enable);
-            apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+
+            apis.pFlushMenuThemes();
+
             return true;
         }
         return false;
