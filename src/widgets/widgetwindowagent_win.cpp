@@ -1,11 +1,9 @@
 #include "widgetwindowagent_p.h"
 
-#include <QWKCore/qwkconfig.h>
-#include <QWKCore/qwkglobal.h>
-
 #include <QtGui/QPainter>
 
 #include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {

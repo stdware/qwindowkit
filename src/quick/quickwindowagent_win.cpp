@@ -3,10 +3,13 @@
 #include <QtQuick/QQuickPaintedItem>
 #include <QtQuick/private/qquickitem_p.h>
 
+#include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
     class BorderItem : public QQuickPaintedItem, public NativeEventFilter {
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
@@ -109,13 +112,16 @@ namespace QWK {
     void BorderItem::_q_windowActivityChanged() {
         update();
     }
+#endif
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         // Install painting hook
         auto ctx = context.get();
         if (ctx->property("needBorderPainter").toBool()) {
             std::ignore = new BorderItem(hostWindow->contentItem(), ctx);
         }
+#endif
     }
 
 }
