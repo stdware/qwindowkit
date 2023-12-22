@@ -19,6 +19,7 @@
 #include <QtCore/private/qsystemlibrary_p.h>
 #include <QtCore/private/qwinregistry_p.h>
 
+#include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 #include <QtGui/QPalette>
 
