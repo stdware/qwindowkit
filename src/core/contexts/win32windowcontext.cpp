@@ -729,16 +729,6 @@ namespace QWK {
         }
 #endif
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-        for (const auto attr : {
-                 _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
-                 _DWMWA_USE_IMMERSIVE_DARK_MODE,
-             }) {
-            const BOOL enable = TRUE;
-            DynamicApis::instance().pDwmSetWindowAttribute(hWnd, attr, &enable, sizeof(enable));
-        }
-#endif
-
         // Add managed window
         addManagedWindow(m_windowHandle, hWnd, this);
 
@@ -942,6 +932,23 @@ namespace QWK {
                 }
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
+            return true;
+        } else if (key == QStringLiteral("dark-mode")) {
+            if (!isWin101809OrGreater()) {
+                return false;
+            }
+            BOOL enable = attribute.toBool();
+            for (const auto attr : {
+                    _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                    _DWMWA_USE_IMMERSIVE_DARK_MODE,
+            }) {
+                apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
+            }
+            WINDOWCOMPOSITIONATTRIBDATA wcad{};
+            wcad.Attrib = WCA_USEDARKMODECOLORS;
+            wcad.pvData = &enable;
+            wcad.cbData = sizeof(enable);
+            apis.pSetWindowCompositionAttribute(hwnd, &wcad);
             return true;
         }
         return false;

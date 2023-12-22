@@ -291,6 +291,10 @@ void MainWindow::loadStyleSheet(Theme theme) {
         return;
     currentTheme = theme;
 
+#ifdef Q_OS_WIN
+    windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), currentTheme == Dark);
+#endif
+
     if (QFile qss(theme == Dark ? QStringLiteral(":/dark-style.qss")
                                 : QStringLiteral(":/light-style.qss"));
         qss.open(QIODevice::ReadOnly | QIODevice::Text)) {

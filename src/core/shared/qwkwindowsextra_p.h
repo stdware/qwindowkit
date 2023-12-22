@@ -293,6 +293,11 @@ namespace QWK {
         return result;
     }
 
+    static inline bool isWin101809OrGreater() {
+        static const bool result = IsWindows101809OrGreater_Real();
+        return result;
+    }
+
     static inline bool isWin11OrGreater() {
         static const bool result = IsWindows11OrGreater_Real();
         return result;
