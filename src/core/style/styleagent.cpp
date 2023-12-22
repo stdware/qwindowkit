@@ -8,7 +8,13 @@ namespace QWK {
     StyleAgentPrivate::StyleAgentPrivate() {
     }
 
-    StyleAgentPrivate::~StyleAgentPrivate() = default;
+    StyleAgentPrivate::~StyleAgentPrivate() {
+        removeSystemThemeHook();
+    }
+
+    void StyleAgentPrivate::init() {
+        setupSystemThemeHook();
+    }
 
     void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
         if (theme == systemTheme)
@@ -20,13 +26,9 @@ namespace QWK {
     }
 
     StyleAgent::StyleAgent(QObject *parent) : StyleAgent(*new StyleAgentPrivate(), parent) {
-        Q_D(StyleAgent);
-        d->setupSystemThemeHook();
     }
 
     StyleAgent::~StyleAgent() {
-        Q_D(StyleAgent);
-        d->removeSystemThemeHook();
     }
 
     StyleAgent::SystemTheme StyleAgent::systemTheme() const {

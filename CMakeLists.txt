@@ -12,8 +12,9 @@ option(QWINDOWKIT_BUILD_EXAMPLES "Build examples" OFF)
 option(QWINDOWKIT_BUILD_DOCUMENTATIONS "Build documentations" OFF)
 option(QWINDOWKIT_INSTALL "Install library" ON)
 
-option(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT "Enable Qt Window Context anyway" OFF)
+option(QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT "Enable Qt Window Context anyway" OFF)
 option(QWINDOWKIT_ENABLE_STYLE_AGENT "Enable building style agent" ON)
+option(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDER "Disable system border on Windows" ON)
 
 # ----------------------------------
 # CMake Settings

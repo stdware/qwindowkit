@@ -28,8 +28,8 @@ namespace QWK {
 
         StyleAgent::SystemTheme systemTheme = StyleAgent::Unknown;
 
-        virtual void setupSystemThemeHook();
-        virtual void removeSystemThemeHook();
+        void setupSystemThemeHook();
+        void removeSystemThemeHook();
 
         void notifyThemeChanged(StyleAgent::SystemTheme theme);
     };

@@ -85,7 +85,7 @@ namespace QWK {
 
     SystemSettingEventFilter *SystemSettingEventFilter::instance = nullptr;
 
-    void StyleAgentPrivate::init() {
+    void StyleAgentPrivate::setupSystemThemeHook() {
         if (isHighContrastModeEnabled()) {
             systemTheme = StyleAgent::HighContrast;
         } else if (isDarkThemeActive()) {
@@ -93,9 +93,7 @@ namespace QWK {
         } else {
             systemTheme = StyleAgent::Light;
         }
-    }
 
-    void StyleAgentPrivate::setupSystemThemeHook() {
         g_styleAgentSet->insert(this);
         SystemSettingEventFilter::install();
     }

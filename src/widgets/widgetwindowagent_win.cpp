@@ -1,5 +1,8 @@
 #include "widgetwindowagent_p.h"
 
+#include <QWKCore/qwkconfig.h>
+#include <QWKCore/qwkglobal.h>
+
 #include <QtGui/QPainter>
 
 #include <QWKCore/qwindowkit_windows.h>
@@ -7,6 +10,7 @@
 
 namespace QWK {
 
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
     class WidgetBorderHandler : public QObject, public NativeEventFilter {
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
@@ -105,13 +109,16 @@ namespace QWK {
         QWidget *widget;
         AbstractWindowContext *ctx;
     };
+#endif
 
     void WidgetWindowAgentPrivate::setupWindows10BorderWorkaround() {
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         // Install painting hook
         auto ctx = context.get();
         if (ctx->property("needBorderPainter").toBool()) {
             std::ignore = new WidgetBorderHandler(hostWidget, ctx);
         }
+#endif
     }
 
 }

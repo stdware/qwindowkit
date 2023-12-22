@@ -33,7 +33,7 @@ else()
     )
 endif()
 
-if(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
+if(QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT)
     list(APPEND _src
         contexts/qtwindowcontext_p.h
         contexts/qtwindowcontext.cpp

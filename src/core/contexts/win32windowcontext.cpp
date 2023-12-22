@@ -21,6 +21,8 @@
 #  include <QtGui/qpa/qplatformwindow_p.h>
 #endif
 
+#include <QWKCore/qwkconfig.h>
+
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
 
@@ -55,7 +57,7 @@ namespace QWK {
 
     static inline quint32 getDpiForWindow(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) { // Win10
+        if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -712,10 +714,20 @@ namespace QWK {
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
-        if (!isWin10OrGreater()) {
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+        if (!isWin10OrGreater())
+#endif
+        {
             static constexpr const MARGINS margins = {1, 1, 1, 1};
             DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
         }
+
+#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+        {
+            DWORD style = ::GetWindowLongW(hWnd, GWL_STYLE);
+            ::SetWindowLongW(hWnd, GWL_STYLE, style | WS_THICKFRAME | WS_CAPTION);
+        }
+#endif
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
         for (const auto attr : {
@@ -792,7 +804,8 @@ namespace QWK {
         const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
         const DynamicApis &apis = DynamicApis::instance();
         static constexpr const MARGINS extendMargins = {-1, -1, -1, -1};
-        static const auto defaultMargins = isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
+        static const auto defaultMargins =
+            isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
         if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
@@ -1459,6 +1472,7 @@ namespace QWK {
                 int frameSize = getResizeBorderThickness(hWnd);
                 bool isTop = (nativeLocalPos.y < frameSize);
 
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
                 if (isWin10OrGreater()) {
                     // This will handle the left, right and bottom parts of the frame
                     // because we didn't change them.
@@ -1501,7 +1515,9 @@ namespace QWK {
                     }
                     *result = HTCLIENT;
                     return true;
-                } else {
+                } else
+#endif
+                {
                     if (full) {
                         *result = HTCLIENT;
                         return true;
@@ -1651,6 +1667,7 @@ namespace QWK {
         Q_UNUSED(message)
         Q_UNUSED(this)
 
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         // Windows是根据这个消息的返回值来设置窗口的客户区（窗口中真正显示的内容）
         // 和非客户区（标题栏、窗口边框、菜单栏和状态栏等Windows系统自行提供的部分
         // ，不过对于Qt来说，除了标题栏和窗口边框，非客户区基本也都是自绘的）的范
@@ -1858,6 +1875,7 @@ namespace QWK {
                 }
             }
         }
+#endif
         // We should call this function only before the function returns.
         syncPaintEventWithDwm();
         // By returning WVR_REDRAW we can make the window resizing look
