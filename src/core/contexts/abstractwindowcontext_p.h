@@ -88,7 +88,7 @@ namespace QWK {
 #endif
 
         QObject *m_titleBar{};
-        std::array<QObject *, WindowAgentBase::NumSystemButton> m_systemButtons{};
+        std::array<QObject *, WindowAgentBase::Close + 1> m_systemButtons{};
 
         QVariantHash m_windowAttributes;
 

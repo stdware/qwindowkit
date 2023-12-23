@@ -9,6 +9,9 @@
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+
+    class WidgetBorderHandler;
+
     class WidgetBorderHandler : public QObject, public NativeEventFilter {
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
@@ -73,6 +76,16 @@ namespace QWK {
                         (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))
                         break;
 
+                    // Friend class helping to call `event`
+                    class HackedWidget : public QWidget {
+                    public:
+                        friend class WidgetBorderHandler;
+                    };
+
+                    // Let the widget paint first
+                    static_cast<HackedWidget *>(widget)->event(event);
+
+                    // Draw border
                     auto paintEvent = static_cast<QPaintEvent *>(event);
                     auto rect = paintEvent->rect();
                     auto region = paintEvent->region();
@@ -84,7 +97,7 @@ namespace QWK {
                         &region,
                     };
                     ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
-                    break;
+                    return true;
                 }
 
                 case QEvent::WindowStateChange: {

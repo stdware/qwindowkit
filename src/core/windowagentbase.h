@@ -24,7 +24,6 @@ namespace QWK {
             Minimize,
             Maximize,
             Close,
-            NumSystemButton,
         };
         Q_ENUM(SystemButton)
 
