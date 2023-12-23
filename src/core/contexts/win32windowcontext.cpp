@@ -49,6 +49,21 @@ namespace QWK {
     // Original Qt window proc function
     static WNDPROC g_qtWindowProc = nullptr;
 
+    static inline bool
+#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+        constexpr
+#endif
+
+        isSystemBorderEnabled() {
+        return
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+            isWin10OrGreater()
+#else
+            false
+#endif
+                ;
+    }
+
     static inline void triggerFrameChange(HWND hwnd) {
         ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
@@ -548,7 +563,7 @@ namespace QWK {
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
         const auto margins = [hWnd]() -> QMargins {
             const auto titleBarHeight = int(getTitleBarHeight(hWnd));
-            if (isWin10OrGreater()) {
+            if (isSystemBorderEnabled()) {
                 return {0, -titleBarHeight, 0, 0};
             } else {
                 const auto frameSize = int(getResizeBorderThickness(hWnd));
@@ -692,7 +707,8 @@ namespace QWK {
     }
 
     bool Win32WindowContext::needBorderPainter() const {
-        return isWin10OrGreater() && !isWin11OrGreater();
+        Q_UNUSED(this)
+        return isSystemBorderEnabled() && !isWin11OrGreater();
     }
 
     int Win32WindowContext::borderThickness() const {
@@ -714,19 +730,10 @@ namespace QWK {
         auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
 
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-        if (!isWin10OrGreater()) {
+        if (!isSystemBorderEnabled()) {
             static constexpr const MARGINS margins = {1, 1, 1, 1};
             DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
         }
-#else
-        {
-            static const MARGINS margins =
-                isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
-            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
-        }
-#endif
-
 
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
@@ -804,7 +811,7 @@ namespace QWK {
         const DynamicApis &apis = DynamicApis::instance();
         static constexpr const MARGINS extendMargins = {-1, -1, -1, -1};
         static const auto defaultMargins =
-            isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
+            isSystemBorderEnabled() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
         if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
@@ -1495,8 +1502,7 @@ namespace QWK {
                 int frameSize = getResizeBorderThickness(hWnd);
                 bool isTop = (nativeLocalPos.y < frameSize);
 
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-                if (isWin10OrGreater()) {
+                if (isSystemBorderEnabled()) {
                     // This will handle the left, right and bottom parts of the frame
                     // because we didn't change them.
                     LRESULT originalHitTestResult = ::DefWindowProcW(hWnd, WM_NCHITTEST, 0, lParam);
@@ -1538,9 +1544,7 @@ namespace QWK {
                     }
                     *result = HTCLIENT;
                     return true;
-                } else
-#endif
-                {
+                } else {
                     if (full) {
                         *result = HTCLIENT;
                         return true;
@@ -1626,7 +1630,7 @@ namespace QWK {
                 break;
         }
 
-        if (!isWin10OrGreater()) {
+        if (!isSystemBorderEnabled()) {
             switch (message) {
                 case WM_NCUAHDRAWCAPTION:
                 case WM_NCUAHDRAWFRAME: {
@@ -1777,8 +1781,7 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-        if (isWin10OrGreater()) {
+        if (isSystemBorderEnabled()) {
             // Store the original top margin before the default window procedure applies the
             // default frame.
             const LONG originalTop = clientRect->top;
@@ -1805,7 +1808,7 @@ namespace QWK {
             // technique to bring the top border back.
             clientRect->top = originalTop;
         }
-#endif
+
         const bool max = IsMaximized(hWnd);
         const bool full = isFullScreen(hWnd);
         // We don't need this correction when we're fullscreen. We will
@@ -1820,16 +1823,11 @@ namespace QWK {
             // a window when it's maximized unless you restore it).
             const quint32 frameSize = getResizeBorderThickness(hWnd);
             clientRect->top += frameSize;
-
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-            if (!isWin10OrGreater()) {
-#endif
+            if (!isSystemBorderEnabled()) {
                 clientRect->bottom -= frameSize;
                 clientRect->left += frameSize;
                 clientRect->right -= frameSize;
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
             }
-#endif
         }
         // Attempt to detect if there's an autohide taskbar, and if
         // there is, reduce our size a bit on the side with the taskbar,
@@ -1928,10 +1926,11 @@ namespace QWK {
         const auto getNativeGlobalPosFromKeyboard = [hWnd]() -> POINT {
             const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
             const quint32 frameSize = getResizeBorderThickness(hWnd);
-            const quint32 horizontalOffset = ((maxOrFull || !isWin10OrGreater()) ? 0 : frameSize);
+            const quint32 horizontalOffset =
+                ((maxOrFull || !isSystemBorderEnabled()) ? 0 : frameSize);
             const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> quint32 {
                 const quint32 titleBarHeight = getTitleBarHeight(hWnd);
-                if (!isWin10OrGreater()) {
+                if (!isSystemBorderEnabled()) {
                     return titleBarHeight;
                 }
                 if (isWin11OrGreater()) {
