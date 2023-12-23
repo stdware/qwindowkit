@@ -29,7 +29,7 @@ namespace QWK {
         Q_ENUM(SystemButton)
 
         QVariant windowAttribute(const QString &key) const;
-        bool setWindowAttribute(const QString &key, const QVariant &attribute);
+        Q_INVOKABLE bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
     Q_SIGNALS:
         void systemThemeChanged();
