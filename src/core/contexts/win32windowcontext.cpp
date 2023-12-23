@@ -715,12 +715,18 @@ namespace QWK {
         auto hWnd = reinterpret_cast<HWND>(winId);
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-        if (!isWin10OrGreater())
-#endif
-        {
+        if (!isWin10OrGreater()) {
             static constexpr const MARGINS margins = {1, 1, 1, 1};
             DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
         }
+#else
+        {
+            static const MARGINS margins =
+                isWin10OrGreater() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
+            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
+        }
+#endif
+
 
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
@@ -852,52 +858,53 @@ namespace QWK {
             }
             return true;
         } else if (key == QStringLiteral("acrylic-material")) {
-            if (!isWin10OrGreater()) {
+            if (!isWin11OrGreater()) {
                 return false;
             }
-            if (attribute.userType() == QMetaType::QColor) {
+            if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
-                if (isWin11OrGreater()) {
-                    const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                                sizeof(backdropType));
-                } else {
-                    auto gradientColor = attribute.value<QColor>();
 
-                    ACCENT_POLICY policy{};
-                    policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
-                    policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
-                    // This API expects the #AABBGGRR format.
-                    policy.dwGradientColor =
-                        DWORD(qRgba(gradientColor.blue(), gradientColor.green(),
-                                    gradientColor.red(), gradientColor.alpha()));
-                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                    wcad.Attrib = WCA_ACCENT_POLICY;
-                    wcad.pvData = &policy;
-                    wcad.cbData = sizeof(policy);
-                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-                }
+                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
+                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
+                                            sizeof(backdropType));
+
+                // PRIVATE API REFERENCE:
+                //     QColor gradientColor = {};
+                //     ACCENT_POLICY policy{};
+                //     policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
+                //     policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
+                //     // This API expects the #AABBGGRR format.
+                //     policy.dwGradientColor =
+                //         DWORD(qRgba(gradientColor.blue(), gradientColor.green(),
+                //                     gradientColor.red(), gradientColor.alpha()));
+                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                //     wcad.Attrib = WCA_ACCENT_POLICY;
+                //     wcad.pvData = &policy;
+                //     wcad.cbData = sizeof(policy);
+                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
             } else {
-                if (isWin11OrGreater()) {
-                    const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                                sizeof(backdropType));
-                } else {
-                    ACCENT_POLICY policy{};
-                    policy.dwAccentState = ACCENT_DISABLED;
-                    policy.dwAccentFlags = ACCENT_NONE;
-                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                    wcad.Attrib = WCA_ACCENT_POLICY;
-                    wcad.pvData = &policy;
-                    wcad.cbData = sizeof(policy);
-                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-                }
+                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
+                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
+                                            sizeof(backdropType));
+
+                // PRIVATE API REFERENCE:
+                //     ACCENT_POLICY policy{};
+                //     policy.dwAccentState = ACCENT_DISABLED;
+                //     policy.dwAccentFlags = ACCENT_NONE;
+                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
+                //     wcad.Attrib = WCA_ACCENT_POLICY;
+                //     wcad.pvData = &policy;
+                //     wcad.cbData = sizeof(policy);
+                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
+
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
         } else if (key == QStringLiteral("dwm-blur")) {
+            // TODO: Optimize
+            // Currently not available!!!
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.

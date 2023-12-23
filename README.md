@@ -114,6 +114,8 @@ TODO
 
 ### Qt Widgets Application
 
+#### Setup Window Agent
+
 First, setup `WidgetWindowAgent` for your top `QWidget` instance. (Each window needs its own agent.)
 
 ```c++
@@ -134,6 +136,8 @@ auto w = new MyWidget();
 auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
+
+#### Construct Title bar
 
 Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
 
@@ -165,9 +169,20 @@ agent->setHitTestVisible(myTitleBar->menuBar(), true);
 
 The rest region within the title bar will be regarded as the draggable area for the user to move the window.
 
-Check [`MainWindow`](examples/mainwindow/mainwindow.cpp#L108) example to get detailed information.
+
+#### Window Attributes (Experimental)
+
+On Windows 11, you can use this API to enable system effects.
+
+```c++
+agent->setWindowAttribute("mica", true);
+```
+
+Available keys: `mica`, `mica-alt`, `acrylic`, `dark-mode`.
 
 ### Qt Quick Application
+
+#### Initialization
 
 Make sure you have registered `QWindowKit` into QtQuick:
 
@@ -183,6 +198,8 @@ int main(int argc, char *argv[])
     // ...
 }
 ```
+
+#### Setup Window Components
 
 Then you can use `QWindowKit` data types and classes by importing it's URI:
 
@@ -205,6 +222,10 @@ Window {
 ```
 
 You can omit the version number or use "auto" instead of "1.0" for the module URI if you are using Qt6.
+
+#### Window Attributes (Experimental)
+
+TODO
 
 ### Learn More
 
