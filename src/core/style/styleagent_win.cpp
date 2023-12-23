@@ -55,10 +55,7 @@ namespace QWK {
                     }
                 }();
                 for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-                    if (ap->systemTheme != theme) {
-                        ap->systemTheme = theme;
-                        ap->notifyThemeChanged(theme);
-                    }
+                    ap->notifyThemeChanged(theme);
                 }
             }
 
