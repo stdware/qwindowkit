@@ -153,8 +153,7 @@ void MainWindow::installWindowAgent() {
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
         acrylicAction->setCheckable(true);
         connect(acrylicAction, &QAction::triggered, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"),
-                                                 QColor::fromRgbF(1.f, 1.f, 1.f, 0.6f))) {
+            if (!windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), true)) {
                 return;
             }
             setProperty("custom-style", checked);
