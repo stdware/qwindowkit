@@ -722,12 +722,15 @@ namespace QWK {
             DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
         }
 
-#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
-            ::SetWindowLongPtrW(hWnd, GWL_STYLE, (style | WS_THICKFRAME) & (~WS_CAPTION));
-        }
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+            ::SetWindowLongPtrW(hWnd, GWL_STYLE, style & (~WS_SYSMENU));
+#else
+            ::SetWindowLongPtrW(hWnd, GWL_STYLE,
+                                (style | WS_THICKFRAME | WS_CAPTION) & (~WS_SYSMENU));
 #endif
+        }
 
         // Add managed window
         addManagedWindow(m_windowHandle, hWnd, this);
@@ -947,9 +950,9 @@ namespace QWK {
             }
 
             for (const auto attr : {
-                    _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
-                    _DWMWA_USE_IMMERSIVE_DARK_MODE,
-            }) {
+                     _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                     _DWMWA_USE_IMMERSIVE_DARK_MODE,
+                 }) {
                 apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
             }
 
@@ -1810,11 +1813,16 @@ namespace QWK {
             // a window when it's maximized unless you restore it).
             const quint32 frameSize = getResizeBorderThickness(hWnd);
             clientRect->top += frameSize;
+
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
             if (!isWin10OrGreater()) {
+#endif
                 clientRect->bottom -= frameSize;
                 clientRect->left += frameSize;
                 clientRect->right -= frameSize;
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
             }
+#endif
         }
         // Attempt to detect if there's an autohide taskbar, and if
         // there is, reduce our size a bit on the side with the taskbar,

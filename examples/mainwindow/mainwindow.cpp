@@ -143,7 +143,9 @@ void MainWindow::installWindowAgent() {
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
         dwmBlurAction->setCheckable(true);
         connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked) {
-            windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), checked);
+            if (!windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), checked)) {
+                return;
+            }
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -151,7 +153,10 @@ void MainWindow::installWindowAgent() {
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
         acrylicAction->setCheckable(true);
         connect(acrylicAction, &QAction::triggered, this, [this](bool checked) {
-            windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), QColor::fromRgbF(1.f, 1.f, 1.f, 0.6f));
+            if (!windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"),
+                                                 QColor::fromRgbF(1.f, 1.f, 1.f, 0.6f))) {
+                return;
+            }
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -159,7 +164,9 @@ void MainWindow::installWindowAgent() {
         auto micaAction = new QAction(tr("Enable mica"), menuBar);
         micaAction->setCheckable(true);
         connect(micaAction, &QAction::triggered, this, [this](bool checked) {
-            windowAgent->setWindowAttribute(QStringLiteral("mica"), checked);
+            if (!windowAgent->setWindowAttribute(QStringLiteral("mica"), checked)) {
+                return;
+            }
             setProperty("custom-style", checked);
             style()->polish(this);
         });
@@ -167,7 +174,9 @@ void MainWindow::installWindowAgent() {
         auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
         micaAltAction->setCheckable(true);
         connect(micaAltAction, &QAction::triggered, this, [this](bool checked) {
-            windowAgent->setWindowAttribute(QStringLiteral("mica-alt"), checked);
+            if (!windowAgent->setWindowAttribute(QStringLiteral("mica-alt"), checked)) {
+                return;
+            }
             setProperty("custom-style", checked);
             style()->polish(this);
         });

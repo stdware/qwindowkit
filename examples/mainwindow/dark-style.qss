@@ -37,7 +37,7 @@ QWK--WindowBar>QAbstractButton#min-button {
 
 QWK--WindowBar>QAbstractButton#min-button:hover,
 QWK--WindowBar>QAbstractButton#min-button:pressed {
-    background-color: rgba(0, 0, 0, 15%);
+    background-color: rgba(255, 255, 255, 15%);
 }
 
 QWK--WindowBar>QAbstractButton#max-button {
@@ -47,7 +47,7 @@ QWK--WindowBar>QAbstractButton#max-button {
 
 QWK--WindowBar>QAbstractButton#max-button:hover,
 QWK--WindowBar>QAbstractButton#max-button:pressed {
-    background-color: rgba(0, 0, 0, 15%);
+    background-color: rgba(255, 255, 255, 15%);
 }
 
 QWK--WindowBar>QAbstractButton#close-button {
