@@ -9,12 +9,13 @@ Support as many system native features as possible without requiring additional 
 
 <!-- ## Why using QWindowKit?
 
-Here're why `QWindowKit` is better than `FramelessHelper`:
+Here are why `QWindowKit` is better than `FramelessHelper`:
 
 + Full support of Windows 11 Snap Layout
 + Most of the redundant codes and architectural flaws are eliminated, and the binary size compiled by MSVC is about 1/9 of `FramelessHelper`
 + A critical issue that moving window forces the entire window to be repainted on Windows is fixed
 + Capable to cope with WinId mutation, and `QWebEngineView` is perfectly supported
++ Better workaround to handle Windows 10 top border issue
 + Simpler APIs, more detailed documentation and comments
 + A lot of bugs are fixed
 

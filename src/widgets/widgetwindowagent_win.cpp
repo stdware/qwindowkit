@@ -90,7 +90,7 @@ namespace QWK {
                     // Friend class helping to call `event`
                     class HackedWidget : public QWidget {
                     public:
-                        friend class WidgetBorderHandler;
+                        friend class QWK::WidgetBorderHandler;
                     };
 
                     // Let the widget paint first

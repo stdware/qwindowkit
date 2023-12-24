@@ -35,6 +35,8 @@ namespace QWK {
     protected:
         QVector<NativeEventFilter *> m_nativeEventFilters;
 
+        friend class NativeEventFilter;
+
         Q_DISABLE_COPY(NativeEventDispatcher)
     };
 
@@ -50,9 +52,9 @@ namespace QWK {
     protected:
         NativeEventDispatcher *m_dispatcher;
 
-        Q_DISABLE_COPY(NativeEventFilter)
-
         friend class NativeEventDispatcher;
+
+        Q_DISABLE_COPY(NativeEventFilter)
     };
 
     // Automatically install to QCoreApplication at construction
