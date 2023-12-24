@@ -406,9 +406,8 @@ namespace QWK {
                                                          _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
                                                          &enabled, sizeof(enabled)))) {
             return enabled;
-        } else {
-            return false;
         }
+        return false;
     }
 
     static inline QColor getAccentColor() {

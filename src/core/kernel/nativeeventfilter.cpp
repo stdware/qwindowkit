@@ -30,6 +30,10 @@ namespace QWK {
         return false;
     }
 
+    void NativeEventDispatcher::resume(const QByteArray &eventType, void *message,
+                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
+    }
+
     void NativeEventDispatcher::installNativeEventFilter(NativeEventFilter *filter) {
         if (!filter || filter->m_dispatcher)
             return;

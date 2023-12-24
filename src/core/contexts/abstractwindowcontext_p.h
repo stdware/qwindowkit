@@ -64,7 +64,8 @@ namespace QWK {
             RaiseWindowHook,
             ShowSystemMenuHook,
             DefaultColorsHook,
-            DrawWindows10BorderHook,     // Only works on Windows 10
+            DrawWindows10BorderHook,     // Only works on Windows 10, emulated workaround
+            DrawWindows10BorderHook2,    // Only works on Windows 10, native workaround
             SystemButtonAreaChangedHook, // Only works on Mac
         };
         virtual void virtual_hook(int id, void *data);

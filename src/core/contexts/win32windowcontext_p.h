@@ -38,6 +38,9 @@ namespace QWK {
         bool needBorderPainter() const;
         int borderThickness() const;
 
+        void resume(const QByteArray &eventType, void *message,
+                    QT_NATIVE_EVENT_RESULT_TYPE *result) override;
+
     protected:
         void winIdChanged() override;
         bool windowAttributeChanged(const QString &key, const QVariant &attribute,

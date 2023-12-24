@@ -5,6 +5,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTimer>
+#include <QtCore/QDateTime>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
@@ -658,6 +659,7 @@ namespace QWK {
             }
 
             case DrawWindows10BorderHook: {
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
                 if (!windowId)
                     return;
 
@@ -668,7 +670,7 @@ namespace QWK {
                 const auto hwnd = reinterpret_cast<HWND>(windowId);
 
                 QPen pen;
-                pen.setWidth(getWindowFrameBorderThickness(hwnd) * 2);
+                pen.setWidth(int(getWindowFrameBorderThickness(hwnd)) * 2);
 
                 const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
                 if (m_delegate->isWindowActive(m_host)) {
@@ -688,7 +690,7 @@ namespace QWK {
                 }
                 painter.save();
 
-                // We needs anti-aliasing to give us better result.
+                // We need antialiasing to give us better result.
                 painter.setRenderHint(QPainter::Antialiasing);
 
                 painter.setPen(pen);
@@ -697,6 +699,33 @@ namespace QWK {
                     QPoint{m_windowHandle->width(), 0}
                 });
                 painter.restore();
+                return;
+#endif
+            }
+
+            case DrawWindows10BorderHook2: {
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+                if (!m_windowHandle)
+                    return;
+
+                // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L1025
+                // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe#extending-the-client-frame
+                // Draw a black rectangle to make Windows native top border show
+
+                auto hWnd = reinterpret_cast<HWND>(windowId);
+                HDC hdc = ::GetDC(hWnd);
+                RECT windowRect{};
+                ::GetClientRect(hWnd, &windowRect);
+                RECT rcTopBorder = {
+                    0,
+                    0,
+                    RECT_WIDTH(windowRect),
+                    int(getWindowFrameBorderThickness(hWnd)),
+                };
+                ::FillRect(hdc, &rcTopBorder,
+                           reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
+                ::ReleaseDC(hWnd, hdc);
+#endif
                 return;
             }
 
@@ -712,7 +741,15 @@ namespace QWK {
     }
 
     int Win32WindowContext::borderThickness() const {
-        return getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId));
+        return int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)));
+    }
+
+    void Win32WindowContext::resume(const QByteArray &eventType, void *message,
+                                    QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        const auto msg = static_cast<const MSG *>(message);
+        LRESULT res =
+            ::CallWindowProcW(g_qtWindowProc, msg->hwnd, msg->message, msg->wParam, msg->lParam);
+        *result = decltype(*result)(res);
     }
 
     void Win32WindowContext::winIdChanged() {
@@ -732,6 +769,11 @@ namespace QWK {
 
         if (!isSystemBorderEnabled()) {
             static constexpr const MARGINS margins = {1, 1, 1, 1};
+            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
+        } else if (isWin10OrGreater() && !isWin11OrGreater()) {
+            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
+            // Must call DWM API to extend top frame to client area
+            static constexpr const MARGINS margins = {0, 0, 1, 0};
             DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
         }
 
@@ -956,13 +998,11 @@ namespace QWK {
             }
 
             BOOL enable = attribute.toBool();
-
             if (isWin101903OrGreater()) {
                 apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
-
             for (const auto attr : {
                      _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
                      _DWMWA_USE_IMMERSIVE_DARK_MODE,
@@ -971,7 +1011,6 @@ namespace QWK {
             }
 
             apis.pFlushMenuThemes();
-
             return true;
         }
         return false;

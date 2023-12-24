@@ -115,6 +115,10 @@ void MainWindow::installWindowAgent() {
     windowAgent = new QWK::WidgetWindowAgent(this);
     windowAgent->setup(this);
 
+#ifdef Q_OS_WIN
+    windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), true);
+#endif
+
     // 2. Construct your title bar
     auto menuBar = [this]() {
         auto menuBar = new QMenuBar();
@@ -298,10 +302,6 @@ void MainWindow::loadStyleSheet(Theme theme) {
     if (!styleSheet().isEmpty() && theme == currentTheme)
         return;
     currentTheme = theme;
-
-#ifdef Q_OS_WIN
-    windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), currentTheme == Dark);
-#endif
 
     if (QFile qss(theme == Dark ? QStringLiteral(":/dark-style.qss")
                                 : QStringLiteral(":/light-style.qss"));

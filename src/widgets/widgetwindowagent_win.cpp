@@ -22,16 +22,21 @@ namespace QWK {
             updateGeometry();
         }
 
+        inline bool isNormalWindow() const {
+            return widget->windowState() &
+                   (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen);
+        }
+
         void updateGeometry() {
-            if (widget->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
-                widget->setContentsMargins({});
-            } else {
+            if (isNormalWindow()) {
                 widget->setContentsMargins({
                     0,
                     ctx->property("borderThickness").toInt(),
                     0,
                     0,
                 });
+            } else {
+                widget->setContentsMargins({});
             }
         }
 
@@ -62,6 +67,16 @@ namespace QWK {
                     break;
                 }
 
+                case WM_PAINT: {
+                    // Let Qt paint first
+                    m_dispatcher->resume(eventType, message, result);
+
+                    // Upon receiving the WM_PAINT message, Qt will redraw the entire view, and we
+                    // must wait for it to finish redrawing before drawing this top border area
+                    ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+                    return true;
+                }
+
                 default:
                     break;
             }
@@ -71,11 +86,7 @@ namespace QWK {
         bool eventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
             switch (event->type()) {
-                case QEvent::Paint: {
-                    if (widget->windowState() &
-                        (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen))
-                        break;
-
+                case QEvent::UpdateRequest: {
                     // Friend class helping to call `event`
                     class HackedWidget : public QWidget {
                     public:
@@ -85,18 +96,10 @@ namespace QWK {
                     // Let the widget paint first
                     static_cast<HackedWidget *>(widget)->event(event);
 
-                    // Draw border
-                    auto paintEvent = static_cast<QPaintEvent *>(event);
-                    auto rect = paintEvent->rect();
-                    auto region = paintEvent->region();
-
-                    QPainter painter(widget);
-                    void *args[] = {
-                        &painter,
-                        &rect,
-                        &region,
-                    };
-                    ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
+                    // Due to the timer or user action, Qt will redraw some regions spontaneously,
+                    // even if there is no WM_PAINT message, we must wait for it to finish redrawing
+                    // and then update the upper border area
+                    ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
                     return true;
                 }
 

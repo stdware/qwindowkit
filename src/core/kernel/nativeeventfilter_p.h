@@ -25,6 +25,9 @@ namespace QWK {
         virtual bool dispatch(const QByteArray &eventType, void *message,
                               QT_NATIVE_EVENT_RESULT_TYPE *result);
 
+        virtual void resume(const QByteArray &eventType, void *message,
+                            QT_NATIVE_EVENT_RESULT_TYPE *result);
+
     public:
         void installNativeEventFilter(NativeEventFilter *filter);
         void removeNativeEventFilter(NativeEventFilter *filter);
