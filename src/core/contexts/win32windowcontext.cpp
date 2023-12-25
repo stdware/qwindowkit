@@ -723,8 +723,8 @@ namespace QWK {
         auto hWnd = reinterpret_cast<HWND>(winId);
 
         if (!isSystemBorderEnabled()) {
-            setWindowAttribute(QStringLiteral("extra-margins"),
-                               QVariant::fromValue(QMargins(1, 1, 1, 1)));
+            static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
+            setWindowAttribute(QStringLiteral("extra-margins"), margins);
         }
 
         {

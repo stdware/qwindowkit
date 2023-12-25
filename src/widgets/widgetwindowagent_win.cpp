@@ -58,7 +58,7 @@ namespace QWK {
                     if (LOWORD(msg->wParam) == WA_INACTIVE) {
                         // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
                         // When the window is inactive, there is a transparency bug in the top
-                        // border and we needs to extend the non-client area to the whole title
+                        // border, and we need to extend the non-client area to the whole title
                         // bar.
                         QRect frame =
                             ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
@@ -100,7 +100,7 @@ namespace QWK {
                     static_cast<HackedWindow *>(window)->event(event);
 
                     // Upon receiving the WM_PAINT message, Qt will redraw the entire view, and we
-                    // must wait for it to finish redrawing before drawing this top border area
+                    // must wait for it to finish redrawing before drawing this top border area.
                     ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
                     return true;
                 }
@@ -126,7 +126,7 @@ namespace QWK {
 
                     // Due to the timer or user action, Qt will redraw some regions spontaneously,
                     // even if there is no WM_PAINT message, we must wait for it to finish redrawing
-                    // and then update the upper border area
+                    // and then update the top border area.
                     ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
                     return true;
                 }

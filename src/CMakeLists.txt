@@ -139,43 +139,6 @@ if(QWINDOWKIT_BUILD_QUICK)
 endif()
 
 # ----------------------------------
-# Documentation
-# ----------------------------------
-if(QWINDOWKIT_BUILD_DOCUMENTATIONS)
-    if(NOT DOXYGEN_EXECUTABLE)
-        find_package(Doxygen REQUIRED)
-    endif()
-
-    set(_install_options)
-
-    if(QWINDOWKIT_INSTALL)
-        set(_install_options INSTALL_DIR share/doc/${QWINDOWKIT_INSTALL_NAME})
-    endif()
-
-    set(_doc_targets ${QWINDOWKIT_ENABLED_TARGETS})
-
-    set(QWINDOWKIT_DOXYGEN_TAGFILE
-        ${CMAKE_BUILD_SHARE_DIR}/doc/${QWINDOWKIT_INSTALL_NAME}/${QWINDOWKIT_INSTALL_NAME}_tagfile.xml
-        CACHE FILEPATH "QWindowKit doxygen tag file path" FORCE
-    )
-
-    qm_import(Doxygen)
-    qm_setup_doxygen(QWindowKit_RunDoxygen
-        NAME "QWindowKit"
-        DESCRIPTION "${QWINDOWKIT_PROJECT_DESCRIPTION}"
-        MDFILE ../README.md
-        OUTPUT_DIR ${CMAKE_BUILD_SHARE_DIR}/doc/${QWINDOWKIT_INSTALL_NAME}
-        INPUT ${QWINDOWKIT_ENABLED_SUBDIRECTORIES}
-        TARGETS ${_doc_targets}
-        DEPENDS ${_doc_targets}
-        NO_EXPAND_MACROS Q_OBJECT Q_GADGET Q_DECLARE_TR_FUNCTIONS
-        COMPILE_DEFINITIONS Q_SIGNALS=Q_SIGNALS Q_SLOTS=Q_SLOTS
-        GENERATE_TAGFILE "${QWINDOWKIT_DOXYGEN_TAGFILE}"
-        ${_install_options}
-    )
-endif()
-
-# ----------------------------------
 # Install
 # ----------------------------------
 if(QWINDOWKIT_INSTALL)
