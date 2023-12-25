@@ -27,10 +27,6 @@
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-Q_DECLARE_METATYPE(QMargins)
-#endif
-
 namespace QWK {
 
     // The thickness of an auto-hide taskbar in pixels.
@@ -69,55 +65,6 @@ namespace QWK {
         ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
                            SWP_FRAMECHANGED);
-    }
-
-    static inline quint32 getDpiForWindow(HWND hwnd) {
-        const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) {         // Win10
-            return apis.pGetDpiForWindow(hwnd);
-        } else if (apis.pGetDpiForMonitor) { // Win8.1
-            HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            UINT dpiX{0};
-            UINT dpiY{0};
-            apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-            return dpiX;
-        } else { // Win2K
-            HDC hdc = ::GetDC(nullptr);
-            const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
-            // const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
-            ::ReleaseDC(nullptr, hdc);
-            return quint32(dpiX);
-        }
-    }
-
-    static inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
-        const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetSystemMetricsForDpi) {
-            return ::GetSystemMetricsForDpi(index, dpi);
-        }
-        return ::GetSystemMetrics(index);
-    }
-
-    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
-        const DynamicApis &apis = DynamicApis::instance();
-        if (UINT result = 0; SUCCEEDED(apis.pDwmGetWindowAttribute(
-                hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
-            return result;
-        }
-        return getSystemMetricsForDpi(SM_CXBORDER, getDpiForWindow(hwnd));
-    }
-
-    static inline quint32 getResizeBorderThickness(HWND hwnd) {
-        const quint32 dpi = getDpiForWindow(hwnd);
-        return getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
-               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
-    }
-
-    static inline quint32 getTitleBarHeight(HWND hwnd) {
-        const quint32 dpi = getDpiForWindow(hwnd);
-        return getSystemMetricsForDpi(SM_CYCAPTION, dpi) +
-               getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
-               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
@@ -699,8 +646,8 @@ namespace QWK {
                     QPoint{m_windowHandle->width(), 0}
                 });
                 painter.restore();
-                return;
 #endif
+                return;
             }
 
             case DrawWindows10BorderHook2: {
@@ -729,49 +676,35 @@ namespace QWK {
                 return;
             }
 
-                //            case AbstractWindowContext::DrawWindows10BackgroundHook: {
-                // #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-                //                if (!m_windowHandle)
-                //                    return;
-                //
-                //                auto hWnd = reinterpret_cast<HWND>(windowId);
-                //                HDC hdc = ::GetDC(hWnd);
-                //                RECT windowRect{};
-                //                ::GetClientRect(hWnd, &windowRect);
-                //                RECT rcRest = {
-                //                    0,
-                //                    int(getWindowFrameBorderThickness(hWnd)),
-                //                    RECT_WIDTH(windowRect),
-                //                    RECT_HEIGHT(windowRect),
-                //                };
-                //                HBRUSH blueBrush = ::CreateSolidBrush(RGB(0, 0, 255));
-                //
-                //                // To hide the original title bar, we have to paint on top of it
-                //                with
-                //                // the alpha component set to 255. This is a hack to do it with
-                //                GDI.
-                //                // See NonClientIslandWindow::_UpdateFrameMargins for more
-                //                information. HDC opaqueDc; BP_PAINTPARAMS params =
-                //                {sizeof(params), BPPF_NOCLIP | BPPF_ERASE}; auto buf =
-                //                BeginBufferedPaint(hdc, &rcRest, BPBF_TOPDOWNDIB, &params,
-                //                &opaqueDc); if (!buf || !opaqueDc) {
-                //                    return;
-                //                }
-                //
-                //                ::FillRect(opaqueDc, &rcRest, blueBrush);
-                //                ::BufferedPaintSetAlpha(buf, nullptr, 255);
-                //                ::EndBufferedPaint(buf, TRUE);
-                //
-                //                ::DeleteObject(blueBrush);
-                //                ::ReleaseDC(hWnd, hdc);
-                // #endif
-                //                return;
-                //            }
-
             default:
                 break;
         }
         AbstractWindowContext::virtual_hook(id, data);
+    }
+
+    QVariant Win32WindowContext::windowAttribute(const QString &key) const {
+        if (key == QStringLiteral("title-bar-rect")) {
+            if (!m_windowHandle)
+                return {};
+
+            auto hwnd = reinterpret_cast<HWND>(windowId);
+            RECT frame{};
+            ::AdjustWindowRectExForDpi(&frame, ::GetWindowLongPtrW(hwnd, GWL_STYLE), FALSE, 0,
+                                       getDpiForWindow(hwnd));
+            return QVariant::fromValue(rect2qrect(frame));
+        }
+
+        if (key == QStringLiteral("win10-border-needed")) {
+            return isSystemBorderEnabled() && !isWin11OrGreater();
+        }
+
+        if (key == QStringLiteral("border-thickness")) {
+            return m_windowHandle
+                       ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)))
+                       : 0;
+        }
+
+        return AbstractWindowContext::windowAttribute(key);
     }
 
     void Win32WindowContext::winIdChanged() {
@@ -790,7 +723,8 @@ namespace QWK {
         auto hWnd = reinterpret_cast<HWND>(winId);
 
         if (!isSystemBorderEnabled()) {
-            setWindowAttribute("extra-margins", true);
+            setWindowAttribute(QStringLiteral("extra-margins"),
+                               QVariant::fromValue(QMargins(1, 1, 1, 1)));
         }
 
         {
@@ -865,17 +799,20 @@ namespace QWK {
 
     bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
                                                     const QVariant &oldAttribute) {
+        Q_UNUSED(oldAttribute)
+
         const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
         const DynamicApis &apis = DynamicApis::instance();
-        static constexpr const MARGINS defaultEmptyMargins = {0, 0, 0, 0};
-        static constexpr const MARGINS defaultExtraMargins = {1, 1, 1, 1};
         static constexpr const MARGINS extendedMargins = {-1, -1, -1, -1};
+        const auto &restoreMargins = [this, &apis, hwnd]() {
+            auto margins = qmargins2margins(
+                m_windowAttributes.value(QStringLiteral("extra-margins")).value<QMargins>());
+            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+        };
+
         if (key == QStringLiteral("extra-margins")) {
-            if (isWin11OrGreater())
-                return false;
-            hasExtraMargins = attribute.toBool();
-            DynamicApis::instance().pDwmExtendFrameIntoClientArea(
-                hwnd, hasExtraMargins ? &defaultExtraMargins : &defaultEmptyMargins);
+            auto margins = qmargins2margins(attribute.value<QMargins>());
+            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hwnd, &margins);
             return true;
         }
 
@@ -902,8 +839,6 @@ namespace QWK {
         }
 
         // For Win11 or later
-        static const auto &defaultMargins =
-            isSystemBorderEnabled() ? defaultExtraMargins : defaultEmptyMargins;
         if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
@@ -933,7 +868,7 @@ namespace QWK {
                     const BOOL enable = FALSE;
                     apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
                 }
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
+                restoreMargins();
             }
             return true;
         }
@@ -955,7 +890,7 @@ namespace QWK {
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
                                             sizeof(backdropType));
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
+                restoreMargins();
             }
             return true;
         }
@@ -1002,7 +937,7 @@ namespace QWK {
                 //     wcad.cbData = sizeof(policy);
                 //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
 
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
+                restoreMargins();
             }
             return true;
         }
@@ -1045,7 +980,7 @@ namespace QWK {
                     bb.dwFlags = DWM_BB_ENABLE;
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
+                restoreMargins();
             }
             return true;
         }
@@ -2080,15 +2015,6 @@ namespace QWK {
             return true;
         }
         return false;
-    }
-
-    bool Win32WindowContext::needBorderPainter() const {
-        Q_UNUSED(this)
-        return isSystemBorderEnabled() && !isWin11OrGreater();
-    }
-
-    int Win32WindowContext::borderThickness() const {
-        return int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)));
     }
 
 }

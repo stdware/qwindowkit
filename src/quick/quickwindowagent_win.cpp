@@ -4,18 +4,20 @@
 #include <QtQuick/private/qquickitem_p.h>
 
 #include <QWKCore/qwindowkit_windows.h>
-#include <QWKCore/qwkconfig.h>
-#include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
-    class BorderItem : public QQuickPaintedItem, public NativeEventFilter {
+    class BorderItem : public QQuickPaintedItem,
+                       public NativeEventFilter,
+                       public SharedEventFilter {
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
 
-        void updateGeometry();
+        inline bool isNormalWindow() const;
+
+        inline void updateGeometry();
 
     public:
         void paint(QPainter *painter) override;
@@ -24,6 +26,8 @@ namespace QWK {
     protected:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override;
+
+        bool sharedEventFilter(QObject *obj, QEvent *event) override;
 
         AbstractWindowContext *context;
 
@@ -47,6 +51,8 @@ namespace QWK {
         setZ(9999); // Make sure our fake border always above everything in the window.
 
         context->installNativeEventFilter(this);
+        context->installSharedEventFilter(this);
+
         connect(window(), &QQuickWindow::activeChanged, this,
                 &BorderItem::_q_windowActivityChanged);
         updateGeometry();
@@ -54,8 +60,14 @@ namespace QWK {
 
     BorderItem::~BorderItem() = default;
 
+    bool BorderItem::isNormalWindow() const {
+        return !(context->window()->windowState() &
+                 (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
+    }
+
     void BorderItem::updateGeometry() {
-        setHeight(context->property("borderThickness").toInt());
+        setHeight(context->windowAttribute(QStringLiteral("border-thickness")).toInt());
+        setVisible(isNormalWindow());
     }
 
     void BorderItem::paint(QPainter *painter) {
@@ -109,19 +121,30 @@ namespace QWK {
         return false;
     }
 
+    bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
+        Q_UNUSED(obj)
+        switch (event->type()) {
+            case QEvent::WindowStateChange: {
+                updateGeometry();
+                break;
+            }
+            default:
+                break;
+        }
+        return false;
+    }
+
     void BorderItem::_q_windowActivityChanged() {
         update();
     }
-#endif
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         // Install painting hook
         auto ctx = context.get();
-        if (ctx->property("needBorderPainter").toBool()) {
+        if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
             std::ignore = new BorderItem(hostWindow->contentItem(), ctx);
         }
-#endif
     }
+#endif
 
 }

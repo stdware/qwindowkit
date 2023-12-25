@@ -441,6 +441,55 @@ namespace QWK {
 #endif
     }
 
+    static inline quint32 getDpiForWindow(HWND hwnd) {
+        const DynamicApis &apis = DynamicApis::instance();
+        if (apis.pGetDpiForWindow) {         // Win10
+            return apis.pGetDpiForWindow(hwnd);
+        } else if (apis.pGetDpiForMonitor) { // Win8.1
+            HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            UINT dpiX{0};
+            UINT dpiY{0};
+            apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+            return dpiX;
+        } else { // Win2K
+            HDC hdc = ::GetDC(nullptr);
+            const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
+            // const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
+            ::ReleaseDC(nullptr, hdc);
+            return quint32(dpiX);
+        }
+    }
+
+    static inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
+        const DynamicApis &apis = DynamicApis::instance();
+        if (apis.pGetSystemMetricsForDpi) {
+            return ::GetSystemMetricsForDpi(index, dpi);
+        }
+        return ::GetSystemMetrics(index);
+    }
+
+    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+        const DynamicApis &apis = DynamicApis::instance();
+        if (UINT result = 0; SUCCEEDED(apis.pDwmGetWindowAttribute(
+                hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
+            return result;
+        }
+        return getSystemMetricsForDpi(SM_CXBORDER, getDpiForWindow(hwnd));
+    }
+
+    static inline quint32 getResizeBorderThickness(HWND hwnd) {
+        const quint32 dpi = getDpiForWindow(hwnd);
+        return getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+    }
+
+    static inline quint32 getTitleBarHeight(HWND hwnd) {
+        const quint32 dpi = getDpiForWindow(hwnd);
+        return getSystemMetricsForDpi(SM_CYCAPTION, dpi) +
+               getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+               getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+    }
+
 }
 
 #endif // QWKWINDOWSEXTRA_P_H

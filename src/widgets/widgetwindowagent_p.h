@@ -34,6 +34,7 @@ namespace QWK {
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         void setupWindows10BorderWorkaround();
+        std::unique_ptr<QObject> borderHandler;
 #endif
     };
 

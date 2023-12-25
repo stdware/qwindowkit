@@ -235,16 +235,13 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 ## Documentations
 
 + Examples (TODO)
++ Notes (TODO)
 + [FramelessHelper Related](docs/framelesshelper-related.md)
 
 ## TODO
 
 + Fix 5.15 window abnormal behavior
-+ Fix window 10 top border color in dark background
-+ Fix `isFixedSize` code
 + Support customized system button area on Mac
-+ Implement Mac window context hook
-+ Support window attribute switching on Windows
 
 ## License
 

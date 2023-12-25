@@ -5,19 +5,23 @@
 #include <QtGui/QPainter>
 
 #include <QWKCore/qwindowkit_windows.h>
-#include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
 
-    class WidgetBorderHandler;
-
     class WidgetBorderHandler : public QObject, public NativeEventFilter, public SharedEventFilter {
     public:
-        explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx)
-            : QObject(ctx), widget(widget), ctx(ctx) {
+        explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
+                                     QObject *parent = nullptr)
+            : QObject(parent), widget(widget), ctx(ctx) {
             widget->installEventFilter(this);
+
+            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
+            // Must extend top frame to client area
+            static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
+            ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
+            ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
 
             ctx->installNativeEventFilter(this);
             ctx->installSharedEventFilter(this);
@@ -30,14 +34,10 @@ namespace QWK {
                      (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
         }
 
-        void updateGeometry() {
+        inline void updateGeometry() {
             if (isNormalWindow()) {
-                widget->setContentsMargins({
-                    0,
-                    ctx->property("borderThickness").toInt(),
-                    0,
-                    0,
-                });
+                widget->setContentsMargins(
+                    {0, ctx->windowAttribute(QStringLiteral("border-thickness")).toInt(), 0, 0});
             } else {
                 widget->setContentsMargins({});
             }
@@ -54,31 +54,24 @@ namespace QWK {
                     break;
                 }
 
-                case WM_THEMECHANGED:
-                case WM_SYSCOLORCHANGE:
-                case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                    widget->update();
-                    break;
-                }
-
-                case WM_SETTINGCHANGE: {
-                    if (!msg->wParam && msg->lParam &&
-                        std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
-                            0) {
-                        widget->update();
-                    }
-                    break;
-                }
-#  if 0
                 case WM_ACTIVATE: {
                     if (LOWORD(msg->wParam) == WA_INACTIVE) {
-                        // 窗口失去激活状态
+                        // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
+                        // When the window is inactive, there is a transparency bug in the top
+                        // border and we needs to extend the non-client area to the whole title
+                        // bar.
+                        QRect frame =
+                            ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
+                        QMargins margins{0, -frame.top(), 0, 0};
+                        ctx->setWindowAttribute(QStringLiteral("extra-margins"),
+                                                QVariant::fromValue(margins));
                     } else {
-                        // 窗口被激活
+                        // Restore margins when the window is active
+                        static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
+                        ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
                     }
                     break;
                 }
-#  endif
 
                 default:
                     break;
@@ -162,8 +155,8 @@ namespace QWK {
     void WidgetWindowAgentPrivate::setupWindows10BorderWorkaround() {
         // Install painting hook
         auto ctx = context.get();
-        if (ctx->property("needBorderPainter").toBool()) {
-            std::ignore = new WidgetBorderHandler(hostWidget, ctx);
+        if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
+            borderHandler = std::make_unique<WidgetBorderHandler>(hostWidget, ctx);
         }
     }
 #endif

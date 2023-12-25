@@ -71,32 +71,7 @@ namespace QWK {
         }
     }
 
-    bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
-        auto it = m_windowAttributes.find(key);
-        if (it == m_windowAttributes.end()) {
-            if (!attribute.isValid()) {
-                return true;
-            }
-            if (!m_windowHandle || !windowAttributeChanged(key, attribute, {})) {
-                return false;
-            }
-            m_windowAttributes.insert(key, attribute);
-            return true;
-        }
 
-        if (it.value() == attribute)
-            return true;
-        if (!m_windowHandle || !windowAttributeChanged(key, attribute, it.value())) {
-            return false;
-        }
-
-        if (attribute.isValid()) {
-            it.value() = attribute;
-        } else {
-            m_windowAttributes.erase(it);
-        }
-        return true;
-    }
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);
@@ -283,6 +258,37 @@ namespace QWK {
                 m_windowAttributes.insert(it.key(), it.value());
             }
         }
+    }
+
+    QVariant AbstractWindowContext::windowAttribute(const QString &key) const {
+        return m_windowAttributes.value(key);
+    }
+
+    bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
+        auto it = m_windowAttributes.find(key);
+        if (it == m_windowAttributes.end()) {
+            if (!attribute.isValid()) {
+                return true;
+            }
+            if (!m_windowHandle || !windowAttributeChanged(key, attribute, {})) {
+                return false;
+            }
+            m_windowAttributes.insert(key, attribute);
+            return true;
+        }
+
+        if (it.value() == attribute)
+            return true;
+        if (!m_windowHandle || !windowAttributeChanged(key, attribute, it.value())) {
+            return false;
+        }
+
+        if (attribute.isValid()) {
+            it.value() = attribute;
+        } else {
+            m_windowAttributes.erase(it);
+        }
+        return true;
     }
 
     bool AbstractWindowContext::windowAttributeChanged(const QString &key,

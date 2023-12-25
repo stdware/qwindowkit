@@ -95,6 +95,14 @@ namespace QWK {
         return (rovi.dwMajorVersion > 6) || (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
     }
 
+    inline bool IsWindows10_Real() {
+        return IsWindows10OrGreater_Real() && !IsWindows11OrGreater_Real();
+    }
+
 }
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+Q_DECLARE_METATYPE(QMargins)
+#endif
 
 #endif // QWINDOWKIT_WINDOWS_H

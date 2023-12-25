@@ -10,6 +10,7 @@
 // version without notice, or may even be removed.
 //
 
+#include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/windowagentbase_p.h>
 #include <QWKQuick/quickwindowagent.h>
 
@@ -26,7 +27,7 @@ namespace QWK {
         // Host
         QQuickWindow *hostWindow{};
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         void setupWindows10BorderWorkaround();
 #endif
     };

@@ -40,9 +40,6 @@ namespace QWK {
         inline QWindow *window() const;
         inline WindowItemDelegate *delegate() const;
 
-        inline QVariant windowAttribute(const QString &key) const;
-        bool setWindowAttribute(const QString &key, const QVariant &attribute);
-
         inline bool isHitTestVisible(const QObject *obj) const;
         bool setHitTestVisible(const QObject *obj, bool visible);
 
@@ -75,6 +72,9 @@ namespace QWK {
 
         void showSystemMenu(const QPoint &pos);
         void notifyWinIdChange();
+
+        virtual QVariant windowAttribute(const QString &key) const;
+        virtual bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
     protected:
         virtual void winIdChanged() = 0;
@@ -110,10 +110,6 @@ namespace QWK {
 
     inline WindowItemDelegate *AbstractWindowContext::delegate() const {
         return m_delegate.get();
-    }
-
-    inline QVariant AbstractWindowContext::windowAttribute(const QString &key) const {
-        return m_windowAttributes.value(key);
     }
 
     inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {

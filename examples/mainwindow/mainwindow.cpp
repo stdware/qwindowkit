@@ -20,10 +20,6 @@
 #include <widgetframe/windowbar.h>
 #include <widgetframe/windowbutton.h>
 
-#ifdef Q_OS_WINDOWS
-#  include <QWKCore/qwindowkit_windows.h>
-#endif
-
 class ClockWidget : public QLabel {
 public:
     explicit ClockWidget(QWidget *parent = nullptr) : QLabel(parent) {
@@ -118,16 +114,6 @@ void MainWindow::installWindowAgent() {
     // 1. Setup window agent
     windowAgent = new QWK::WidgetWindowAgent(this);
     windowAgent->setup(this);
-
-#ifdef Q_OS_WIN
-    if (QWK::IsWindows10OrGreater_Real() && !QWK::IsWindows11OrGreater_Real()) {
-        // windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), true);
-
-        // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
-        // Must call DWM API to extend top frame to client area
-        windowAgent->setWindowAttribute(QStringLiteral("extra-margins"), true);
-    }
-#endif
 
     // 2. Construct your title bar
     auto menuBar = [this]() {
