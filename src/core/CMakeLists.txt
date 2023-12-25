@@ -13,6 +13,8 @@ set(_src
     windowitemdelegate.cpp
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
+    kernel/sharedeventfilter_p.h
+    kernel/sharedeventfilter.cpp
     shared/systemwindow_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
@@ -44,6 +46,7 @@ else()
             contexts/win32windowcontext_p.h
             contexts/win32windowcontext.cpp
         )
+        list(APPEND _links_private uxtheme)
     elseif(APPLE)
         list(APPEND _src
             contexts/cocoawindowcontext_p.h

@@ -145,9 +145,9 @@ namespace QWK {
 
     // Win10 1809 (10.0.17763)
     using RefreshImmersiveColorPolicyStatePtr = VOID(WINAPI *)(VOID); // Ordinal 104
-    using AllowDarkModeForWindowPtr = BOOL(WINAPI *)(HWND, BOOL); // Ordinal 133
-    using AllowDarkModeForAppPtr = BOOL(WINAPI *)(BOOL); // Ordinal 135
-    using FlushMenuThemesPtr = VOID(WINAPI *)(VOID); // Ordinal 136
+    using AllowDarkModeForWindowPtr = BOOL(WINAPI *)(HWND, BOOL);     // Ordinal 133
+    using AllowDarkModeForAppPtr = BOOL(WINAPI *)(BOOL);              // Ordinal 135
+    using FlushMenuThemesPtr = VOID(WINAPI *)(VOID);                  // Ordinal 136
     // Win10 1903 (10.0.18362)
     using SetPreferredAppModePtr = PREFERRED_APP_MODE(WINAPI *)(PREFERRED_APP_MODE); // Ordinal 135
 
@@ -213,7 +213,7 @@ namespace QWK {
 
 #undef DYNAMIC_API_RESOLVE
 
-#define UNDOC_API_RESOLVE(DLL, NAME, ORDINAL)                                                             \
+#define UNDOC_API_RESOLVE(DLL, NAME, ORDINAL)                                                      \
     p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(MAKEINTRESOURCEA(ORDINAL)))
 
                 QSystemLibrary uxtheme(QStringLiteral("uxtheme"));
@@ -300,6 +300,15 @@ namespace QWK {
     static inline constexpr RECT qrect2rect(const QRect &qrect) {
         return RECT{LONG(qrect.left()), LONG(qrect.top()), LONG(qrect.right()),
                     LONG(qrect.bottom())};
+    }
+
+    static inline constexpr QMargins margins2qmargins(const MARGINS &margins) {
+        return {margins.cxLeftWidth, margins.cyTopHeight, margins.cxRightWidth,
+                margins.cyBottomHeight};
+    }
+
+    static inline constexpr MARGINS qmargins2margins(const QMargins &qmargins) {
+        return MARGINS{qmargins.left(), qmargins.right(), qmargins.top(), qmargins.bottom()};
     }
 
     static inline /*constexpr*/ QString hwnd2str(const WId windowId) {

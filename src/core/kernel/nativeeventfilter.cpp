@@ -5,23 +5,23 @@
 
 namespace QWK {
 
-    NativeEventFilter::NativeEventFilter() : m_dispatcher(nullptr) {
+    NativeEventFilter::NativeEventFilter() : m_nativeDispatcher(nullptr) {
     }
 
     NativeEventFilter::~NativeEventFilter() {
-        if (m_dispatcher)
-            m_dispatcher->removeNativeEventFilter(this);
+        if (m_nativeDispatcher)
+            m_nativeDispatcher->removeNativeEventFilter(this);
     }
 
     NativeEventDispatcher::NativeEventDispatcher() = default;
 
     NativeEventDispatcher::~NativeEventDispatcher() {
         for (const auto &observer : std::as_const(m_nativeEventFilters)) {
-            observer->m_dispatcher = nullptr;
+            observer->m_nativeDispatcher = nullptr;
         }
     }
 
-    bool NativeEventDispatcher::dispatch(const QByteArray &eventType, void *message,
+    bool NativeEventDispatcher::nativeDispatch(const QByteArray &eventType, void *message,
                                          QT_NATIVE_EVENT_RESULT_TYPE *result) {
         for (const auto &ef : std::as_const(m_nativeEventFilters)) {
             if (ef->nativeEventFilter(eventType, message, result))
@@ -30,23 +30,19 @@ namespace QWK {
         return false;
     }
 
-    void NativeEventDispatcher::resume(const QByteArray &eventType, void *message,
-                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
-    }
-
     void NativeEventDispatcher::installNativeEventFilter(NativeEventFilter *filter) {
-        if (!filter || filter->m_dispatcher)
+        if (!filter || filter->m_nativeDispatcher)
             return;
 
         m_nativeEventFilters.append(filter);
-        filter->m_dispatcher = this;
+        filter->m_nativeDispatcher = this;
     }
 
     void NativeEventDispatcher::removeNativeEventFilter(NativeEventFilter *filter) {
         if (!m_nativeEventFilters.removeOne(filter)) {
             return;
         }
-        filter->m_dispatcher = nullptr;
+        filter->m_nativeDispatcher = nullptr;
     }
 
 
@@ -64,7 +60,7 @@ namespace QWK {
 
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            return dispatch(eventType, message, result);
+            return nativeDispatch(eventType, message, result);
         }
 
         static AppMasterNativeEventFilter *instance;

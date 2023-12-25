@@ -39,7 +39,7 @@ namespace QWK {
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         d->setupWindows10BorderWorkaround();
 #endif
         return true;

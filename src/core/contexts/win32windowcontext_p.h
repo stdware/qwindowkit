@@ -35,12 +35,6 @@ namespace QWK {
         QString key() const override;
         void virtual_hook(int id, void *data) override;
 
-        bool needBorderPainter() const;
-        int borderThickness() const;
-
-        void resume(const QByteArray &eventType, void *message,
-                    QT_NATIVE_EVENT_RESULT_TYPE *result) override;
-
     protected:
         void winIdChanged() override;
         bool windowAttributeChanged(const QString &key, const QVariant &attribute,
@@ -65,6 +59,11 @@ namespace QWK {
         bool nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                       LRESULT *result);
 
+    public:
+        bool needBorderPainter() const;
+
+        int borderThickness() const;
+
     protected:
         WId windowId = 0;
 
@@ -76,6 +75,8 @@ namespace QWK {
         bool mouseLeaveBlocked = false;
 
         bool centered = false;
+
+        bool hasExtraMargins = false;
     };
 
 }

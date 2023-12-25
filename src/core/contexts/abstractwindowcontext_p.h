@@ -20,11 +20,14 @@
 
 #include <QWKCore/windowagentbase.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
+#include <QWKCore/private/sharedeventfilter_p.h>
 #include <QWKCore/private/windowitemdelegate_p.h>
 
 namespace QWK {
 
-    class QWK_CORE_EXPORT AbstractWindowContext : public QObject, public NativeEventDispatcher {
+    class QWK_CORE_EXPORT AbstractWindowContext : public QObject,
+                                                  public NativeEventDispatcher,
+                                                  public SharedEventDispatcher {
         Q_OBJECT
     public:
         AbstractWindowContext();
@@ -93,6 +96,7 @@ namespace QWK {
 
         QVariantHash m_windowAttributes;
 
+        std::unique_ptr<QObject> m_windowEventFilter;
         std::unique_ptr<QObject> m_winIdChangeEventFilter;
     };
 

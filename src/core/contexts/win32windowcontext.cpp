@@ -729,27 +729,49 @@ namespace QWK {
                 return;
             }
 
+                //            case AbstractWindowContext::DrawWindows10BackgroundHook: {
+                // #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+                //                if (!m_windowHandle)
+                //                    return;
+                //
+                //                auto hWnd = reinterpret_cast<HWND>(windowId);
+                //                HDC hdc = ::GetDC(hWnd);
+                //                RECT windowRect{};
+                //                ::GetClientRect(hWnd, &windowRect);
+                //                RECT rcRest = {
+                //                    0,
+                //                    int(getWindowFrameBorderThickness(hWnd)),
+                //                    RECT_WIDTH(windowRect),
+                //                    RECT_HEIGHT(windowRect),
+                //                };
+                //                HBRUSH blueBrush = ::CreateSolidBrush(RGB(0, 0, 255));
+                //
+                //                // To hide the original title bar, we have to paint on top of it
+                //                with
+                //                // the alpha component set to 255. This is a hack to do it with
+                //                GDI.
+                //                // See NonClientIslandWindow::_UpdateFrameMargins for more
+                //                information. HDC opaqueDc; BP_PAINTPARAMS params =
+                //                {sizeof(params), BPPF_NOCLIP | BPPF_ERASE}; auto buf =
+                //                BeginBufferedPaint(hdc, &rcRest, BPBF_TOPDOWNDIB, &params,
+                //                &opaqueDc); if (!buf || !opaqueDc) {
+                //                    return;
+                //                }
+                //
+                //                ::FillRect(opaqueDc, &rcRest, blueBrush);
+                //                ::BufferedPaintSetAlpha(buf, nullptr, 255);
+                //                ::EndBufferedPaint(buf, TRUE);
+                //
+                //                ::DeleteObject(blueBrush);
+                //                ::ReleaseDC(hWnd, hdc);
+                // #endif
+                //                return;
+                //            }
+
             default:
                 break;
         }
         AbstractWindowContext::virtual_hook(id, data);
-    }
-
-    bool Win32WindowContext::needBorderPainter() const {
-        Q_UNUSED(this)
-        return isSystemBorderEnabled() && !isWin11OrGreater();
-    }
-
-    int Win32WindowContext::borderThickness() const {
-        return int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)));
-    }
-
-    void Win32WindowContext::resume(const QByteArray &eventType, void *message,
-                                    QT_NATIVE_EVENT_RESULT_TYPE *result) {
-        const auto msg = static_cast<const MSG *>(message);
-        LRESULT res =
-            ::CallWindowProcW(g_qtWindowProc, msg->hwnd, msg->message, msg->wParam, msg->lParam);
-        *result = decltype(*result)(res);
     }
 
     void Win32WindowContext::winIdChanged() {
@@ -768,13 +790,7 @@ namespace QWK {
         auto hWnd = reinterpret_cast<HWND>(winId);
 
         if (!isSystemBorderEnabled()) {
-            static constexpr const MARGINS margins = {1, 1, 1, 1};
-            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
-        } else if (isWin10OrGreater() && !isWin11OrGreater()) {
-            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
-            // Must call DWM API to extend top frame to client area
-            static constexpr const MARGINS margins = {0, 0, 1, 0};
-            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hWnd, &margins);
+            setWindowAttribute("extra-margins", true);
         }
 
         {
@@ -839,7 +855,7 @@ namespace QWK {
             msg.wParam = wParam;
             msg.lParam = lParam;
             QT_NATIVE_EVENT_RESULT_TYPE res = 0;
-            if (dispatch(QByteArrayLiteral("windows_generic_MSG"), &msg, &res)) {
+            if (nativeDispatch(QByteArrayLiteral("windows_generic_MSG"), &msg, &res)) {
                 *result = LRESULT(res);
                 return true;
             }
@@ -851,9 +867,43 @@ namespace QWK {
                                                     const QVariant &oldAttribute) {
         const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
         const DynamicApis &apis = DynamicApis::instance();
-        static constexpr const MARGINS extendMargins = {-1, -1, -1, -1};
-        static const auto defaultMargins =
-            isSystemBorderEnabled() ? MARGINS{0, 0, 0, 0} : MARGINS{1, 1, 1, 1};
+        static constexpr const MARGINS defaultEmptyMargins = {0, 0, 0, 0};
+        static constexpr const MARGINS defaultExtraMargins = {1, 1, 1, 1};
+        static constexpr const MARGINS extendedMargins = {-1, -1, -1, -1};
+        if (key == QStringLiteral("extra-margins")) {
+            if (isWin11OrGreater())
+                return false;
+            hasExtraMargins = attribute.toBool();
+            DynamicApis::instance().pDwmExtendFrameIntoClientArea(
+                hwnd, hasExtraMargins ? &defaultExtraMargins : &defaultEmptyMargins);
+            return true;
+        }
+
+        if (key == QStringLiteral("dark-mode")) {
+            if (!isWin101809OrGreater()) {
+                return false;
+            }
+
+            BOOL enable = attribute.toBool();
+            if (isWin101903OrGreater()) {
+                apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
+            } else {
+                apis.pAllowDarkModeForApp(enable);
+            }
+            for (const auto attr : {
+                     _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                     _DWMWA_USE_IMMERSIVE_DARK_MODE,
+                 }) {
+                apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
+            }
+
+            apis.pFlushMenuThemes();
+            return true;
+        }
+
+        // For Win11 or later
+        static const auto &defaultMargins =
+            isSystemBorderEnabled() ? defaultExtraMargins : defaultEmptyMargins;
         if (key == QStringLiteral("mica")) {
             if (!isWin11OrGreater()) {
                 return false;
@@ -861,7 +911,7 @@ namespace QWK {
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
                 if (isWin1122H2OrGreater()) {
                     // Use official DWM API to enable Mica, available since Windows 11 22H2
                     // (10.0.22621).
@@ -886,14 +936,16 @@ namespace QWK {
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
-        } else if (key == QStringLiteral("mica-alt")) {
+        }
+
+        if (key == QStringLiteral("mica-alt")) {
             if (!isWin1122H2OrGreater()) {
                 return false;
             }
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
                 // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
                 // (10.0.22621).
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
@@ -906,14 +958,16 @@ namespace QWK {
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
-        } else if (key == QStringLiteral("acrylic-material")) {
+        }
+
+        if (key == QStringLiteral("acrylic-material")) {
             if (!isWin11OrGreater()) {
                 return false;
             }
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
 
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
@@ -951,13 +1005,15 @@ namespace QWK {
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
             return true;
-        } else if (key == QStringLiteral("dwm-blur")) {
+        }
+
+        if (key == QStringLiteral("dwm-blur")) {
             // TODO: Optimize
             // Currently not available!!!
             if (attribute.toBool()) {
                 // We need to extend the window frame into the whole client area to be able
                 // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendMargins);
+                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
                 if (isWin8OrGreater()) {
                     ACCENT_POLICY policy{};
                     policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
@@ -991,26 +1047,6 @@ namespace QWK {
                 }
                 apis.pDwmExtendFrameIntoClientArea(hwnd, &defaultMargins);
             }
-            return true;
-        } else if (key == QStringLiteral("dark-mode")) {
-            if (!isWin101809OrGreater()) {
-                return false;
-            }
-
-            BOOL enable = attribute.toBool();
-            if (isWin101903OrGreater()) {
-                apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
-            } else {
-                apis.pAllowDarkModeForApp(enable);
-            }
-            for (const auto attr : {
-                     _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
-                     _DWMWA_USE_IMMERSIVE_DARK_MODE,
-                 }) {
-                apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
-            }
-
-            apis.pFlushMenuThemes();
             return true;
         }
         return false;
@@ -2044,6 +2080,15 @@ namespace QWK {
             return true;
         }
         return false;
+    }
+
+    bool Win32WindowContext::needBorderPainter() const {
+        Q_UNUSED(this)
+        return isSystemBorderEnabled() && !isWin11OrGreater();
+    }
+
+    int Win32WindowContext::borderThickness() const {
+        return int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)));
     }
 
 }

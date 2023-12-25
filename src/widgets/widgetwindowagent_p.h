@@ -10,6 +10,7 @@
 // version without notice, or may even be removed.
 //
 
+#include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/windowagentbase_p.h>
 #include <QWKWidgets/widgetwindowagent.h>
 
@@ -25,12 +26,13 @@ namespace QWK {
 
         // Host
         QWidget *hostWidget{};
+
 #ifdef Q_OS_MAC
         QWidget *systemButtonAreaWidget{};
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;
 #endif
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
         void setupWindows10BorderWorkaround();
 #endif
     };

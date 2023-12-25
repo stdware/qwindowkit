@@ -9,26 +9,48 @@
 
 namespace QWK {
 
-    class WinIdChangeEventFilter : public QObject {
-    public:
-        explicit WinIdChangeEventFilter(QObject *widget, AbstractWindowContext *ctx,
-                                        QObject *parent = nullptr)
-            : QObject(parent), ctx(ctx) {
-            widget->installEventFilter(this);
-        }
+    namespace {
 
-    protected:
-        bool eventFilter(QObject *obj, QEvent *event) override {
-            Q_UNUSED(obj)
-            if (event->type() == QEvent::WinIdChange) {
-                ctx->notifyWinIdChange();
+        class WinIdChangeEventFilter : public QObject {
+        public:
+            explicit WinIdChangeEventFilter(QObject *widget, AbstractWindowContext *ctx,
+                                            QObject *parent = nullptr)
+                : QObject(parent), ctx(ctx) {
+                widget->installEventFilter(this);
             }
-            return false;
-        }
 
-    protected:
-        AbstractWindowContext *ctx;
-    };
+        protected:
+            bool eventFilter(QObject *obj, QEvent *event) override {
+                Q_UNUSED(obj)
+                if (event->type() == QEvent::WinIdChange) {
+                    ctx->notifyWinIdChange();
+                }
+                return false;
+            }
+
+        protected:
+            AbstractWindowContext *ctx;
+        };
+
+        class WindowEventFilter : public QObject {
+        public:
+            explicit WindowEventFilter(QWindow *window, AbstractWindowContext *ctx,
+                                       QObject *parent = nullptr)
+                : QObject(parent), ctx(ctx), window(window) {
+                window->installEventFilter(this);
+            }
+
+        protected:
+            bool eventFilter(QObject *obj, QEvent *event) override {
+                return ctx->sharedDispatch(obj, event);
+            }
+
+        protected:
+            AbstractWindowContext *ctx;
+            QWindow *window;
+        };
+
+    }
 
     AbstractWindowContext::AbstractWindowContext() = default;
 
@@ -45,6 +67,7 @@ namespace QWK {
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (m_windowHandle) {
             winIdChanged();
+            m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
         }
     }
 
@@ -245,9 +268,11 @@ namespace QWK {
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (oldWindow == m_windowHandle)
             return;
+        m_windowEventFilter.reset();
         winIdChanged();
-
         if (m_windowHandle) {
+            m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
+
             // Refresh window attributes
             auto attributes = m_windowAttributes;
             m_windowAttributes.clear();
