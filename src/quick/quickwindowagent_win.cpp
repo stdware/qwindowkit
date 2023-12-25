@@ -8,6 +8,10 @@
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+    // TODO: Find a way to draw native border
+    // We haven't found a way to place hooks in the Quick program and call the GDI API to draw
+    // the native border area so that we'll use the emulated drawn border for now.
+
     class BorderItem : public QQuickPaintedItem,
                        public NativeEventFilter,
                        public SharedEventFilter {
@@ -107,9 +111,7 @@ namespace QWK {
             }
 
             case WM_SETTINGCHANGE: {
-                if (!msg->wParam && msg->lParam &&
-                    std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
-                        0) {
+                if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
                     update();
                 }
                 break;

@@ -69,7 +69,7 @@ namespace QWK {
         // WM_MOUSELEAVE.
         bool mouseLeaveBlocked = false;
 
-        bool centered = false;
+        bool initialCentered = false;
     };
 
 }

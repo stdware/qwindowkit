@@ -49,54 +49,113 @@
 
 namespace QWK {
 
-    QWK_CORE_EXPORT RTL_OSVERSIONINFOW GetRealOSVersion();
+    namespace Private {
 
-    inline bool IsWindows1122H2OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
-                rovi.dwBuildNumber >= 22621);
+        QWK_CORE_EXPORT RTL_OSVERSIONINFOW GetRealOSVersion();
+
+        inline bool IsWindows1122H2OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 10) ||
+                   (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                    rovi.dwBuildNumber >= 22621);
+        }
+
+        inline bool IsWindows11OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 10) ||
+                   (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                    rovi.dwBuildNumber >= 22000);
+        }
+
+        inline bool IsWindows101903OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 10) ||
+                   (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                    rovi.dwBuildNumber >= 18362);
+        }
+
+        inline bool IsWindows101809OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 10) ||
+                   (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
+                    rovi.dwBuildNumber >= 17763);
+        }
+
+        inline bool IsWindows10OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 10) ||
+                   (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0);
+        }
+
+        inline bool IsWindows8Point1OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 6) ||
+                   (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 3);
+        }
+
+        inline bool IsWindows8OrGreater_Real() {
+            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            return (rovi.dwMajorVersion > 6) ||
+                   (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
+        }
+
+        inline bool IsWindows10_Real() {
+            return IsWindows10OrGreater_Real() && !IsWindows11OrGreater_Real();
+        }
+
     }
 
-    inline bool IsWindows11OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
-                rovi.dwBuildNumber >= 22000);
+    //
+    // Version Helpers
+    //
+
+    static inline bool isWin8OrGreater() {
+        static const bool result = Private::IsWindows8OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows101903OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
-                rovi.dwBuildNumber >= 18362);
+    static inline bool isWin8Point1OrGreater() {
+        static const bool result = Private::IsWindows8Point1OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows101809OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0 &&
-                rovi.dwBuildNumber >= 17763);
+    static inline bool isWin10OrGreater() {
+        static const bool result = Private::IsWindows10OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows10OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 && rovi.dwMinorVersion >= 0);
+    static inline bool isWin101809OrGreater() {
+        static const bool result = Private::IsWindows101809OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows8Point1OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 6) || (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 3);
+    static inline bool isWin101903OrGreater() {
+        static const bool result = Private::IsWindows101903OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows8OrGreater_Real() {
-        RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
-        return (rovi.dwMajorVersion > 6) || (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
+    static inline bool isWin11OrGreater() {
+        static const bool result = Private::IsWindows11OrGreater_Real();
+        return result;
     }
 
-    inline bool IsWindows10_Real() {
-        return IsWindows10OrGreater_Real() && !IsWindows11OrGreater_Real();
+    static inline bool isWin1122H2OrGreater() {
+        static const bool result = Private::IsWindows1122H2OrGreater_Real();
+        return result;
+    }
+
+    static inline bool isWin10() {
+        static const bool result = Private::IsWindows10_Real();
+        return result;
+    };
+
+    //
+    // Native Event Helpers
+    //
+
+    inline bool isImmersiveColorSetChange(WPARAM wParam, LPARAM lParam) {
+        return !wParam && lParam &&
+               std::wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0;
     }
 
 }

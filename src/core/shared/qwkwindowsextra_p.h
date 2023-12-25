@@ -135,9 +135,9 @@ namespace QWK {
     enum PREFERRED_APP_MODE
     {
         PAM_DEFAULT = 0, // Default behavior on systems before Win10 1809. It indicates the application doesn't support dark mode at all.
-        PAM_AUTO = 1, // Available since Win10 1809, let system decide whether to enable dark mode or not.
-        PAM_DARK = 2, // Available since Win10 1903, force dark mode regardless of the system theme.
-        PAM_LIGHT = 3, // Available since Win10 1903, force light mode regardless of the system theme.
+        PAM_AUTO = 1,    // Available since Win10 1809, let system decide whether to enable dark mode or not.
+        PAM_DARK = 2,    // Available since Win10 1903, force dark mode regardless of the system theme.
+        PAM_LIGHT = 3,   // Available since Win10 1903, force light mode regardless of the system theme.
         PAM_MAX = 4
     };
 
@@ -308,7 +308,7 @@ namespace QWK {
     }
 
     static inline constexpr MARGINS qmargins2margins(const QMargins &qmargins) {
-        return MARGINS{qmargins.left(), qmargins.right(), qmargins.top(), qmargins.bottom()};
+        return {qmargins.left(), qmargins.right(), qmargins.top(), qmargins.bottom()};
     }
 
     static inline /*constexpr*/ QString hwnd2str(const WId windowId) {
@@ -320,41 +320,6 @@ namespace QWK {
     static inline /*constexpr*/ QString hwnd2str(HWND hwnd) {
         // NULL handle is allowed here.
         return hwnd2str(reinterpret_cast<WId>(hwnd));
-    }
-
-    static inline bool isWin8OrGreater() {
-        static const bool result = IsWindows8OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin8Point1OrGreater() {
-        static const bool result = IsWindows8Point1OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin10OrGreater() {
-        static const bool result = IsWindows10OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin101809OrGreater() {
-        static const bool result = IsWindows101809OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin101903OrGreater() {
-        static const bool result = IsWindows101903OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin11OrGreater() {
-        static const bool result = IsWindows11OrGreater_Real();
-        return result;
-    }
-
-    static inline bool isWin1122H2OrGreater() {
-        static const bool result = IsWindows1122H2OrGreater_Real();
-        return result;
     }
 
     static inline bool isDwmCompositionEnabled() {
@@ -370,11 +335,11 @@ namespace QWK {
     }
 
     static inline bool isWindowFrameBorderColorized() {
-        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
+        QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
         if (!registry.isValid()) {
             return false;
         }
-        const auto value = registry.dwordValue(L"ColorPrevalence");
+        auto value = registry.dwordValue(L"ColorPrevalence");
         if (!value.second) {
             return false;
         }
@@ -392,12 +357,12 @@ namespace QWK {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 #else
-        const QWinRegistryKey registry(
+        QWinRegistryKey registry(
             HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)");
         if (!registry.isValid()) {
             return false;
         }
-        const auto value = registry.dwordValue(L"AppsUseLightTheme");
+        auto value = registry.dwordValue(L"AppsUseLightTheme");
         if (!value.second) {
             return false;
         }
@@ -423,21 +388,21 @@ namespace QWK {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         return QGuiApplication::palette().color(QPalette::Accent);
 #else
-        const QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
+        QWinRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
         if (!registry.isValid()) {
             return {};
         }
-        const auto value = registry.dwordValue(L"AccentColor");
+        auto value = registry.dwordValue(L"AccentColor");
         if (!value.second) {
             return {};
         }
         // The retrieved value is in the #AABBGGRR format, we need to
         // convert it to the #AARRGGBB format which Qt expects.
-        const QColor abgr = QColor::fromRgba(value.first);
-        if (!abgr.isValid()) {
+        QColor color = QColor::fromRgba(value.first);
+        if (!color.isValid()) {
             return {};
         }
-        return QColor::fromRgb(abgr.blue(), abgr.green(), abgr.red(), abgr.alpha());
+        return QColor::fromRgb(color.blue(), color.green(), color.red(), color.alpha());
 #endif
     }
 

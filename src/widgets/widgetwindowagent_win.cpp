@@ -9,6 +9,28 @@
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+    // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowsbackingstore.cpp#L42
+    // In QtWidgets applications, when repainting happens, QPA at the last calls
+    // QWindowsBackingStore::flush() to draw the contents of the buffer to the screen, we need to
+    // call GDI drawing the top border after that.
+
+    // After debugging, we know that there are two situations that will lead to redrawing.
+    //
+    // 1. Windows sends a WM_PAINT message, after which Qt immediately generates a QExposeEvent or
+    // QResizeEvent and send it to the corresponding QWidgetWindow instance, calling "flush" at the
+    // end of its handler.
+    //
+    // 2. When a timer or user input triggers Qt to redraw spontaneously, the corresponding
+    // QWidget receives a QEvent::UpdateRequest event and also calls "flush" at the end of its
+    // handler.
+    //
+    // The above two cases are mutually exclusive, so we just need to intercept the two events
+    // separately and draw the border area after the "flush" is called.
+
+    // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowswindow.cpp#L2440
+    // Note that we can not draw the border right after WM_PAINT comes or right before the WndProc
+    // returns, because Qt calls BeginPaint() and EndPaint() itself. We should make sure that we
+    // draw the top border between these two calls, otherwise some display exceptions may arise.
 
     class WidgetBorderHandler : public QObject, public NativeEventFilter, public SharedEventFilter {
     public:
@@ -21,6 +43,8 @@ namespace QWK {
             // Must extend top frame to client area
             static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
+
+            // Enable dark mode by default, otherwise the frame borders are white
             ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
 
             ctx->installNativeEventFilter(this);
@@ -41,6 +65,37 @@ namespace QWK {
             } else {
                 widget->setContentsMargins({});
             }
+        }
+
+        inline void resumeWidgetEvent(QWidget *w, QEvent *event) {
+            // Friend class helping to call `event`
+            class HackedWidget : public QWidget {
+            public:
+                friend class QWK::WidgetBorderHandler;
+            };
+
+            // Let the widget paint first
+            static_cast<HackedWidget *>(w)->event(event);
+
+            // Due to the timer or user action, Qt will redraw some regions spontaneously,
+            // even if there is no WM_PAINT message, we must wait for it to finish redrawing
+            // and then update the top border area.
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+        }
+
+        inline void resumeWindowEvent(QWindow *window, QEvent *event) {
+            // Friend class helping to call `event`
+            class HackedWindow : public QWindow {
+            public:
+                friend class QWK::WidgetBorderHandler;
+            };
+
+            // Let Qt paint first
+            static_cast<HackedWindow *>(window)->event(event);
+
+            // Upon receiving the WM_PAINT message, Qt will redraw the entire view, and we
+            // must wait for it to finish redrawing before drawing this top border area.
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
         }
 
     protected:
@@ -83,28 +138,22 @@ namespace QWK {
             Q_UNUSED(obj)
 
             auto window = widget->windowHandle();
+
+            // Qt will absolutely send a QExposeEvent or QResizeEvent to the QWindow when it
+            // receives a WM_PAINT message. When the control flow enters the expose handler, Qt
+            // must have already called BeginPaint() and it's the best time for us to draw the
+            // top border.
+
+            // Since a QExposeEvent will be sent immediately after the QResizeEvent, we can simply
+            // ignore it.
             if (event->type() == QEvent::Expose) {
-                // Qt will absolutely send a QExposeEvent to the QWindow when it receives a
-                // WM_PAINT message. When the control flow enters the expose handler, Qt must
-                // have already called BeginPaint() and it's the best time for us to draw the
-                // top border.
                 auto ee = static_cast<QExposeEvent *>(event);
-                if (isNormalWindow() && window->isExposed() && !ee->region().isNull()) {
-                    // Friend class helping to call `event`
-                    class HackedWindow : public QWindow {
-                    public:
-                        friend class QWK::WidgetBorderHandler;
-                    };
-
-                    // Let Qt paint first
-                    static_cast<HackedWindow *>(window)->event(event);
-
-                    // Upon receiving the WM_PAINT message, Qt will redraw the entire view, and we
-                    // must wait for it to finish redrawing before drawing this top border area.
-                    ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+                if (window->isExposed() && !ee->region().isNull()) {
+                    resumeWindowEvent(window, event);
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -114,20 +163,7 @@ namespace QWK {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())
                         break;
-
-                    // Friend class helping to call `event`
-                    class HackedWidget : public QWidget {
-                    public:
-                        friend class QWK::WidgetBorderHandler;
-                    };
-
-                    // Let the widget paint first
-                    static_cast<HackedWidget *>(widget)->event(event);
-
-                    // Due to the timer or user action, Qt will redraw some regions spontaneously,
-                    // even if there is no WM_PAINT message, we must wait for it to finish redrawing
-                    // and then update the top border area.
-                    ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+                    resumeWidgetEvent(widget, event);
                     return true;
                 }
 

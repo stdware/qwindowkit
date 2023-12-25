@@ -30,9 +30,7 @@ namespace QWK {
                         return true;
 
                     case WM_SETTINGCHANGE: {
-                        if (!msg->wParam && msg->lParam &&
-                            std::wcscmp(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet") ==
-                            0) {
+                        if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
                             return true;
                         }
                         break;
