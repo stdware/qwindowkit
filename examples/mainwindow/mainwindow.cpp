@@ -14,7 +14,6 @@
 #  include <QtWidgets/QActionGroup>
 #endif
 
-#include <QWKCore/styleagent.h>
 #include <QWKWidgets/widgetwindowagent.h>
 
 #include <widgetframe/windowbar.h>
@@ -37,7 +36,6 @@ protected:
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     installWindowAgent();
-    installStyleAgent();
 
     auto clockWidget = new ClockWidget();
     clockWidget->setObjectName(QStringLiteral("clock-widget"));
@@ -288,14 +286,6 @@ void MainWindow::installWindowAgent() {
     });
     connect(windowBar, &QWK::WindowBar::closeRequested, this, &QWidget::close);
 #endif
-}
-
-void MainWindow::installStyleAgent() {
-    styleAgent = new QWK::StyleAgent(this);
-
-    connect(styleAgent, &QWK::StyleAgent::systemThemeChanged, this, [this]() {
-        qDebug() << "System style changed:" << styleAgent->systemTheme(); //
-    });
 }
 
 void MainWindow::loadStyleSheet(Theme theme) {

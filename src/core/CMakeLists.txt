@@ -65,7 +65,9 @@ else()
     endif()
 endif()
 
-if(TRUE)
+set(_sync_include_options)
+
+if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     list(APPEND _src
         style/styleagent.h
         style/styleagent_p.h
@@ -79,6 +81,8 @@ if(TRUE)
     else()
         list(APPEND _src style/styleagent_linux.cpp)
     endif()
+else()
+    list(APPEND _sync_include_options EXCLUDE "style/\\.+")
 endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN
@@ -89,6 +93,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     QT_INCLUDE_PRIVATE Core Gui
     INCLUDE_PRIVATE kernel contexts shared
     PREFIX QWK_CORE
+    SYNC_INCLUDE_OPTIONS ${_sync_include_options}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

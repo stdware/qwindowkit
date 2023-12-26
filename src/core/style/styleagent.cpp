@@ -8,6 +8,10 @@ namespace QWK {
     /*!
         \class StyleAgent
         \brief StyleAgent provides some features related to system theme.
+
+        Qt6.6 started to support system theme detection, this class is intended as an auxiliary
+        support for lower versions of Qt. If your Qt already supports it, it is recommended that
+        you don't include this class in your build system.
     */
 
     StyleAgentPrivate::StyleAgentPrivate() {

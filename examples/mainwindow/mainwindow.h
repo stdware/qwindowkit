@@ -28,13 +28,11 @@ protected:
 
 private:
     void installWindowAgent();
-    void installStyleAgent();
     void loadStyleSheet(Theme theme);
 
     Theme currentTheme{};
 
     QWK::WidgetWindowAgent *windowAgent;
-    QWK::StyleAgent *styleAgent;
 };
 
 #endif // MAINWINDOW_H
