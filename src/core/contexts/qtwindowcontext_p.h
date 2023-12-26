@@ -27,7 +27,7 @@ namespace QWK {
         void winIdChanged() override;
 
     protected:
-        std::unique_ptr<QObject> qtWindowEventFilter;
+        std::unique_ptr<SharedEventFilter> qtWindowEventFilter;
     };
 
 }

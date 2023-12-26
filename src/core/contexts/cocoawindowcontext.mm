@@ -3,6 +3,8 @@
 #include <objc/runtime.h>
 #include <AppKit/AppKit.h>
 
+#include <Cocoa/Cocoa.h>
+
 #include <QtGui/QGuiApplication>
 
 #include "qwkglobal_p.h"
@@ -10,76 +12,139 @@
 
 namespace QWK {
 
-    struct NSWindowProxy {
+    struct NSWindowProxy;
+
+    using ProxyList = QHash<WId, NSWindowProxy *>;
+    Q_GLOBAL_STATIC(ProxyList, g_proxyList);
+
+    using ProxyList2 = QHash<NSWindow *, NSWindowProxy *>;
+    Q_GLOBAL_STATIC(ProxyList2, g_proxyIndexes);
+
+}
+
+struct QWK_NSWindowDelegate {
+public:
+    virtual ~QWK_NSWindowDelegate() = default;
+    virtual void windowWillEnterFullScreen(){};
+    virtual void windowDidEnterFullScreen(){};
+    virtual void windowWillExitFullScreen(){};
+    virtual void windowDidExitFullScreen(){};
+    virtual void windowDidResize(){};
+};
+
+//
+// Objective C++ Begin
+//
+
+@interface QWK_NSWindowObserver : NSObject {
+}
+@end
+
+@implementation QWK_NSWindowObserver
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(windowWillEnterFullScreen:)
+                                                     name:NSWindowWillEnterFullScreenNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(windowDidEnterFullScreen:)
+                                                     name:NSWindowDidEnterFullScreenNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(windowWillExitFullScreen:)
+                                                     name:NSWindowWillExitFullScreenNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(windowDidExitFullScreen:)
+                                                     name:NSWindowDidExitFullScreenNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(windowDidResize:)
+                                                     name:NSWindowDidResizeNotification
+                                                   object:nil];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [super dealloc];
+}
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification {
+    auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
+    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowWillEnterFullScreen();
+    }
+}
+
+- (void)windowDidEnterFullScreen:(NSNotification *)notification {
+    auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
+    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidEnterFullScreen();
+    }
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification {
+    auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
+    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowWillExitFullScreen();
+    }
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification {
+    auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
+    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidExitFullScreen();
+    }
+}
+
+- (void)windowDidResize:(NSNotification *)notification {
+    auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
+    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidResize();
+    }
+}
+
+@end
+
+//
+// Objective C++ End
+//
+
+namespace QWK {
+
+    struct NSWindowProxy : public QWK_NSWindowDelegate {
         NSWindowProxy(NSWindow *macWindow) {
-            if (instances.contains(macWindow)) {
-                return;
-            }
             nswindow = macWindow;
-            instances.insert(macWindow, this);
-            if (!windowClass) {
-                windowClass = [nswindow class];
-                replaceImplementations();
-            }
+            g_proxyIndexes->insert(nswindow, this);
         }
 
-        ~NSWindowProxy() {
-            instances.remove(nswindow);
-            if (instances.count() <= 0) {
-                restoreImplementations();
-                windowClass = nil;
-            }
-            nswindow = nil;
+        ~NSWindowProxy() override {
+            g_proxyIndexes->remove(nswindow);
         }
 
-        void replaceImplementations() {
-            Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
-            oldSetStyleMask = reinterpret_cast<setStyleMaskPtr>(
-                method_setImplementation(method, reinterpret_cast<IMP>(setStyleMask)));
-
-            method =
-                class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
-            oldSetTitlebarAppearsTransparent =
-                reinterpret_cast<setTitlebarAppearsTransparentPtr>(method_setImplementation(
-                    method, reinterpret_cast<IMP>(setTitlebarAppearsTransparent)));
-
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
-
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            oldSendEvent = reinterpret_cast<sendEventPtr>(
-                method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
+        void windowWillEnterFullScreen() override {
+            qDebug() << "windowWillEnterFullScreen";
         }
 
-        void restoreImplementations() {
-            Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldSetStyleMask));
-            oldSetStyleMask = nil;
+        void windowDidEnterFullScreen() override {
+            qDebug() << "windowDidEnterFullScreen";
+        }
 
-            method =
-                class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
-            method_setImplementation(method,
-                                     reinterpret_cast<IMP>(oldSetTitlebarAppearsTransparent));
-            oldSetTitlebarAppearsTransparent = nil;
+        void windowWillExitFullScreen() override {
+            qDebug() << "windowWillExitFullScreen";
+        }
 
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
-            oldCanBecomeKeyWindow = nil;
+        void windowDidExitFullScreen() override {
+            qDebug() << "windowDidExitFullScreen";
+        }
 
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
-            oldCanBecomeMainWindow = nil;
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
-            oldSendEvent = nil;
+        void windowDidResize() override {
+            qDebug() << "windowDidResize";
         }
 
         void setSystemTitleBarVisible(const bool visible) {
@@ -87,6 +152,7 @@ namespace QWK {
             if (!nsview) {
                 return;
             }
+
             nsview.wantsLayer = YES;
             nswindow.styleMask |= NSWindowStyleMaskResizable;
             if (visible) {
@@ -110,9 +176,66 @@ namespace QWK {
 #endif
         }
 
+        static void replaceImplementations() {
+            Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
+            oldSetStyleMask = reinterpret_cast<setStyleMaskPtr>(
+                method_setImplementation(method, reinterpret_cast<IMP>(setStyleMask)));
+
+            method =
+                class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
+            oldSetTitlebarAppearsTransparent =
+                reinterpret_cast<setTitlebarAppearsTransparentPtr>(method_setImplementation(
+                    method, reinterpret_cast<IMP>(setTitlebarAppearsTransparent)));
+
+#if 0
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
+            oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
+
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
+            oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
+#endif
+
+            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
+            oldSendEvent = reinterpret_cast<sendEventPtr>(
+                method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
+
+            // Alloc
+            windowObserver = [[QWK_NSWindowObserver alloc] init];
+        }
+
+        static void restoreImplementations() {
+            Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldSetStyleMask));
+            oldSetStyleMask = nil;
+
+            method =
+                class_getInstanceMethod(windowClass, @selector(setTitlebarAppearsTransparent:));
+            method_setImplementation(method,
+                                     reinterpret_cast<IMP>(oldSetTitlebarAppearsTransparent));
+            oldSetTitlebarAppearsTransparent = nil;
+
+#if 0
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
+            oldCanBecomeKeyWindow = nil;
+
+            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
+            oldCanBecomeMainWindow = nil;
+#endif
+
+            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
+            method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
+            oldSendEvent = nil;
+
+            // Delete
+            [windowObserver release];
+            windowObserver = nil;
+        }
+
     private:
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
-            if (instances.contains(reinterpret_cast<NSWindow *>(obj))) {
+            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
                 return YES;
             }
 
@@ -124,7 +247,7 @@ namespace QWK {
         }
 
         static BOOL canBecomeMainWindow(id obj, SEL sel) {
-            if (instances.contains(reinterpret_cast<NSWindow *>(obj))) {
+            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
                 return YES;
             }
 
@@ -136,7 +259,7 @@ namespace QWK {
         }
 
         static void setStyleMask(id obj, SEL sel, NSWindowStyleMask styleMask) {
-            if (instances.contains(reinterpret_cast<NSWindow *>(obj))) {
+            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
                 styleMask |= NSWindowStyleMaskFullSizeContentView;
             }
 
@@ -146,7 +269,7 @@ namespace QWK {
         }
 
         static void setTitlebarAppearsTransparent(id obj, SEL sel, BOOL transparent) {
-            if (instances.contains(reinterpret_cast<NSWindow *>(obj))) {
+            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
                 transparent = YES;
             }
 
@@ -176,15 +299,16 @@ namespace QWK {
 #endif
         }
 
+        static inline const Class windowClass = [NSWindow class];
+
     private:
         Q_DISABLE_COPY(NSWindowProxy)
 
         NSWindow *nswindow = nil;
+
+        static inline QWK_NSWindowObserver *windowObserver = nil;
+
         // NSEvent *lastMouseDownEvent = nil;
-
-        static inline QHash<NSWindow *, NSWindowProxy *> instances = {};
-
-        static inline Class windowClass = nil;
 
         using setStyleMaskPtr = void (*)(id, SEL, NSWindowStyleMask);
         static inline setStyleMaskPtr oldSetStyleMask = nil;
@@ -202,34 +326,41 @@ namespace QWK {
         static inline sendEventPtr oldSendEvent = nil;
     };
 
-    using ProxyList = QHash<WId, NSWindowProxy *>;
-    Q_GLOBAL_STATIC(ProxyList, g_proxyList);
-
     static inline NSWindow *mac_getNSWindow(const WId windowId) {
         const auto nsview = reinterpret_cast<NSView *>(windowId);
         return [nsview window];
     }
 
     static inline NSWindowProxy *ensureWindowProxy(const WId windowId) {
-        auto it = g_proxyList()->find(windowId);
-        if (it == g_proxyList()->end()) {
+        if (g_proxyList->isEmpty()) {
+            NSWindowProxy::replaceImplementations();
+        }
+
+        auto it = g_proxyList->find(windowId);
+        if (it == g_proxyList->end()) {
             NSWindow *nswindow = mac_getNSWindow(windowId);
             const auto proxy = new NSWindowProxy(nswindow);
-            it = g_proxyList()->insert(windowId, proxy);
+            it = g_proxyList->insert(windowId, proxy);
         }
         return it.value();
     }
 
     static inline void releaseWindowProxy(const WId windowId) {
-        if (const auto proxy = g_proxyList()->take(windowId)) {
+        if (auto proxy = g_proxyList->take(windowId)) {
             proxy->setSystemTitleBarVisible(true);
             delete proxy;
+        } else {
+            return;
+        }
+
+        if (g_proxyList->isEmpty()) {
+            NSWindowProxy::restoreImplementations();
         }
     }
 
-    class CocoaWindowEventFilter : public QObject {
+    class CocoaWindowEventFilter : public SharedEventFilter {
     public:
-        explicit CocoaWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
+        explicit CocoaWindowEventFilter(AbstractWindowContext *context);
         ~CocoaWindowEventFilter() override;
 
         enum WindowStatus {
@@ -240,7 +371,7 @@ namespace QWK {
         };
 
     protected:
-        bool eventFilter(QObject *object, QEvent *event) override;
+        bool sharedEventFilter(QObject *object, QEvent *event) override;
 
     private:
         AbstractWindowContext *m_context;
@@ -248,15 +379,16 @@ namespace QWK {
         WindowStatus m_windowStatus;
     };
 
-    CocoaWindowEventFilter::CocoaWindowEventFilter(AbstractWindowContext *context, QObject *parent)
-        : QObject(parent), m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
-        m_context->window()->installEventFilter(this);
+    CocoaWindowEventFilter::CocoaWindowEventFilter(AbstractWindowContext *context)
+        : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        m_context->installSharedEventFilter(this);
     }
 
     CocoaWindowEventFilter::~CocoaWindowEventFilter() = default;
 
-    bool CocoaWindowEventFilter::eventFilter(QObject *obj, QEvent *event) {
+    bool CocoaWindowEventFilter::sharedEventFilter(QObject *obj, QEvent *event) {
         Q_UNUSED(obj)
+
         auto type = event->type();
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
@@ -359,6 +491,7 @@ namespace QWK {
     }
 
     CocoaWindowContext::CocoaWindowContext() : AbstractWindowContext() {
+        cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this);
     }
 
     CocoaWindowContext::~CocoaWindowContext() {
@@ -387,7 +520,6 @@ namespace QWK {
         if (windowId) {
             releaseWindowProxy(windowId);
             windowId = 0;
-            cocoaWindowEventFilter.reset();
         }
 
         if (!m_windowHandle) {
@@ -397,7 +529,6 @@ namespace QWK {
         // Allocate new resources
         windowId = m_windowHandle->winId();
         ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
-        cocoaWindowEventFilter = std::make_unique<CocoaWindowEventFilter>(this, this);
     }
 
     bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,

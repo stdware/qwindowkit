@@ -7,7 +7,7 @@
 
 namespace QWK {
 
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
     // TODO: Find a way to draw native border
     // We haven't found a way to place hooks in the Quick program and call the GDI API to draw
     // the native border area so that we'll use the emulated drawn border for now.

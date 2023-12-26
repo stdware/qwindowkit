@@ -35,7 +35,7 @@ namespace QWK {
         d->setup(window, new QuickItemDelegate());
         d->hostWindow = window;
 
-#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
 #endif
         return true;

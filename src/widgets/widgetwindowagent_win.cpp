@@ -8,7 +8,7 @@
 
 namespace QWK {
 
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowsbackingstore.cpp#L42
     // In QtWidgets applications, when repainting happens, QPA at the last calls
     // QWindowsBackingStore::flush() to draw the contents of the buffer to the screen, we need to

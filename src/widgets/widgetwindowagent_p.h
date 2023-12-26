@@ -32,7 +32,7 @@ namespace QWK {
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;
 #endif
 
-#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         void setupWindows10BorderWorkaround();
         std::unique_ptr<QObject> borderHandler;
 #endif

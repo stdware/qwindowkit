@@ -77,9 +77,9 @@ namespace QWK {
 #endif
     }
 
-    class QtWindowEventFilter : public QObject {
+    class QtWindowEventFilter : public SharedEventFilter {
     public:
-        explicit QtWindowEventFilter(AbstractWindowContext *context, QObject *parent = nullptr);
+        explicit QtWindowEventFilter(AbstractWindowContext *context);
         ~QtWindowEventFilter() override;
 
         enum WindowStatus {
@@ -91,7 +91,7 @@ namespace QWK {
         };
 
     protected:
-        bool eventFilter(QObject *object, QEvent *event) override;
+        bool sharedEventFilter(QObject *object, QEvent *event) override;
 
     private:
         AbstractWindowContext *m_context;
@@ -99,15 +99,16 @@ namespace QWK {
         WindowStatus m_windowStatus;
     };
 
-    QtWindowEventFilter::QtWindowEventFilter(AbstractWindowContext *context, QObject *parent)
-        : QObject(parent), m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
-        m_context->window()->installEventFilter(this);
+    QtWindowEventFilter::QtWindowEventFilter(AbstractWindowContext *context)
+        : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        m_context->installSharedEventFilter(this);
     }
 
     QtWindowEventFilter::~QtWindowEventFilter() = default;
 
-    bool QtWindowEventFilter::eventFilter(QObject *obj, QEvent *event) {
+    bool QtWindowEventFilter::sharedEventFilter(QObject *obj, QEvent *event) {
         Q_UNUSED(obj)
+
         auto type = event->type();
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
@@ -235,6 +236,7 @@ namespace QWK {
     }
 
     QtWindowContext::QtWindowContext() : AbstractWindowContext() {
+        qtWindowEventFilter = std::make_unique<QtWindowEventFilter>(this);
     }
 
     QtWindowContext::~QtWindowContext() = default;
@@ -251,14 +253,12 @@ namespace QWK {
         if (!m_windowHandle) {
             m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) &
                                                    ~Qt::FramelessWindowHint);
-            qtWindowEventFilter.reset();
             return;
         }
 
         // Allocate new resources
         m_delegate->setWindowFlags(m_host,
                                    m_delegate->getWindowFlags(m_host) | Qt::FramelessWindowHint);
-        qtWindowEventFilter = std::make_unique<QtWindowEventFilter>(this);
     }
 
 }

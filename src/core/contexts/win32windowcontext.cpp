@@ -46,13 +46,13 @@ namespace QWK {
     static WNDPROC g_qtWindowProc = nullptr;
 
     static inline bool
-#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         constexpr
 #endif
 
         isSystemBorderEnabled() {
         return
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
             isWin10OrGreater()
 #else
             false
@@ -401,8 +401,8 @@ namespace QWK {
             return false;
         }
 
-        static WindowsNativeEventFilter *instance;
-        static Win32WindowContext *lastMessageContext;
+        static inline WindowsNativeEventFilter *instance = nullptr;
+        static inline Win32WindowContext *lastMessageContext = nullptr;
 
         static inline void install() {
             if (instance) {
@@ -419,9 +419,6 @@ namespace QWK {
             instance = nullptr;
         }
     };
-
-    WindowsNativeEventFilter *WindowsNativeEventFilter::instance = nullptr;
-    Win32WindowContext *WindowsNativeEventFilter::lastMessageContext = nullptr;
 
     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1025
     // We can see from the source code that Qt will filter out some messages first and then send the
@@ -606,7 +603,7 @@ namespace QWK {
             }
 
             case DrawWindows10BorderHook: {
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
                 if (!windowId)
                     return;
 
@@ -651,7 +648,7 @@ namespace QWK {
             }
 
             case DrawWindows10BorderHook2: {
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
                 if (!m_windowHandle)
                     return;
 
@@ -729,7 +726,7 @@ namespace QWK {
 
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDER)
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
             ::SetWindowLongPtrW(hWnd, GWL_STYLE, style & (~WS_SYSMENU));
 #else
             ::SetWindowLongPtrW(hWnd, GWL_STYLE,
