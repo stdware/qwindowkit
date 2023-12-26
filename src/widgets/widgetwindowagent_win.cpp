@@ -14,13 +14,13 @@ namespace QWK {
     // QWindowsBackingStore::flush() to draw the contents of the buffer to the screen, we need to
     // call GDI drawing the top border after that.
 
-    // After debugging, we know that there are two situations that will lead to redrawing.
+    // After debugging, we know that there are two situations that will lead to repaint.
     //
     // 1. Windows sends a WM_PAINT message, after which Qt immediately generates a QExposeEvent or
     // QResizeEvent and send it to the corresponding QWidgetWindow instance, calling "flush" at the
     // end of its handler.
     //
-    // 2. When a timer or user input triggers Qt to redraw spontaneously, the corresponding
+    // 2. When a timer or user input triggers Qt to repaint spontaneously, the corresponding
     // QWidget receives a QEvent::UpdateRequest event and also calls "flush" at the end of its
     // handler.
     //
@@ -67,7 +67,7 @@ namespace QWK {
             }
         }
 
-        inline void resumeWidgetEvent(QWidget *w, QEvent *event) {
+        inline void resumeWidgetEventAndDraw(QWidget *w, QEvent *event) {
             // Friend class helping to call `event`
             class HackedWidget : public QWidget {
             public:
@@ -77,13 +77,13 @@ namespace QWK {
             // Let the widget paint first
             static_cast<HackedWidget *>(w)->event(event);
 
-            // Due to the timer or user action, Qt will redraw some regions spontaneously,
-            // even if there is no WM_PAINT message, we must wait for it to finish redrawing
+            // Due to the timer or user action, Qt will repaint some regions spontaneously,
+            // even if there is no WM_PAINT message, we must wait for it to finish painting
             // and then update the top border area.
             ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
         }
 
-        inline void resumeWindowEvent(QWindow *window, QEvent *event) {
+        inline void resumeWindowEventAndDraw(QWindow *window, QEvent *event) {
             // Friend class helping to call `event`
             class HackedWindow : public QWindow {
             public:
@@ -93,9 +93,26 @@ namespace QWK {
             // Let Qt paint first
             static_cast<HackedWindow *>(window)->event(event);
 
-            // Upon receiving the WM_PAINT message, Qt will redraw the entire view, and we
-            // must wait for it to finish redrawing before drawing this top border area.
+            // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
+            // must wait for it to finish painting before drawing this top border area.
             ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+        }
+
+        inline void updateExtraMargins(bool windowActive) {
+            if (windowActive) {
+                // Restore margins when the window is active
+                static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
+                ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
+                return;
+            }
+
+            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
+            // When the window is inactive, there is a transparency bug in the top
+            // border, and we need to extend the non-client area to the whole title
+            // bar.
+            QRect frame = ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
+            QMargins margins{0, -frame.top(), 0, 0};
+            ctx->setWindowAttribute(QStringLiteral("extra-margins"), QVariant::fromValue(margins));
         }
 
     protected:
@@ -106,25 +123,12 @@ namespace QWK {
             switch (msg->message) {
                 case WM_DPICHANGED: {
                     updateGeometry();
+                    updateExtraMargins(widget->isActiveWindow());
                     break;
                 }
 
                 case WM_ACTIVATE: {
-                    if (LOWORD(msg->wParam) == WA_INACTIVE) {
-                        // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
-                        // When the window is inactive, there is a transparency bug in the top
-                        // border, and we need to extend the non-client area to the whole title
-                        // bar.
-                        QRect frame =
-                            ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
-                        QMargins margins{0, -frame.top(), 0, 0};
-                        ctx->setWindowAttribute(QStringLiteral("extra-margins"),
-                                                QVariant::fromValue(margins));
-                    } else {
-                        // Restore margins when the window is active
-                        static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
-                        ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
-                    }
+                    updateExtraMargins(LOWORD(msg->wParam) != WA_INACTIVE);
                     break;
                 }
 
@@ -149,7 +153,7 @@ namespace QWK {
             if (event->type() == QEvent::Expose) {
                 auto ee = static_cast<QExposeEvent *>(event);
                 if (window->isExposed() && isNormalWindow() && !ee->region().isNull()) {
-                    resumeWindowEvent(window, event);
+                    resumeWindowEventAndDraw(window, event);
                     return true;
                 }
             }
@@ -163,7 +167,7 @@ namespace QWK {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())
                         break;
-                    resumeWidgetEvent(widget, event);
+                    resumeWidgetEventAndDraw(widget, event);
                     return true;
                 }
 
