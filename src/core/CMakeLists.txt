@@ -65,7 +65,7 @@ else()
     endif()
 endif()
 
-if(QWINDOWKIT_ENABLE_STYLE_AGENT)
+if(TRUE)
     list(APPEND _src
         style/styleagent.h
         style/styleagent_p.h

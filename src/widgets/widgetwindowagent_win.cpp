@@ -45,7 +45,7 @@ namespace QWK {
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
 
             // Enable dark mode by default, otherwise the frame borders are white
-            ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+            // ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
 
             ctx->installNativeEventFilter(this);
             ctx->installSharedEventFilter(this);
@@ -148,7 +148,7 @@ namespace QWK {
             // ignore it.
             if (event->type() == QEvent::Expose) {
                 auto ee = static_cast<QExposeEvent *>(event);
-                if (window->isExposed() && !ee->region().isNull()) {
+                if (window->isExposed() && isNormalWindow() && !ee->region().isNull()) {
                     resumeWindowEvent(window, event);
                     return true;
                 }
