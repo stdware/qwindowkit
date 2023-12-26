@@ -40,6 +40,7 @@ namespace QWK {
         void setCursorShape(QObject *host, Qt::CursorShape shape) const override;
         void restoreCursorShape(QObject *host) const override;
         void setWindowFlags(QObject *host, Qt::WindowFlags flags) const override;
+        void setWindowVisible(QObject *host, bool visible) const override;
         void bringWindowToTop(QObject *host) const override;
     };
 

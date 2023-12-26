@@ -573,6 +573,7 @@ namespace QWK {
             case RaiseWindowHook: {
                 if (!windowId)
                     return;
+                m_delegate->setWindowVisible(m_host, true);
                 const auto hwnd = reinterpret_cast<HWND>(windowId);
                 bringWindowToFront(hwnd);
                 return;

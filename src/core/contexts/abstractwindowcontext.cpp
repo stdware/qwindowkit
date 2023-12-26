@@ -211,6 +211,10 @@ namespace QWK {
             }
 
             case RaiseWindowHook: {
+                if (!m_windowHandle)
+                    return;
+
+                m_delegate->setWindowVisible(m_host, true);
                 Qt::WindowStates state = m_delegate->getWindowState(m_host);
                 if (state & Qt::WindowMinimized) {
                     m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);

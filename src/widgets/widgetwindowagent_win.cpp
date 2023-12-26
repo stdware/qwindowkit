@@ -45,7 +45,7 @@ namespace QWK {
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
 
             // Enable dark mode by default, otherwise the frame borders are white
-            // ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+            ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
 
             ctx->installNativeEventFilter(this);
             ctx->installSharedEventFilter(this);

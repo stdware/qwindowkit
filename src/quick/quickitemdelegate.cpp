@@ -68,6 +68,10 @@ namespace QWK {
         static_cast<QQuickWindow *>(host)->setFlags(flags);
     }
 
+    void QuickItemDelegate::setWindowVisible(QObject *host, bool visible) const {
+        static_cast<QQuickWindow *>(host)->setVisible(visible);
+    }
+
     void QuickItemDelegate::bringWindowToTop(QObject *host) const {
         static_cast<QQuickWindow *>(host)->raise();
     }
