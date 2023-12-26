@@ -35,11 +35,18 @@ namespace QWK {
         AbstractWindowContext *ctx;
     };
 
+    /*!
+        Returns the widget that acts as the system button area.
+    */
     QWidget *WidgetWindowAgent::systemButtonArea() const {
         Q_D(const WidgetWindowAgent);
         return d->systemButtonAreaWidget;
     }
 
+    /*!
+        Sets the widget that acts as the system button area. The system button will be centered in
+        its area, it is recommended to place the widget in a layout and set a fixed size policy.
+    */
     void WidgetWindowAgent::setSystemButtonArea(QWidget *widget) {
         Q_D(WidgetWindowAgent);
         auto ctx = d->context.get();

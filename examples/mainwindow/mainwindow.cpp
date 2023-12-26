@@ -292,6 +292,10 @@ void MainWindow::installWindowAgent() {
 
 void MainWindow::installStyleAgent() {
     styleAgent = new QWK::StyleAgent(this);
+
+    connect(styleAgent, &QWK::StyleAgent::systemThemeChanged, this, [this]() {
+        qDebug() << "System style changed:" << styleAgent->systemTheme(); //
+    });
 }
 
 void MainWindow::loadStyleSheet(Theme theme) {

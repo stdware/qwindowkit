@@ -17,6 +17,20 @@ Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
 namespace QWK {
 
+    /*!
+        \namespace QWK
+        \brief QWindowKit namespace
+    */
+
+    /*!
+        \class WindowAgentBase
+        \brief WindowAgentBase is the base class of the specifiy window agent for QtWidgets and
+        QtQuick.
+
+        It processes some system events and the implements of frameless logic, and provides some
+        common methods for derived classes to call.
+    */
+
     WindowAgentBasePrivate::WindowContextFactoryMethod
         WindowAgentBasePrivate::windowContextFactoryMethod = nullptr;
 
@@ -48,33 +62,74 @@ namespace QWK {
         context.reset(ctx);
     }
 
+    /*!
+        Destructor.
+    */
     WindowAgentBase::~WindowAgentBase() = default;
 
+    /*!
+        Returns the window attribute value.
+
+        \sa setWindowAttribute()
+    */
     QVariant WindowAgentBase::windowAttribute(const QString &key) const {
         Q_D(const WindowAgentBase);
         return d->context->windowAttribute(key);
     }
 
+    /*!
+        Sets the platform-related attribute for the window.
+
+        Available attributes:
+
+        On Windows,
+            \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
+                    this attribute is only available on Windows 11.
+            \li \c mica: Specify a boolean value to enable or disable mica material,
+                    this attribute is only available on Windows 11.
+            \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
+                    this attribute is only available on Windows 11.
+            \li \c dark-mode: Specify a boolean value to enable or disable the dark mode, it is
+                    enabled by default on Windows 10 if the system borders config is enabled.
+            \li \c extra-margins: Specify a margin value to change the \c dwm extended area
+                    geometry, you shouldn't change this attribute because it may break the
+                    internal state.
+
+        On macOS,
+            \li \c no-system-buttons: Specify a boolean value to set the system buttons' visibility.
+    */
     bool WindowAgentBase::setWindowAttribute(const QString &key, const QVariant &attribute) {
         Q_D(WindowAgentBase);
         return d->context->setWindowAttribute(key, attribute);
     }
 
+    /*!
+        Shows the system menu, it's only implemented on Windows.
+    */
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
         Q_D(WindowAgentBase);
         d->context->showSystemMenu(pos);
     }
 
+    /*!
+        Makes the window show in center of the current screen.
+    */
     void WindowAgentBase::centralize() {
         Q_D(WindowAgentBase);
         d->context->virtual_hook(AbstractWindowContext::CentralizeHook, nullptr);
     }
 
+    /*!
+        Brings the window to top.
+    */
     void WindowAgentBase::raise() {
         Q_D(WindowAgentBase);
         d->context->virtual_hook(AbstractWindowContext::RaiseWindowHook, nullptr);
     }
 
+    /*!
+        \internal
+    */
     WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)
         : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;

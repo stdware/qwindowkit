@@ -26,7 +26,6 @@ namespace QWK {
         QWidget *systemButton(SystemButton button) const;
         void setSystemButton(SystemButton button, QWidget *w);
 
-        // Not implement, don't use now
 #ifdef Q_OS_MAC
         QWidget *systemButtonArea() const;
         void setSystemButtonArea(QWidget *widget);
@@ -36,7 +35,7 @@ namespace QWK {
         void setHitTestVisible(const QWidget *w, bool visible = true);
 
     Q_SIGNALS:
-        void titleBarWidgetChanged(const QWidget *w);
+        void titleBarChanged(const QWidget *w);
         void systemButtonChanged(SystemButton button, const QWidget *w);
 
     protected:

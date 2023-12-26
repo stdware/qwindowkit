@@ -22,7 +22,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS QWKCore
     QT_LINKS Core Gui Quick
     QT_INCLUDE_PRIVATE Core Gui Quick
-    INCLUDE_PRIVATE contexts
+    INCLUDE_PRIVATE
     PREFIX QWK_QUICK
 )
 

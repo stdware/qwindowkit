@@ -8,6 +8,14 @@
 
 namespace QWK {
 
+    /*!
+        \class QuickWindowAgent
+        \brief QuickWindowAgent is the window agent for QtQuick.
+
+        It provides interfaces for QtQuick and processes some Qt events related to the QQuickItem
+        instance. The usage of all APIs is consistent with the \a Widgets module.
+    */
+
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() = default;
 
     QuickWindowAgentPrivate::~QuickWindowAgentPrivate() = default;
@@ -77,6 +85,9 @@ namespace QWK {
         d->context->setHitTestVisible(item, visible);
     }
 
+    /*!
+        \internal
+    */
     QuickWindowAgent::QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
         d.init();

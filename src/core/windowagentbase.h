@@ -30,9 +30,6 @@ namespace QWK {
         QVariant windowAttribute(const QString &key) const;
         Q_INVOKABLE bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
-    Q_SIGNALS:
-        void systemThemeChanged();
-
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos); // Only available on Windows now
         void centralize();

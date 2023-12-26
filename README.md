@@ -5,21 +5,11 @@ Cross-platform window customization framework for Qt Widgets and Qt Quick.
 This project inherited most of [wangwenx190 FramelessHelper](https://github.com/wangwenx190/framelesshelper)
 implementation, with a complete refactoring and upgrading of the architecture.
 
-Support as many system native features as possible without requiring additional dependencies.
+Feature requests are welcome.
 
-<!-- ## Why using QWindowKit?
+## Join with Us :triangular_flag_on_post:
 
-Here are why `QWindowKit` is better than `FramelessHelper`:
-
-+ Full support of Windows 11 Snap Layout
-+ Most of the redundant codes and architectural flaws are eliminated, and the binary size compiled by MSVC is about 1/9 of `FramelessHelper`
-+ A critical issue that moving window forces the entire window to be repainted on Windows is fixed
-+ Capable to cope with WinId mutation, and `QWebEngineView` is perfectly supported
-+ Better workaround to handle Windows 10 top border issue
-+ Simpler APIs, more detailed documentation and comments
-+ A lot of bugs are fixed
-
-Feature requests are welcome. -->
+You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share your findings, thoughts and ideas on improving / implementing FramelessHelper functionalities on more platforms and apps!
 
 ## Supported Platforms
 
@@ -27,12 +17,21 @@ Feature requests are welcome. -->
 + Apple macOS (11+)
 + GNU/Linux
 
+## Features
+
++ Full support of Windows 11 Snap Layout
++ Better workaround to handle Windows 10 top border issue
++ Support Mac system buttons geometry customization
++ Simpler APIs, more detailed documentations and comments
+
 ## Gallery
 
 ### Windows 11 (With Snap Layout)
+
 ![image](./docs/images/win11.png)
 
 ### Windows 10 (And 7, Vista)
+
 ![image](./docs/images/win10.png)
 
 ### macOS & Linux
@@ -130,7 +129,8 @@ MyWidget::MyWidget(QWidget *parent) {
 }
 ```
 
-If you don't want to derive a new widget class or change the constructor, you can initialize the agent after the window constructs.
+If you don't want to derive a new widget class or change the constructor, you can initialize the agent after the window
+constructs.
 
 ```c++
 auto w = new MyWidget();
@@ -140,9 +140,11 @@ agent->setup(w);
 
 #### Construct Title bar
 
-Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to put it into the window's layout.
+Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to
+put it into the window's layout.
 
-You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the container of your title bar components.
+You can use the [`WindowBar`](examples/shared/widgetframe/windowbar.h) provided by `WidgetFrame` in the examples as the
+container of your title bar components.
 
 Let `WidgetWindowAgent` know which widget the title bar is.
 
@@ -150,7 +152,8 @@ Let `WidgetWindowAgent` know which widget the title bar is.
 agent->setTitleBar(myTitleBar);
 ```
 
-Next, set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the Snap Layout to work.
+Next, set system button hints to let `WidgetWindowAgent` know the role of the child widgets, which is important for the
+Snap Layout to work.
 
 ```c++
 agent->setSystemButton(QWK::WindowAgentBase::WindowIcon, myTitleBar->iconButton());
@@ -158,11 +161,14 @@ agent->setSystemButton(QWK::WindowAgentBase::Minimize, myTitleBar->minButton());
 agent->setSystemButton(QWK::WindowAgentBase::Maximize, myTitleBar->maxButton());
 agent->setSystemButton(QWK::WindowAgentBase::Close, myTitleBar->closeButton());
 ```
-Doing this does not mean that these buttons' click events are automatically associated with window actions, you still need to manually connect the signals and slots to emulate the native window behaviors.
+
+Doing this does not mean that these buttons' click events are automatically associated with window actions, you still
+need to manually connect the signals and slots to emulate the native window behaviors.
 
 On macOS, this step can be skipped because it is better to use the buttons provided by the system.
 
-Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse events.
+Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse
+events.
 
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
@@ -170,8 +176,7 @@ agent->setHitTestVisible(myTitleBar->menuBar(), true);
 
 The rest region within the title bar will be regarded as the draggable area for the user to move the window.
 
-
-#### Window Attributes (Experimental)
+<!-- #### Window Attributes (Experimental)
 
 On Windows 11, you can use this API to enable system effects.
 
@@ -179,7 +184,7 @@ On Windows 11, you can use this API to enable system effects.
 agent->setWindowAttribute("mica", true);
 ```
 
-Available keys: `mica`, `mica-alt`, `acrylic`, `dark-mode`.
+Available keys: `mica`, `mica-alt`, `acrylic`, `dark-mode`. -->
 
 ### Qt Quick Application
 
@@ -224,23 +229,19 @@ Window {
 
 You can omit the version number or use "auto" instead of "1.0" for the module URI if you are using Qt6.
 
-#### Window Attributes (Experimental)
-
-TODO
-
 ### Learn More
 
 See [examples](examples) for more demo use cases. The examples have no High DPI support.
 
-## Documentations
-
-+ Examples (TODO)
-+ Notes (TODO)
 + [FramelessHelper Related](docs/framelesshelper-related.md)
 
 ## TODO
 
 + Fix 5.15 window abnormal behavior
++ Support Mac style change notification
++ Support Mac system buttons customization for Quick
++ More documentations
++ When do we support Linux native features?
 
 ## Special Thanks
 
