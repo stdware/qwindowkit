@@ -101,6 +101,7 @@ namespace QWK {
     bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
                                        QT_NATIVE_EVENT_RESULT_TYPE *result) {
         Q_UNUSED(eventType)
+
         const auto msg = static_cast<const MSG *>(message);
         switch (msg->message) {
             case WM_THEMECHANGED:
@@ -125,6 +126,7 @@ namespace QWK {
 
     bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
         Q_UNUSED(obj)
+        
         switch (event->type()) {
             case QEvent::WindowStateChange: {
                 updateGeometry();

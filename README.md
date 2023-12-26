@@ -65,6 +65,23 @@ You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share
 
 ## Integrate
 
+### Configure Options
+
++ `QWINDOWKIT_BUILD_DOCUMENTATIONS`
+    + If you have installed `Doxygen`, you can **enable** this option so that the documentations will also be built and installed.
+    + If not, you can read the comments in *qdoc* style in `cpp` files to get detailed usages of the public APIs.
+
++ `QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS`
+    + If you don't want the system borders on Windows 10/11, you can **disable** this option.
+    + If so, the Windows 10 top border issue will disappear. However, part of the client edge area will be occupied as the resizing margins.
+
++ `QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT`
+    + If you want to use pure Qt emulated frameless implementation, you can **enable** this option.
+    + If so, all system native features will be lost.
+
++ `QWINDOWKIT_ENABLE_STYLE_AGENT`
+    + Select whether to exclude the style component by **disabling** this option according to your requirements and your Qt version.
+
 ### Build & Install
 
 ```sh
@@ -162,13 +179,11 @@ agent->setSystemButton(QWK::WindowAgentBase::Maximize, myTitleBar->maxButton());
 agent->setSystemButton(QWK::WindowAgentBase::Close, myTitleBar->closeButton());
 ```
 
-Doing this does not mean that these buttons' click events are automatically associated with window actions, you still
-need to manually connect the signals and slots to emulate the native window behaviors.
+Doing this does not mean that these buttons' click events are automatically associated with window actions, you still need to manually connect the signals and slots to emulate the native window behaviors.
 
 On macOS, this step can be skipped because it is better to use the buttons provided by the system.
 
-Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse
-events.
+Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse events.
 
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
@@ -233,12 +248,12 @@ You can omit the version number or use "auto" instead of "1.0" for the module UR
 
 See [examples](examples) for more demo use cases. The examples have no High DPI support.
 
++ QWindowKit Internals [TODO]
 + [FramelessHelper Related](docs/framelesshelper-related.md)
 
 ## TODO
 
 + Fix 5.15 window abnormal behavior
-+ Support Mac style change notification
 + Support Mac system buttons customization for Quick
 + More documentations
 + When do we support Linux native features?

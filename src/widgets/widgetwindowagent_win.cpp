@@ -44,7 +44,7 @@ namespace QWK {
             static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
 
-            // Enable dark mode by default, otherwise the frame borders are white
+            // Enable dark mode by default, otherwise the system borders are white
             ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
 
             ctx->installNativeEventFilter(this);
@@ -119,6 +119,7 @@ namespace QWK {
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
+
             const auto msg = static_cast<const MSG *>(message);
             switch (msg->message) {
                 case WM_DPICHANGED: {
@@ -163,6 +164,7 @@ namespace QWK {
 
         bool eventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
+            
             switch (event->type()) {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())
