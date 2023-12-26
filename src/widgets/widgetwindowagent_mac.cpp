@@ -19,7 +19,8 @@ namespace QWK {
             switch (event->type()) {
                 case QEvent::Move:
                 case QEvent::Resize: {
-                    ctx->setSystemButtonArea(widget->geometry());
+                    QRect rect(widget->mapTo(widget->window(), {}), widget->size());
+                    ctx->setSystemButtonArea(rect);
                     break;
                 }
 

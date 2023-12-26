@@ -241,7 +241,12 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 ## TODO
 
 + Fix 5.15 window abnormal behavior
-+ Support customized system button area on Mac
+
+## Special Thanks
+
++ [Arabaku](https://github.com/Arabaku)
++ [Maplespe](https://github.com/Maplespe)
++ [zhiyiYo](https://github.com/zhiyiYo)
 
 ## License
 

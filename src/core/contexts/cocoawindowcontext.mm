@@ -128,23 +128,101 @@ namespace QWK {
         }
 
         void windowWillEnterFullScreen() override {
-            qDebug() << "windowWillEnterFullScreen";
         }
 
         void windowDidEnterFullScreen() override {
-            qDebug() << "windowDidEnterFullScreen";
         }
 
         void windowWillExitFullScreen() override {
-            qDebug() << "windowWillExitFullScreen";
+            if (systemButtonRect.isEmpty() || !systemButtonVisible)
+                return;
+
+            // The system buttons will stuck at their default positions when the exit-fullscreen
+            // animation is running, we need to hide them until the animation finishes
+            for (const auto &button : systemButtons()) {
+                button.hidden = true;
+            }
         }
 
         void windowDidExitFullScreen() override {
-            qDebug() << "windowDidExitFullScreen";
+            if (systemButtonRect.isEmpty() || !systemButtonVisible)
+                return;
+
+            for (const auto &button : systemButtons()) {
+                button.hidden = false;
+            }
+            updateSystemButtonRect();
         }
 
         void windowDidResize() override {
-            qDebug() << "windowDidResize";
+            if (systemButtonRect.isEmpty() || !systemButtonVisible) {
+                return;
+            }
+            updateSystemButtonRect();
+        }
+
+        void setSystemButtonVisible(bool visible) {
+            systemButtonVisible = visible;
+            for (const auto &button : systemButtons()) {
+                button.hidden = !visible;
+            }
+
+            if (systemButtonRect.isEmpty() || !visible) {
+                return;
+            }
+            updateSystemButtonRect();
+        }
+
+        void setSystemButtonRect(const QRect &rect) {
+            systemButtonRect = rect;
+
+            if (rect.isEmpty() || !systemButtonVisible) {
+                return;
+            }
+            updateSystemButtonRect();
+        }
+
+        void updateSystemButtonRect() {
+            // https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
+
+            const auto &buttons = systemButtons();
+            const auto &leftButton = buttons[0];
+            const auto &midButton = buttons[1];
+            const auto &rightButton = buttons[2];
+
+            auto spacing = midButton.frame.origin.x - leftButton.frame.origin.x;
+            auto width = midButton.frame.size.width;
+            auto height = midButton.frame.size.height;
+
+            QPoint center = systemButtonRect.center();
+
+            // Mid button
+            NSPoint centerOrigin = {
+                center.x() - width / 2,
+                center.y() - height / 2,
+            };
+            [midButton setFrameOrigin:centerOrigin];
+
+            // Left button
+            NSPoint leftOrigin = {
+                centerOrigin.x - spacing,
+                centerOrigin.y,
+            };
+            [leftButton setFrameOrigin:leftOrigin];
+
+            // Right button
+            NSPoint rightOrigin = {
+                centerOrigin.x + spacing,
+                centerOrigin.y,
+            };
+            [rightButton setFrameOrigin:rightOrigin];
+        }
+
+        inline std::array<NSButton *, 3> systemButtons() {
+            NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
+            NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+            NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
+            return {closeBtn, minimizeBtn, zoomBtn};
         }
 
         void setSystemTitleBarVisible(const bool visible) {
@@ -233,7 +311,7 @@ namespace QWK {
             windowObserver = nil;
         }
 
-    private:
+    protected:
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
             if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
                 return YES;
@@ -305,6 +383,9 @@ namespace QWK {
         Q_DISABLE_COPY(NSWindowProxy)
 
         NSWindow *nswindow = nil;
+
+        bool systemButtonVisible = true;
+        QRect systemButtonRect;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
@@ -505,7 +586,7 @@ namespace QWK {
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case SystemButtonAreaChangedHook: {
-                // TODO: mac system button rect updated
+                ensureWindowProxy(windowId)->setSystemButtonRect(m_systemButtonArea);
                 return;
             }
 
@@ -533,12 +614,12 @@ namespace QWK {
 
     bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
                                                     const QVariant &oldAttribute) {
+        Q_UNUSED(oldAttribute)
+
         if (key == QStringLiteral("no-system-buttons")) {
-            if (attribute.toBool()) {
-                // TODO: set off
-            } else {
-                // TODO: set on
-            }
+            if (attribute.type() != QVariant::Bool)
+                return false;
+            ensureWindowProxy(windowId)->setSystemButtonVisible(!attribute.toBool());
             return true;
         }
         return false;
