@@ -12,6 +12,23 @@ namespace QWK {
     using StyleAgentSet = QSet<StyleAgentPrivate *>;
     Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
 
+    static StyleAgent::SystemTheme getSystemTheme() {
+        if (isHighContrastModeEnabled()) {
+            return StyleAgent::HighContrast;
+        } else if (isDarkThemeActive()) {
+            return StyleAgent::Dark;
+        } else {
+            return StyleAgent::Light;
+        }
+    }
+
+    static void notifyAllStyleAgents() {
+        auto theme = getSystemTheme();
+        for (auto &&ap : std::as_const(*g_styleAgentSet())) {
+            ap->notifyThemeChanged(theme);
+        }
+    }
+
     class SystemSettingEventFilter : public AppNativeEventFilter {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
@@ -21,42 +38,25 @@ namespace QWK {
                 return false;
             }
 
-            auto themeChanged = [message]() -> bool {
-                const auto msg = static_cast<const MSG *>(message);
-                switch (msg->message) {
-                    case WM_THEMECHANGED:
-                    case WM_SYSCOLORCHANGE:
-                    case WM_DWMCOLORIZATIONCOLORCHANGED:
-                        return true;
-
-                    case WM_SETTINGCHANGE: {
-                        if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
-                            return true;
-                        }
-                        break;
-                    }
-
-                    default:
-                        break;
+            const auto msg = static_cast<const MSG *>(message);
+            switch (msg->message) {
+                case WM_THEMECHANGED:
+                case WM_SYSCOLORCHANGE:
+                case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                    notifyAllStyleAgents();
+                    break;
                 }
-                return false;
-            }();
 
-            if (themeChanged) {
-                auto theme = []() -> StyleAgent::SystemTheme {
-                    if (isHighContrastModeEnabled()) {
-                        return StyleAgent::HighContrast;
-                    } else if (isDarkThemeActive()) {
-                        return StyleAgent::Dark;
-                    } else {
-                        return StyleAgent::Light;
+                case WM_SETTINGCHANGE: {
+                    if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
+                        notifyAllStyleAgents();
                     }
-                }();
-                for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-                    ap->notifyThemeChanged(theme);
+                    break;
                 }
+
+                default:
+                    break;
             }
-
             return false;
         }
 
@@ -81,13 +81,7 @@ namespace QWK {
     SystemSettingEventFilter *SystemSettingEventFilter::instance = nullptr;
 
     void StyleAgentPrivate::setupSystemThemeHook() {
-        if (isHighContrastModeEnabled()) {
-            systemTheme = StyleAgent::HighContrast;
-        } else if (isDarkThemeActive()) {
-            systemTheme = StyleAgent::Dark;
-        } else {
-            systemTheme = StyleAgent::Light;
-        }
+        systemTheme = getSystemTheme();
 
         g_styleAgentSet->insert(this);
         SystemSettingEventFilter::install();
