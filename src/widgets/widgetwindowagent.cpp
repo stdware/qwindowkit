@@ -80,6 +80,9 @@ namespace QWK {
         if (!d->context->setTitleBar(w)) {
             return;
         }
+#ifdef Q_OS_MAC
+        setSystemButtonArea(nullptr);
+#endif
         Q_EMIT titleBarChanged(w);
     }
 

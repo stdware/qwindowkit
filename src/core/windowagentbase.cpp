@@ -27,8 +27,8 @@ namespace QWK {
         \brief WindowAgentBase is the base class of the specifiy window agent for QtWidgets and
         QtQuick.
 
-        It processes some system events and the implements of frameless logic, and provides some
-        common methods for derived classes to call.
+        It processes some system events to remove the window's default title bar, and provides some
+        shared methods for derived classes to call.
     */
 
     WindowAgentBasePrivate::WindowContextFactoryMethod
@@ -83,17 +83,20 @@ namespace QWK {
         Available attributes:
 
         On Windows,
-            \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
-                    this attribute is only available on Windows 11.
-            \li \c mica: Specify a boolean value to enable or disable mica material,
-                    this attribute is only available on Windows 11.
-            \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
-                    this attribute is only available on Windows 11.
+            \li \c dwm-blur: Specify a boolean value to enable or disable dwm blur effect, this
+                   attribute is available on Windows 10 or later.
             \li \c dark-mode: Specify a boolean value to enable or disable the dark mode, it is
-                    enabled by default on Windows 10 if the system borders config is enabled.
+                   enabled by default on Windows 10 if the system borders config is enabled. This
+                   attribute is available on Windows 10 or later.
+            \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
+                   this attribute is only available on Windows 11.
+            \li \c mica: Specify a boolean value to enable or disable mica material,
+                   this attribute is only available on Windows 11.
+            \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
+                   this attribute is only available on Windows 11.
             \li \c extra-margins: Specify a margin value to change the \c dwm extended area
-                    geometry, you shouldn't change this attribute because it may break the
-                    internal state.
+                   geometry, you shouldn't change this attribute because it may break the
+                   internal state.
 
         On macOS,
             \li \c no-system-buttons: Specify a boolean value to set the system buttons' visibility.

@@ -4,6 +4,10 @@
 
 namespace QWK {
 
+    static inline QRect getWidgetSceneRect(QWidget *widget) {
+        return {widget->mapTo(widget->window(), {}), widget->size()};
+    }
+
     class SystemButtonAreaWidgetEventFilter : public QObject {
     public:
         SystemButtonAreaWidgetEventFilter(QWidget *widget, AbstractWindowContext *ctx,
@@ -19,8 +23,7 @@ namespace QWK {
             switch (event->type()) {
                 case QEvent::Move:
                 case QEvent::Resize: {
-                    QRect rect(widget->mapTo(widget->window(), {}), widget->size());
-                    ctx->setSystemButtonArea(rect);
+                    ctx->setSystemButtonArea(getWidgetSceneRect(widget));
                     break;
                 }
 
@@ -49,6 +52,9 @@ namespace QWK {
     */
     void WidgetWindowAgent::setSystemButtonArea(QWidget *widget) {
         Q_D(WidgetWindowAgent);
+        if (d->systemButtonAreaWidget == widget)
+            return;
+
         auto ctx = d->context.get();
         d->systemButtonAreaWidget = widget;
         if (!widget) {
@@ -58,6 +64,7 @@ namespace QWK {
         }
         d->systemButtonAreaWidgetEventFilter =
             std::make_unique<SystemButtonAreaWidgetEventFilter>(widget, ctx);
+        ctx->setSystemButtonArea(getWidgetSceneRect(widget));
     }
 
 }
