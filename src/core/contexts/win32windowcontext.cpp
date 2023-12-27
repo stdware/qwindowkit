@@ -684,20 +684,18 @@ namespace QWK {
             if (!m_windowHandle)
                 return {};
 
-            auto frame = [this]() -> RECT {
-                auto hwnd = reinterpret_cast<HWND>(windowId);
-                // According to MSDN, WS_OVERLAPPED is not allowed for AdjustWindowRect.
-                auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_OVERLAPPED);
-                auto exStyle = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
-                RECT result{};
-                const DynamicApis &apis = DynamicApis::instance();
-                if (apis.pAdjustWindowRectExForDpi) {
-                    apis.pAdjustWindowRectExForDpi(&result, style, FALSE, exStyle, getDpiForWindow(hwnd));
-                } else {
-                    ::AdjustWindowRectEx(&result, style, FALSE, exStyle);
-                }
-                return result;
-            }();
+            RECT frame{};
+            auto hwnd = reinterpret_cast<HWND>(windowId);
+            // According to MSDN, WS_OVERLAPPED is not allowed for AdjustWindowRect.
+            auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_OVERLAPPED);
+            auto exStyle = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
+            const DynamicApis &apis = DynamicApis::instance();
+            if (apis.pAdjustWindowRectExForDpi) {
+                apis.pAdjustWindowRectExForDpi(&frame, style, FALSE, exStyle,
+                                               getDpiForWindow(hwnd));
+            } else {
+                ::AdjustWindowRectEx(&frame, style, FALSE, exStyle);
+            }
             return QVariant::fromValue(rect2qrect(frame));
         }
 
@@ -731,17 +729,23 @@ namespace QWK {
 
         if (!isSystemBorderEnabled()) {
             static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
+
+            // If we remove the system border, the window will lose its shadow. If dwm is enabled,
+            // then you need to set at least 1px margins, otherwise the following operation will
+            // fail with no effect.
             setWindowAttribute(QStringLiteral("extra-margins"), margins);
         }
 
+        // We should disable WS_SYSMENU, otherwise the system button icons will be visible if mica
+        // is enabled and the title bar is transparent
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
-            ::SetWindowLongPtrW(hWnd, GWL_STYLE, style & (~WS_SYSMENU));
-#else
-            ::SetWindowLongPtrW(hWnd, GWL_STYLE,
-                                (style | WS_THICKFRAME | WS_CAPTION) & (~WS_SYSMENU));
-#endif
+            if (isSystemBorderEnabled()) {
+                ::SetWindowLongPtrW(hWnd, GWL_STYLE, style & (~WS_SYSMENU));
+            } else {
+                ::SetWindowLongPtrW(hWnd, GWL_STYLE,
+                                    (style | WS_THICKFRAME | WS_CAPTION) & (~WS_SYSMENU));
+            }
         }
 
         // Add managed window
@@ -819,8 +823,7 @@ namespace QWK {
 
         if (key == QStringLiteral("extra-margins")) {
             auto margins = qmargins2margins(attribute.value<QMargins>());
-            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
-            return true;
+            return apis.pDwmExtendFrameIntoClientArea(hwnd, &margins) == S_OK;
         }
 
         if (key == QStringLiteral("dark-mode")) {
