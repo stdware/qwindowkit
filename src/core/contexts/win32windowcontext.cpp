@@ -684,10 +684,20 @@ namespace QWK {
             if (!m_windowHandle)
                 return {};
 
-            auto hwnd = reinterpret_cast<HWND>(windowId);
-            RECT frame{};
-            ::AdjustWindowRectExForDpi(&frame, ::GetWindowLongPtrW(hwnd, GWL_STYLE), FALSE, 0,
-                                       getDpiForWindow(hwnd));
+            auto frame = [this]() -> RECT {
+                auto hwnd = reinterpret_cast<HWND>(windowId);
+                // According to MSDN, WS_OVERLAPPED is not allowed for AdjustWindowRect.
+                auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_OVERLAPPED);
+                auto exStyle = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
+                RECT result{};
+                const DynamicApis &apis = DynamicApis::instance();
+                if (apis.pAdjustWindowRectExForDpi) {
+                    apis.pAdjustWindowRectExForDpi(&result, style, FALSE, exStyle, getDpiForWindow(hwnd));
+                } else {
+                    ::AdjustWindowRectEx(&result, style, FALSE, exStyle);
+                }
+                return result;
+            }();
             return QVariant::fromValue(rect2qrect(frame));
         }
 
@@ -809,7 +819,7 @@ namespace QWK {
 
         if (key == QStringLiteral("extra-margins")) {
             auto margins = qmargins2margins(attribute.value<QMargins>());
-            DynamicApis::instance().pDwmExtendFrameIntoClientArea(hwnd, &margins);
+            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
             return true;
         }
 
@@ -940,12 +950,9 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("dwm-blur")) {
-            // TODO: Optimize
-            // Currently not available!!!
             if (attribute.toBool()) {
-                // We need to extend the window frame into the whole client area to be able
-                // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
+                // We can't extend the window frame for this effect.
+                restoreMargins();
                 if (isWin8OrGreater()) {
                     ACCENT_POLICY policy{};
                     policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
@@ -977,7 +984,6 @@ namespace QWK {
                     bb.dwFlags = DWM_BB_ENABLE;
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
-                restoreMargins();
             }
             return true;
         }

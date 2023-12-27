@@ -170,6 +170,7 @@ namespace QWK {
             DYNAMIC_API_DECLARE(DwmEnableBlurBehindWindow);
             DYNAMIC_API_DECLARE(GetDpiForWindow);
             DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
+            DYNAMIC_API_DECLARE(AdjustWindowRectExForDpi);
             DYNAMIC_API_DECLARE(GetDpiForMonitor);
             DYNAMIC_API_DECLARE(timeGetDevCaps);
             DYNAMIC_API_DECLARE(timeBeginPeriod);
@@ -193,6 +194,7 @@ namespace QWK {
                 DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
                 DYNAMIC_API_RESOLVE(user32, GetSystemMetricsForDpi);
                 DYNAMIC_API_RESOLVE(user32, SetWindowCompositionAttribute);
+                DYNAMIC_API_RESOLVE(user32, AdjustWindowRectExForDpi);
 
                 QSystemLibrary shcore(QStringLiteral("shcore"));
                 DYNAMIC_API_RESOLVE(shcore, GetDpiForMonitor);

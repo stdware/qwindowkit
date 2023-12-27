@@ -99,7 +99,7 @@ namespace QWK {
                    (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
         }
 
-        inline bool IsWindows10_Real() {
+        inline bool IsWindows10Only_Real() {
             return IsWindows10OrGreater_Real() && !IsWindows11OrGreater_Real();
         }
 
@@ -144,8 +144,8 @@ namespace QWK {
         return result;
     }
 
-    static inline bool isWin10() {
-        static const bool result = Private::IsWindows10_Real();
+    static inline bool isWin10Only() {
+        static const bool result = Private::IsWindows10Only_Real();
         return result;
     };
 
