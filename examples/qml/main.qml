@@ -1,17 +1,27 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1
 import QWindowKit 1.0
 
 Window {
     id: window
     width: 800
     height: 600
-    color: "#1E1E1E"
+    color: darkStyle.windowBackgroundColor
     title: qsTr("Hello, world!")
     Component.onCompleted: {
         windowAgent.setup(window)
         window.visible = true
+    }
+
+    QtObject {
+        id: lightStyle
+    }
+
+    QtObject {
+        id: darkStyle
+        readonly property color windowBackgroundColor: "#1E1E1E"
     }
 
     Timer {
@@ -23,6 +33,12 @@ Window {
 
     WindowAgent {
         id: windowAgent
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: contextMenu.open()
     }
 
     Rectangle {
@@ -124,5 +140,81 @@ Window {
             bold: true
         }
         color: "#FEFEFE"
+    }
+
+    Menu {
+        id: contextMenu
+
+        Menu {
+            id: themeMenu
+            title: qsTr("Theme")
+
+            MenuItemGroup {
+                id: themeMenuGroup
+                items: themeMenu.items
+            }
+
+            MenuItem {
+                text: qsTr("Light")
+                checkable: true
+                onTriggered: windowAgent.setWindowAttribute("dark-mode", false)
+            }
+
+            MenuItem {
+                text: qsTr("Dark")
+                checkable: true
+                onTriggered: windowAgent.setWindowAttribute("dark-mode", true)
+            }
+        }
+
+        Menu {
+            id: specialEffectMenu
+            title: qsTr("Special effect")
+
+            MenuItemGroup {
+                id: specialEffectMenuGroup
+                items: specialEffectMenu.items
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "windows"
+                text: qsTr("DWM blur")
+                checkable: true
+                onTriggered: {
+                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
+                    windowAgent.setWindowAttribute("dwm-blur", checked)
+                }
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "windows"
+                text: qsTr("Acrylic material")
+                checkable: true
+                onTriggered: {
+                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
+                    windowAgent.setWindowAttribute("acrylic-material", checked)
+                }
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "windows"
+                text: qsTr("Mica")
+                checkable: true
+                onTriggered: {
+                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
+                    windowAgent.setWindowAttribute("mica", checked)
+                }
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "windows"
+                text: qsTr("Mica Alt")
+                checkable: true
+                onTriggered: {
+                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
+                    windowAgent.setWindowAttribute("mica-alt", checked)
+                }
+            }
+        }
     }
 }
