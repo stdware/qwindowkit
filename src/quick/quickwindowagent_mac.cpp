@@ -2,18 +2,43 @@
 
 namespace QWK {
 
-    /*!
-        Returns the item that acts as the system button area.
-    */
+    class SystemButtonAreaItemHandler : public QObject {
+    public:
+        SystemButtonAreaItemHandler(QQuickItem *item, AbstractWindowContext *ctx,
+                                    QObject *parent = nullptr);
+        ~SystemButtonAreaItemHandler() override = default;
+
+        void updateSystemButtonArea();
+
+    protected:
+        QQuickItem *item;
+        AbstractWindowContext *ctx;
+    };
+
+    SystemButtonAreaItemHandler::SystemButtonAreaItemHandler(QQuickItem *item,
+                                                             AbstractWindowContext *ctx,
+                                                             QObject *parent)
+        : QObject(parent), item(item), ctx(ctx) {
+        connect(item, &QQuickItem::xChanged, this,
+                &SystemButtonAreaItemHandler::updateSystemButtonArea);
+        connect(item, &QQuickItem::yChanged, this,
+                &SystemButtonAreaItemHandler::updateSystemButtonArea);
+        connect(item, &QQuickItem::widthChanged, this,
+                &SystemButtonAreaItemHandler::updateSystemButtonArea);
+        connect(item, &QQuickItem::heightChanged, this,
+                &SystemButtonAreaItemHandler::updateSystemButtonArea);
+        updateSystemButtonArea();
+    }
+
+    void SystemButtonAreaItemHandler::updateSystemButtonArea() {
+        ctx->setSystemButtonArea(QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect());
+    }
+
     QQuickItem *QuickWindowAgent::systemButtonArea() const {
         Q_D(const QuickWindowAgent);
         return d->systemButtonAreaItem;
     }
 
-    /*!
-        Sets the item that acts as the system button area. The system button will be centered in
-        its area, it is recommended to place the item in a layout and set a fixed size policy.
-    */
     void QuickWindowAgent::setSystemButtonArea(QQuickItem *item) {
         Q_D(QuickWindowAgent);
         if (d->systemButtonAreaItem == item)
@@ -22,25 +47,11 @@ namespace QWK {
         auto ctx = d->context.get();
         d->systemButtonAreaItem = item;
         if (!item) {
-            disconnect(systemButtonAreaItemXChangedConnection);
-            disconnect(systemButtonAreaItemYChangedConnection);
-            disconnect(systemButtonAreaItemWidthChangedConnection);
-            disconnect(systemButtonAreaItemHeightChangedConnection);
-            systemButtonAreaItemXChangedConnection = {};
-            systemButtonAreaItemYChangedConnection = {};
-            systemButtonAreaItemWidthChangedConnection = {};
-            systemButtonAreaItemHeightChangedConnection = {};
+            d->systemButtonAreaItemHandler.reset();
             ctx->setSystemButtonArea({});
             return;
         }
-        const auto updateSystemButtonArea = [ctx, item]() -> void {
-            ctx->setSystemButtonArea(QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect());
-        };
-        systemButtonAreaItemXChangedConnection = connect(item, &QQuickItem::xChanged, this, updateSystemButtonArea);
-        systemButtonAreaItemYChangedConnection = connect(item, &QQuickItem::yChanged, this, updateSystemButtonArea);
-        systemButtonAreaItemWidthChangedConnection = connect(item, &QQuickItem::widthChanged, this, updateSystemButtonArea);
-        systemButtonAreaItemHeightChangedConnection = connect(item, &QQuickItem::heightChanged, this, updateSystemButtonArea);
-        updateSystemButtonArea();
+        d->systemButtonAreaItemHandler = std::make_unique<SystemButtonAreaItemHandler>(item, ctx);
     }
 
 }

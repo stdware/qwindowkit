@@ -29,10 +29,7 @@ namespace QWK {
 
 #ifdef Q_OS_MAC
         QQuickItem *systemButtonAreaItem{};
-        QMetaObject::Connection systemButtonAreaItemXChangedConnection{};
-        QMetaObject::Connection systemButtonAreaItemYChangedConnection{};
-        QMetaObject::Connection systemButtonAreaItemWidthChangedConnection{};
-        QMetaObject::Connection systemButtonAreaItemHeightChangedConnection{};
+        std::unique_ptr<QObject> systemButtonAreaItemHandler;
 #endif
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)

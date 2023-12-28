@@ -15,7 +15,7 @@ namespace QWK {
             : QObject(parent), widget(widget), ctx(ctx) {
             widget->installEventFilter(this);
         }
-        ~SystemButtonAreaWidgetEventFilter() = default;
+        ~SystemButtonAreaWidgetEventFilter() override = default;
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
