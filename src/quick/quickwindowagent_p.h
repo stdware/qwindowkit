@@ -27,6 +27,14 @@ namespace QWK {
         // Host
         QQuickWindow *hostWindow{};
 
+#ifdef Q_OS_MAC
+        QQuickItem *systemButtonAreaItem{};
+        QMetaObject::Connection systemButtonAreaItemXChangedConnection{};
+        QMetaObject::Connection systemButtonAreaItemYChangedConnection{};
+        QMetaObject::Connection systemButtonAreaItemWidthChangedConnection{};
+        QMetaObject::Connection systemButtonAreaItemHeightChangedConnection{};
+#endif
+
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         void setupWindows10BorderWorkaround();
 #endif

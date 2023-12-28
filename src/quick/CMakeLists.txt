@@ -15,6 +15,8 @@ set(_src
 
 if(WIN32)
     list(APPEND _src quickwindowagent_win.cpp)
+elseif(APPLE)
+    list(APPEND _src quickwindowagent_mac.cpp)
 endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN
