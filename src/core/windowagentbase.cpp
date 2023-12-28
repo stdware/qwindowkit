@@ -99,7 +99,11 @@ namespace QWK {
                    internal state.
 
         On macOS,
-            \li \c no-system-buttons: Specify a boolean value to set the system buttons' visibility.
+            \li \c no-system-buttons: Specify a boolean value to set the system buttons'
+                   visibility.
+            \li \c blur-effect: You can specify a string value, "dark" to set dark mode, "light"
+                   to set light mode, "none" to disable. You can also specify a boolean value,
+                   \c true to enable and set the current theme, \c false to disable.
     */
     bool WindowAgentBase::setWindowAttribute(const QString &key, const QVariant &attribute) {
         Q_D(WindowAgentBase);

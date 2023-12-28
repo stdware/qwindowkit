@@ -140,7 +140,7 @@ void MainWindow::installWindowAgent() {
 #ifdef Q_OS_WIN
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
         dwmBlurAction->setCheckable(true);
-        connect(dwmBlurAction, &QAction::triggered, this, [this](bool checked) {
+        connect(dwmBlurAction, &QAction::toggled, this, [this](bool checked) {
             if (!windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), checked)) {
                 return;
             }
@@ -150,7 +150,7 @@ void MainWindow::installWindowAgent() {
 
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
         acrylicAction->setCheckable(true);
-        connect(acrylicAction, &QAction::triggered, this, [this](bool checked) {
+        connect(acrylicAction, &QAction::toggled, this, [this](bool checked) {
             if (!windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), true)) {
                 return;
             }
@@ -160,7 +160,7 @@ void MainWindow::installWindowAgent() {
 
         auto micaAction = new QAction(tr("Enable mica"), menuBar);
         micaAction->setCheckable(true);
-        connect(micaAction, &QAction::triggered, this, [this](bool checked) {
+        connect(micaAction, &QAction::toggled, this, [this](bool checked) {
             if (!windowAgent->setWindowAttribute(QStringLiteral("mica"), checked)) {
                 return;
             }
@@ -170,30 +170,70 @@ void MainWindow::installWindowAgent() {
 
         auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
         micaAltAction->setCheckable(true);
-        connect(micaAltAction, &QAction::triggered, this, [this](bool checked) {
+        connect(micaAltAction, &QAction::toggled, this, [this](bool checked) {
             if (!windowAgent->setWindowAttribute(QStringLiteral("mica-alt"), checked)) {
                 return;
             }
             setProperty("custom-style", checked);
             style()->polish(this);
         });
+#elif defined(Q_OS_MAC)
+        auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);
+        darkBlurAction->setCheckable(true);
+        connect(darkBlurAction, &QAction::toggled, this, [this](bool checked) {
+            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "dark")) {
+                return;
+            }
+            if (checked) {
+                setProperty("custom-style", true);
+                style()->polish(this);
+            }
+        });
 
-        auto winStyleGroup = new QActionGroup(menuBar);
-        winStyleGroup->addAction(dwmBlurAction);
-        winStyleGroup->addAction(acrylicAction);
-        winStyleGroup->addAction(micaAction);
-        winStyleGroup->addAction(micaAltAction);
+        auto lightBlurAction = new QAction(tr("Light blur"), menuBar);
+        lightBlurAction->setCheckable(true);
+        connect(lightBlurAction, &QAction::toggled, this, [this](bool checked) {
+            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "light")) {
+                return;
+            }
+            if (checked) {
+                setProperty("custom-style", true);
+                style()->polish(this);
+            }
+        });
+
+        auto noBlurAction = new QAction(tr("No blur"), menuBar);
+        noBlurAction->setCheckable(true);
+        connect(noBlurAction, &QAction::toggled, this, [this](bool checked) {
+            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "none")) {
+                return;
+            }
+            if (checked) {
+                setProperty("custom-style", false);
+                style()->polish(this);
+            }
+        });
+
+        auto macStyleGroup = new QActionGroup(menuBar);
+        macStyleGroup->addAction(darkBlurAction);
+        macStyleGroup->addAction(lightBlurAction);
+        macStyleGroup->addAction(noBlurAction);
 #endif
 
         // Real menu
         auto settings = new QMenu(tr("Settings(&S)"), menuBar);
         settings->addAction(darkAction);
+
 #ifdef Q_OS_WIN
         settings->addSeparator();
         settings->addAction(dwmBlurAction);
         settings->addAction(acrylicAction);
         settings->addAction(micaAction);
         settings->addAction(micaAltAction);
+#elif defined(Q_OS_MAC)
+        settings->addAction(darkBlurAction);
+        settings->addAction(lightBlurAction);
+        settings->addAction(noBlurAction);
 #endif
 
         menuBar->addMenu(file);

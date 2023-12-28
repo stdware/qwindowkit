@@ -5,7 +5,7 @@
 namespace QWK {
 
     static inline QRect getWidgetSceneRect(QWidget *widget) {
-        return {widget->mapTo(widget->window(), {}), widget->size()};
+        return {widget->mapTo(widget->window(), QPoint()), widget->size()};
     }
 
     class SystemButtonAreaWidgetEventFilter : public QObject {

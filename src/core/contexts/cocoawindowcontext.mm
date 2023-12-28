@@ -118,12 +118,21 @@ public:
 namespace QWK {
 
     struct NSWindowProxy : public QWK_NSWindowDelegate {
+        enum class BlurMode {
+            Dark,
+            Light,
+            None,
+        };
+
         NSWindowProxy(NSWindow *macWindow) {
             nswindow = macWindow;
             g_proxyIndexes->insert(nswindow, this);
         }
 
         ~NSWindowProxy() override {
+            if (blurEffect) {
+                setBlurEffect(BlurMode::None);
+            }
             g_proxyIndexes->remove(nswindow);
         }
 
@@ -155,6 +164,10 @@ namespace QWK {
         }
 
         void windowDidResize() override {
+            if (blurEffect) {
+                updateBlurEffectSize();
+            }
+
             if (systemButtonRect.isEmpty() || !systemButtonVisible) {
                 return;
             }
@@ -223,6 +236,47 @@ namespace QWK {
             NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
             NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
             return {closeBtn, minimizeBtn, zoomBtn};
+        }
+
+        void setBlurEffect(BlurMode option) {
+            if (option == BlurMode::None) {
+                if (!blurEffect) {
+                    return;
+                }
+                [blurEffect removeFromSuperview];
+                [blurEffect release];
+                blurEffect = nil;
+            } else {
+                if (!blurEffect) {
+                    NSView *const view = [nswindow contentView];
+                    NSVisualEffectView *const blurView =
+                        [[visualEffectViewClass alloc] initWithFrame:view.bounds];
+                    blurView.material = NSVisualEffectMaterialUnderWindowBackground;
+                    blurView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+                    blurView.state = NSVisualEffectStateFollowsWindowActiveState;
+
+#if 1
+                    const NSView *const parent = [view superview];
+                    [parent addSubview:blurView positioned:NSWindowBelow relativeTo:view];
+#endif
+
+                    blurEffect = blurView;
+                    updateBlurEffectSize();
+                }
+
+                auto view = static_cast<const NSVisualEffectView *>(blurEffect);
+                if (option == BlurMode::Dark) {
+                    view.appearance = [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantDark"];
+                } else {
+                    view.appearance =
+                        [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantLight"];
+                }
+            }
+        }
+
+        void updateBlurEffectSize() {
+            const NSView *const view = [nswindow contentView];
+            blurEffect.frame = view.frame;
         }
 
         void setSystemTitleBarVisible(const bool visible) {
@@ -311,6 +365,10 @@ namespace QWK {
             windowObserver = nil;
         }
 
+        static inline const Class windowClass = [NSWindow class];
+
+        static inline const Class visualEffectViewClass = NSClassFromString(@"NSVisualEffectView");
+
     protected:
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
             if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
@@ -377,12 +435,11 @@ namespace QWK {
 #endif
         }
 
-        static inline const Class windowClass = [NSWindow class];
-
     private:
         Q_DISABLE_COPY(NSWindowProxy)
 
         NSWindow *nswindow = nil;
+        NSView *blurEffect = nil;
 
         bool systemButtonVisible = true;
         QRect systemButtonRect;
@@ -622,6 +679,39 @@ namespace QWK {
             ensureWindowProxy(windowId)->setSystemButtonVisible(!attribute.toBool());
             return true;
         }
+
+        if (key == QStringLiteral("blur-effect")) {
+            // Class not available
+            if (!NSWindowProxy::visualEffectViewClass) {
+                return false;
+            }
+
+            auto option = NSWindowProxy::BlurMode::None;
+            if (attribute.type() == QVariant::Bool) {
+                if (attribute.toBool()) {
+                    NSString *osxMode =
+                        [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
+                    option = [osxMode isEqualToString:@"Dark"] ? NSWindowProxy::BlurMode::Dark
+                                                               : NSWindowProxy::BlurMode::Light;
+                }
+            } else if (attribute.type() == QVariant::String) {
+                auto value = attribute.toString();
+                if (value == QStringLiteral("dark")) {
+                    option = NSWindowProxy::BlurMode::Dark;
+                } else if (value == QStringLiteral("light")) {
+                    option = NSWindowProxy::BlurMode::Light;
+                } else if (value == QStringLiteral("none")) {
+                    // ...
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            ensureWindowProxy(windowId)->setBlurEffect(option);
+            return true;
+        }
+
         return false;
     }
 
