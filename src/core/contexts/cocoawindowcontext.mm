@@ -133,6 +133,7 @@ namespace QWK {
             g_proxyIndexes->remove(nswindow);
         }
 
+        // Delegate
         void windowWillEnterFullScreen() override {
         }
 
@@ -167,6 +168,7 @@ namespace QWK {
             updateSystemButtonRect();
         }
 
+        // System buttons visibility
         void setSystemButtonVisible(bool visible) {
             systemButtonVisible = visible;
             for (const auto &button : systemButtons()) {
@@ -179,6 +181,7 @@ namespace QWK {
             updateSystemButtonRect();
         }
 
+        // System buttons area
         void setSystemButtonRect(const QRect &rect) {
             systemButtonRect = rect;
 
@@ -231,38 +234,49 @@ namespace QWK {
             return {closeBtn, minimizeBtn, zoomBtn};
         }
 
-        void setBlurEffect(BlurMode option) {
+        // Blur effect
+        bool setBlurEffect(BlurMode mode) {
+            static Class visualEffectViewClass = NSClassFromString(@"NSVisualEffectView");
+            if (!visualEffectViewClass)
+                return false;
+
             NSVisualEffectView *effectView = nil;
             NSView *const view = [nswindow contentView];
             for (NSView *subview in [[view superview] subviews]) {
                 if ([subview isKindOfClass:visualEffectViewClass]) {
-                    effectView = subview;
+                    effectView = reinterpret_cast<NSVisualEffectView *>(subview);
                 }
             }
-            if (effectView == nil) { return; }
+            if (effectView == nil) {
+                return false;
+            }
 
             static const auto originalMaterial = effectView.material;
             static const auto originalBlendingMode = effectView.blendingMode;
             static const auto originalState = effectView.state;
 
-            if (option == BlurMode::None) {
+            if (mode == BlurMode::None) {
                 effectView.material = originalMaterial;
                 effectView.blendingMode = originalBlendingMode;
                 effectView.state = originalState;
+                effectView.appearance = nil;
             } else {
                 effectView.material = NSVisualEffectMaterialUnderWindowBackground;
                 effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
                 effectView.state = NSVisualEffectStateFollowsWindowActiveState;
 
-                // if (option == BlurMode::Dark) {
-                //     view.appearance = [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantDark"];
-                // } else {
-                //     view.appearance =
-                //         [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantLight"];
-                // }
+                if (mode == BlurMode::Dark) {
+                    effectView.appearance =
+                        [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantDark"];
+                } else {
+                    effectView.appearance =
+                        [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantLight"];
+                }
             }
+            return true;
         }
 
+        // System title bar
         void setSystemTitleBarVisible(const bool visible) {
             NSView *nsview = [nswindow contentView];
             if (!nsview) {
@@ -350,8 +364,6 @@ namespace QWK {
         }
 
         static inline const Class windowClass = [NSWindow class];
-
-        static inline const Class visualEffectViewClass = NSClassFromString(@"NSVisualEffectView");
 
     protected:
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
@@ -664,25 +676,20 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("blur-effect")) {
-            // Class not available
-            if (!NSWindowProxy::visualEffectViewClass) {
-                return false;
-            }
-
-            auto option = NSWindowProxy::BlurMode::None;
+            auto mode = NSWindowProxy::BlurMode::None;
             if (attribute.type() == QVariant::Bool) {
                 if (attribute.toBool()) {
                     NSString *osxMode =
                         [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
-                    option = [osxMode isEqualToString:@"Dark"] ? NSWindowProxy::BlurMode::Dark
-                                                               : NSWindowProxy::BlurMode::Light;
+                    mode = [osxMode isEqualToString:@"Dark"] ? NSWindowProxy::BlurMode::Dark
+                                                             : NSWindowProxy::BlurMode::Light;
                 }
             } else if (attribute.type() == QVariant::String) {
                 auto value = attribute.toString();
                 if (value == QStringLiteral("dark")) {
-                    option = NSWindowProxy::BlurMode::Dark;
+                    mode = NSWindowProxy::BlurMode::Dark;
                 } else if (value == QStringLiteral("light")) {
-                    option = NSWindowProxy::BlurMode::Light;
+                    mode = NSWindowProxy::BlurMode::Light;
                 } else if (value == QStringLiteral("none")) {
                     // ...
                 } else {
@@ -691,8 +698,7 @@ namespace QWK {
             } else {
                 return false;
             }
-            ensureWindowProxy(windowId)->setBlurEffect(option);
-            return true;
+            return ensureWindowProxy(windowId)->setBlurEffect(mode);
         }
 
         return false;
