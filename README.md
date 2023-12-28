@@ -254,13 +254,11 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 ## TODO
 
 + Fix 5.15 window abnormal behavior
-+ Support Mac system buttons customization for Quick
 + More documentations
 + When do we support Linux native features?
 
 ## Special Thanks
 
-+ [Arabaku](https://github.com/Arabaku)
 + [Maplespe](https://github.com/Maplespe)
 + [zhiyiYo](https://github.com/zhiyiYo)
 

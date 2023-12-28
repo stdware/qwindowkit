@@ -47,7 +47,7 @@ namespace QWK {
                                LRESULT *result);
 
         // In order to perfectly apply Windows 11 Snap Layout into the Qt window, we need to
-        // intercept and simulate most of the  mouse events, so that the processing logic
+        // intercept and emulate most of the  mouse events, so that the processing logic
         // is quite complex. Simultaneously, in order to make the handling code of other
         // Windows messages clearer, we have separated them into this function.
         bool snapLayoutHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,

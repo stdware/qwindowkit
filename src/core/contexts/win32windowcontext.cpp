@@ -731,13 +731,13 @@ namespace QWK {
             static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
 
             // If we remove the system border, the window will lose its shadow. If dwm is enabled,
-            // then you need to set at least 1px margins, otherwise the following operation will
+            // then we need to set at least 1px margins, otherwise the following operation will
             // fail with no effect.
             setWindowAttribute(QStringLiteral("extra-margins"), margins);
         }
 
         // We should disable WS_SYSMENU, otherwise the system button icons will be visible if mica
-        // is enabled and the title bar is transparent
+        // is enabled and the title bar is transparent.
         {
             auto style = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
             if (isSystemBorderEnabled()) {
