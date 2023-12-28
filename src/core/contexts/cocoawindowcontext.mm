@@ -130,9 +130,6 @@ namespace QWK {
         }
 
         ~NSWindowProxy() override {
-            if (blurEffect) {
-                setBlurEffect(BlurMode::None);
-            }
             g_proxyIndexes->remove(nswindow);
         }
 
@@ -164,10 +161,6 @@ namespace QWK {
         }
 
         void windowDidResize() override {
-            if (blurEffect) {
-                updateBlurEffectSize();
-            }
-
             if (systemButtonRect.isEmpty() || !systemButtonVisible) {
                 return;
             }
@@ -239,44 +232,35 @@ namespace QWK {
         }
 
         void setBlurEffect(BlurMode option) {
-            if (option == BlurMode::None) {
-                if (!blurEffect) {
-                    return;
-                }
-                [blurEffect removeFromSuperview];
-                [blurEffect release];
-                blurEffect = nil;
-            } else {
-                if (!blurEffect) {
-                    NSView *const view = [nswindow contentView];
-                    NSVisualEffectView *const blurView =
-                        [[visualEffectViewClass alloc] initWithFrame:view.bounds];
-                    blurView.material = NSVisualEffectMaterialUnderWindowBackground;
-                    blurView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-                    blurView.state = NSVisualEffectStateFollowsWindowActiveState;
-
-#if 1
-                    const NSView *const parent = [view superview];
-                    [parent addSubview:blurView positioned:NSWindowBelow relativeTo:view];
-#endif
-
-                    blurEffect = blurView;
-                    updateBlurEffectSize();
-                }
-
-                auto view = static_cast<const NSVisualEffectView *>(blurEffect);
-                if (option == BlurMode::Dark) {
-                    view.appearance = [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantDark"];
-                } else {
-                    view.appearance =
-                        [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantLight"];
+            NSVisualEffectView *effectView = nil;
+            NSView *const view = [nswindow contentView];
+            for (NSView *subview in [[view superview] subviews]) {
+                if ([subview isKindOfClass:visualEffectViewClass]) {
+                    effectView = subview;
                 }
             }
-        }
+            if (effectView == nil) { return; }
 
-        void updateBlurEffectSize() {
-            const NSView *const view = [nswindow contentView];
-            blurEffect.frame = view.frame;
+            static const auto originalMaterial = effectView.material;
+            static const auto originalBlendingMode = effectView.blendingMode;
+            static const auto originalState = effectView.state;
+
+            if (option == BlurMode::None) {
+                effectView.material = originalMaterial;
+                effectView.blendingMode = originalBlendingMode;
+                effectView.state = originalState;
+            } else {
+                effectView.material = NSVisualEffectMaterialUnderWindowBackground;
+                effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+                effectView.state = NSVisualEffectStateFollowsWindowActiveState;
+
+                // if (option == BlurMode::Dark) {
+                //     view.appearance = [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantDark"];
+                // } else {
+                //     view.appearance =
+                //         [NSAppearance appearanceNamed:@"NSAppearanceNameVibrantLight"];
+                // }
+            }
         }
 
         void setSystemTitleBarVisible(const bool visible) {
@@ -439,7 +423,6 @@ namespace QWK {
         Q_DISABLE_COPY(NSWindowProxy)
 
         NSWindow *nswindow = nil;
-        NSView *blurEffect = nil;
 
         bool systemButtonVisible = true;
         QRect systemButtonRect;
