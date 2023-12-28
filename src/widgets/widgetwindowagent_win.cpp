@@ -111,7 +111,7 @@ namespace QWK {
             // border, and we need to extend the non-client area to the whole title
             // bar.
             QRect frame = ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
-            QMargins margins{0, -frame.top(), 0, 0};
+            QMargins margins{0, frame.top(), 0, 0};
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), QVariant::fromValue(margins));
         }
 

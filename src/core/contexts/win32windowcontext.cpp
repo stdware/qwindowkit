@@ -696,6 +696,10 @@ namespace QWK {
             } else {
                 ::AdjustWindowRectEx(&frame, style, FALSE, exStyle);
             }
+            frame.left = std::abs(frame.left);
+            frame.top = std::abs(frame.top);
+            frame.right = std::abs(frame.right);
+            frame.bottom = std::abs(frame.bottom);
             return QVariant::fromValue(rect2qrect(frame));
         }
 
