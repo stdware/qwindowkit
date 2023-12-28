@@ -110,8 +110,8 @@ namespace QWK {
             // When the window is inactive, there is a transparency bug in the top
             // border, and we need to extend the non-client area to the whole title
             // bar.
-            QRect frame = ctx->windowAttribute(QStringLiteral("title-bar-rect")).toRect();
-            QMargins margins{0, frame.top(), 0, 0};
+            QRect frame = ctx->windowAttribute(QStringLiteral("window-rect")).toRect();
+            QMargins margins{0, -frame.top(), 0, 0};
             ctx->setWindowAttribute(QStringLiteral("extra-margins"), QVariant::fromValue(margins));
         }
 
@@ -164,7 +164,7 @@ namespace QWK {
 
         bool eventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
-            
+
             switch (event->type()) {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())

@@ -680,7 +680,7 @@ namespace QWK {
     }
 
     QVariant Win32WindowContext::windowAttribute(const QString &key) const {
-        if (key == QStringLiteral("title-bar-rect")) {
+        if (key == QStringLiteral("window-rect")) {
             if (!m_windowHandle)
                 return {};
 
@@ -696,10 +696,6 @@ namespace QWK {
             } else {
                 ::AdjustWindowRectEx(&frame, style, FALSE, exStyle);
             }
-            frame.left = std::abs(frame.left);
-            frame.top = std::abs(frame.top);
-            frame.right = std::abs(frame.right);
-            frame.bottom = std::abs(frame.bottom);
             return QVariant::fromValue(rect2qrect(frame));
         }
 
