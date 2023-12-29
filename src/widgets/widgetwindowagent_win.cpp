@@ -5,6 +5,7 @@
 #include <QtGui/QPainter>
 
 #include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/private/qwkglobal_p.h>
 
 namespace QWK {
 
@@ -68,14 +69,8 @@ namespace QWK {
         }
 
         inline void resumeWidgetEventAndDraw(QWidget *w, QEvent *event) {
-            // Friend class helping to call `event`
-            class HackedWidget : public QWidget {
-            public:
-                friend class QWK::WidgetBorderHandler;
-            };
-
             // Let the widget paint first
-            static_cast<HackedWidget *>(w)->event(event);
+            Private::ObjectHelper::sendEvent(w, event);
 
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
@@ -84,14 +79,8 @@ namespace QWK {
         }
 
         inline void resumeWindowEventAndDraw(QWindow *window, QEvent *event) {
-            // Friend class helping to call `event`
-            class HackedWindow : public QWindow {
-            public:
-                friend class QWK::WidgetBorderHandler;
-            };
-
             // Let Qt paint first
-            static_cast<HackedWindow *>(window)->event(event);
+            Private::ObjectHelper::sendEvent(window, event);
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.

@@ -31,8 +31,8 @@ namespace QWK {
         Q_INVOKABLE void setHitTestVisible(const QQuickItem *item, bool visible = true);
 
 #ifdef Q_OS_MAC
-        QQuickItem *systemButtonArea() const;
-        void setSystemButtonArea(QQuickItem *item);
+        Q_INVOKABLE QQuickItem *systemButtonArea() const;
+        Q_INVOKABLE void setSystemButtonArea(QQuickItem *item);
 #endif
 
     Q_SIGNALS:
