@@ -45,7 +45,7 @@ namespace QWK {
         }
 
     private:
-        Q_DISABLE_COPY_MOVE(WindowBarPrivate)
+        Q_DISABLE_COPY(WindowBarPrivate)
     };
 
 }

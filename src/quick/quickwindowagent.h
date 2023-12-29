@@ -31,7 +31,7 @@ namespace QWK {
         Q_INVOKABLE void setHitTestVisible(const QQuickItem *item, bool visible = true);
 
 #ifdef Q_OS_MAC
-        // The system button area APIs are experimental, may be changed in the future.
+        // The system button area APIs are experimental, very likely to change in the future.
         Q_INVOKABLE QQuickItem *systemButtonArea() const;
         Q_INVOKABLE void setSystemButtonArea(QQuickItem *item);
 

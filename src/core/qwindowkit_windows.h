@@ -4,6 +4,10 @@
 #include <QtCore/qt_windows.h>
 #include <QtCore/qglobal.h>
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+#  include <QtCore/private/qwinregistry_p.h>
+#endif
+
 #include <QWKCore/qwkglobal.h>
 
 #ifndef GET_X_LPARAM
@@ -104,6 +108,36 @@ namespace QWK {
         }
 
     }
+
+    //
+    // Registry Helpers
+    //
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    class QWK_CORE_EXPORT WindowsRegistryKey {
+    public:
+        WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ,
+                           REGSAM access = 0);
+
+        ~WindowsRegistryKey();
+
+        inline bool isValid() const;
+
+        void close();
+        QString stringValue(QStringView subKey) const;
+        QPair<DWORD, bool> dwordValue(QStringView subKey) const;
+
+    private:
+        HKEY m_key;
+
+        Q_DISABLE_COPY(WindowsRegistryKey)
+    };
+
+    inline bool WindowsRegistryKey::isValid() const {
+        return m_key != nullptr;
+    }
+#else
+    using WindowsRegistryKey = QWinRegistryKey;
+#endif
 
     //
     // Version Helpers

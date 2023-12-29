@@ -27,7 +27,7 @@ namespace QWK {
         void setSystemButton(SystemButton button, QWidget *w);
 
 #ifdef Q_OS_MAC
-        // The system button area APIs are experimental, may be changed in the future.
+        // The system button area APIs are experimental, very likely to change in the future.
         QWidget *systemButtonArea() const;
         void setSystemButtonArea(QWidget *widget);
 

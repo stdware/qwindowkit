@@ -37,7 +37,7 @@ namespace QWK {
         static WindowContextFactoryMethod windowContextFactoryMethod;
 
     private:
-        Q_DISABLE_COPY_MOVE(WindowAgentBasePrivate)
+        Q_DISABLE_COPY(WindowAgentBasePrivate)
     };
 
 }
