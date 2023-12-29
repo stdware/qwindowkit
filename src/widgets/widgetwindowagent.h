@@ -27,8 +27,12 @@ namespace QWK {
         void setSystemButton(SystemButton button, QWidget *w);
 
 #ifdef Q_OS_MAC
+        // The system button area APIs are experimental, may be changed in the future.
         QWidget *systemButtonArea() const;
         void setSystemButtonArea(QWidget *widget);
+
+        ScreenRectCallback systemButtonAreaCallback() const;
+        void setSystemButtonAreaCallback(const ScreenRectCallback &callback);
 #endif
 
         bool isHitTestVisible(const QWidget *w) const;

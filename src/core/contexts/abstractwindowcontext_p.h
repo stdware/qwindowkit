@@ -50,8 +50,8 @@ namespace QWK {
         bool setTitleBar(QObject *obj);
 
 #ifdef Q_OS_MAC
-        inline QRect systemButtonArea() const;
-        void setSystemButtonArea(const QRect &rect);
+        inline ScreenRectCallback systemButtonAreaCallback() const;
+        void setSystemButtonAreaCallback(const ScreenRectCallback &callback);
 #endif
 
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
@@ -88,7 +88,7 @@ namespace QWK {
 
         QSet<const QObject *> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC
-        QRect m_systemButtonArea;
+        ScreenRectCallback m_systemButtonAreaCallback;
 #endif
 
         QObject *m_titleBar{};
@@ -126,8 +126,8 @@ namespace QWK {
     }
 
 #ifdef Q_OS_MAC
-    inline QRect AbstractWindowContext::systemButtonArea() const {
-        return m_systemButtonArea;
+    inline ScreenRectCallback AbstractWindowContext::systemButtonAreaCallback() const {
+        return m_systemButtonAreaCallback;
     }
 #endif
 

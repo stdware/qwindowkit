@@ -289,6 +289,13 @@ void MainWindow::installWindowAgent() {
 #endif
     windowAgent->setHitTestVisible(menuBar, true);
 
+#ifdef Q_OS_MAC
+    windowAgent->setSystemButtonAreaCallback([](const QSize &size) {
+        static constexpr const int width = 75;
+        return QRect(QPoint(size.width() - width, 0), QSize(width, size.height())); //
+    });
+#endif
+
     setMenuWidget(windowBar);
 
     // 3. Adds simulated mouse events to the title bar buttons

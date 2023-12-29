@@ -23,6 +23,8 @@ namespace QWK {
         QString key() const override;
         void virtual_hook(int id, void *data) override;
 
+        QVariant windowAttribute(const QString &key) const override;
+
     protected:
         void winIdChanged() override;
         bool windowAttributeChanged(const QString &key, const QVariant &attribute,

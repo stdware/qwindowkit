@@ -120,8 +120,9 @@ namespace QWK {
     }
 
 #ifdef Q_OS_MAC
-    void AbstractWindowContext::setSystemButtonArea(const QRect &rect) {
-        m_systemButtonArea = rect;
+    void
+        AbstractWindowContext::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
+        m_systemButtonAreaCallback = callback;
         virtual_hook(SystemButtonAreaChangedHook, nullptr);
     }
 #endif

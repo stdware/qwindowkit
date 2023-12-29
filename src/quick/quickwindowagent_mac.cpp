@@ -27,11 +27,14 @@ namespace QWK {
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
         connect(item, &QQuickItem::heightChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
-        updateSystemButtonArea();
+
+        ctx->setSystemButtonAreaCallback([item](const QSize &) {
+            return QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect(); //
+        });
     }
 
     void SystemButtonAreaItemHandler::updateSystemButtonArea() {
-        ctx->setSystemButtonArea(QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect());
+        ctx->virtual_hook(AbstractWindowContext::SystemButtonAreaChangedHook, nullptr);
     }
 
     QQuickItem *QuickWindowAgent::systemButtonArea() const {
@@ -48,10 +51,21 @@ namespace QWK {
         d->systemButtonAreaItem = item;
         if (!item) {
             d->systemButtonAreaItemHandler.reset();
-            ctx->setSystemButtonArea({});
+            ctx->setSystemButtonAreaCallback({});
             return;
         }
         d->systemButtonAreaItemHandler = std::make_unique<SystemButtonAreaItemHandler>(item, ctx);
+    }
+
+    ScreenRectCallback QuickWindowAgent::systemButtonAreaCallback() const {
+        Q_D(const QuickWindowAgent);
+        return d->systemButtonAreaItem ? nullptr : d->context->systemButtonAreaCallback();
+    }
+
+    void QuickWindowAgent::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
+        Q_D(QuickWindowAgent);
+        setSystemButtonArea(nullptr);
+        d->context->setSystemButtonAreaCallback(callback);
     }
 
 }

@@ -1,6 +1,8 @@
 #ifndef QWKGLOBAL_H
 #define QWKGLOBAL_H
 
+#include <functional>
+
 #include <QtCore/QEvent>
 #include <QtGui/QtEvents>
 
@@ -27,5 +29,11 @@ using QT_ENTER_EVENT_TYPE = QEvent;
 #ifndef QWINDOWKIT_CONFIG
 #  define QWINDOWKIT_CONFIG(feature) ((1 / QWINDOWKIT_##feature) == 1)
 #endif
+
+namespace QWK {
+
+    using ScreenRectCallback = std::function<QRect(const QSize &)>;
+
+}
 
 #endif // QWKGLOBAL_H

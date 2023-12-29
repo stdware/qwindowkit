@@ -10,6 +10,9 @@
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
 
+// https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
+// https://nyrra33.com/2019/03/26/changing-titlebars-height/
+
 namespace QWK {
 
     struct NSWindowProxy;
@@ -24,12 +27,16 @@ namespace QWK {
 
 struct QWK_NSWindowDelegate {
 public:
+    enum NSEventType {
+        WillEnterFullScreen,
+        DidEnterFullScreen,
+        WillExitFullScreen,
+        DidExitFullScreen,
+        DidResize,
+    };
+
     virtual ~QWK_NSWindowDelegate() = default;
-    virtual void windowWillEnterFullScreen(){};
-    virtual void windowDidEnterFullScreen(){};
-    virtual void windowWillExitFullScreen(){};
-    virtual void windowDidExitFullScreen(){};
-    virtual void windowDidResize(){};
+    virtual void windowEvent(NSEventType eventType) = 0;
 };
 
 //
@@ -77,35 +84,40 @@ public:
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
     if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
-        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowWillEnterFullScreen();
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
+            QWK_NSWindowDelegate::WillEnterFullScreen);
     }
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
     if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
-        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidEnterFullScreen();
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
+            QWK_NSWindowDelegate::DidEnterFullScreen);
     }
 }
 
 - (void)windowWillExitFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
     if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
-        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowWillExitFullScreen();
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
+            QWK_NSWindowDelegate::WillExitFullScreen);
     }
 }
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
     if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
-        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidExitFullScreen();
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
+            QWK_NSWindowDelegate::DidExitFullScreen);
     }
 }
 
 - (void)windowDidResize:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
     if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
-        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowDidResize();
+        reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
+            QWK_NSWindowDelegate::DidResize);
     }
 }
 
@@ -134,38 +146,43 @@ namespace QWK {
         }
 
         // Delegate
-        void windowWillEnterFullScreen() override {
-        }
+        void windowEvent(NSEventType eventType) override {
+            switch (eventType) {
+                case WillExitFullScreen: {
+                    if (!screenRectCallback || !systemButtonVisible)
+                        return;
 
-        void windowDidEnterFullScreen() override {
-        }
+                    // The system buttons will stuck at their default positions when the
+                    // exit-fullscreen animation is running, we need to hide them until the
+                    // animation finishes
+                    for (const auto &button : systemButtons()) {
+                        button.hidden = true;
+                    }
+                    break;
+                }
 
-        void windowWillExitFullScreen() override {
-            if (systemButtonRect.isEmpty() || !systemButtonVisible)
-                return;
+                case DidExitFullScreen: {
+                    if (!screenRectCallback || !systemButtonVisible)
+                        return;
 
-            // The system buttons will stuck at their default positions when the exit-fullscreen
-            // animation is running, we need to hide them until the animation finishes
-            for (const auto &button : systemButtons()) {
-                button.hidden = true;
+                    for (const auto &button : systemButtons()) {
+                        button.hidden = false;
+                    }
+                    updateSystemButtonRect();
+                    break;
+                }
+
+                case DidResize: {
+                    if (!screenRectCallback || !systemButtonVisible) {
+                        return;
+                    }
+                    updateSystemButtonRect();
+                    break;
+                }
+
+                default:
+                    break;
             }
-        }
-
-        void windowDidExitFullScreen() override {
-            if (systemButtonRect.isEmpty() || !systemButtonVisible)
-                return;
-
-            for (const auto &button : systemButtons()) {
-                button.hidden = false;
-            }
-            updateSystemButtonRect();
-        }
-
-        void windowDidResize() override {
-            if (systemButtonRect.isEmpty() || !systemButtonVisible) {
-                return;
-            }
-            updateSystemButtonRect();
         }
 
         // System buttons visibility
@@ -175,35 +192,42 @@ namespace QWK {
                 button.hidden = !visible;
             }
 
-            if (systemButtonRect.isEmpty() || !visible) {
+            if (!screenRectCallback || !visible) {
                 return;
             }
             updateSystemButtonRect();
         }
 
         // System buttons area
-        void setSystemButtonRect(const QRect &rect) {
-            systemButtonRect = rect;
+        void setScreenRectCallback(const ScreenRectCallback &callback) {
+            screenRectCallback = callback;
 
-            if (rect.isEmpty() || !systemButtonVisible) {
+            if (!callback || !systemButtonVisible) {
                 return;
             }
             updateSystemButtonRect();
         }
 
         void updateSystemButtonRect() {
-            // https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
-
             const auto &buttons = systemButtons();
             const auto &leftButton = buttons[0];
             const auto &midButton = buttons[1];
             const auto &rightButton = buttons[2];
 
+            auto titlebar = rightButton.superview;
+            int titlebarHeight = titlebar.frame.size.height;
+
             auto spacing = midButton.frame.origin.x - leftButton.frame.origin.x;
             auto width = midButton.frame.size.width;
             auto height = midButton.frame.size.height;
 
-            QPoint center = systemButtonRect.center();
+            auto viewSize =
+                nswindow.contentView ? nswindow.contentView.frame.size : nswindow.frame.size;
+            QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
+
+            // The origin of the NSWindow coordinate system is in the lower left corner, we
+            // do the necessary transformations
+            center.ry() = titlebarHeight - center.y();
 
             // Mid button
             NSPoint centerOrigin = {
@@ -232,6 +256,11 @@ namespace QWK {
             NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
             NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
             return {closeBtn, minimizeBtn, zoomBtn};
+        }
+
+        inline int titleBarHeight() const {
+            NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
+            return closeBtn.superview.frame.size.height;
         }
 
         // Blur effect
@@ -293,7 +322,7 @@ namespace QWK {
             nswindow.titlebarAppearsTransparent = (visible ? NO : YES);
             nswindow.titleVisibility = (visible ? NSWindowTitleVisible : NSWindowTitleHidden);
             nswindow.hasShadow = YES;
-            nswindow.showsToolbarButton = NO;
+            // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
             nswindow.movable = NO; // This line causes the window in the wrong position when
                                    // become fullscreen.
@@ -437,7 +466,7 @@ namespace QWK {
         NSWindow *nswindow = nil;
 
         bool systemButtonVisible = true;
-        QRect systemButtonRect;
+        ScreenRectCallback screenRectCallback;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
@@ -638,7 +667,7 @@ namespace QWK {
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case SystemButtonAreaChangedHook: {
-                ensureWindowProxy(windowId)->setSystemButtonRect(m_systemButtonArea);
+                ensureWindowProxy(windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
                 return;
             }
 
@@ -646,6 +675,15 @@ namespace QWK {
                 break;
         }
         AbstractWindowContext::virtual_hook(id, data);
+    }
+
+    QVariant CocoaWindowContext::windowAttribute(const QString &key) const {
+        if (key == QStringLiteral("title-bar-height")) {
+            if (!m_windowHandle)
+                return 0;
+            return ensureWindowProxy(windowId)->titleBarHeight();
+        }
+        return AbstractWindowContext::windowAttribute(key);
     }
 
     void CocoaWindowContext::winIdChanged() {
