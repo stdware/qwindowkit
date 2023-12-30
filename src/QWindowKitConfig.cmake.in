@@ -2,4 +2,7 @@
 
 include(CMakeFindDependencyMacro)
 
+find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Core Gui REQUIRED)
+find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui REQUIRED)
+
 include("${CMAKE_CURRENT_LIST_DIR}/QWindowKitTargets.cmake")

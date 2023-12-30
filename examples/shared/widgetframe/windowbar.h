@@ -62,7 +62,7 @@ namespace QWK {
     protected:
         WindowBar(WindowBarPrivate &d, QWidget *parent = nullptr);
 
-        const std::unique_ptr<WindowBarPrivate> d_ptr;
+        QScopedPointer<WindowBarPrivate> d_ptr;
     };
 
 }
