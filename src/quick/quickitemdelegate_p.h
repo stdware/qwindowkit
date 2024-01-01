@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef QUICKITEMDELEGATE_P_H
 #define QUICKITEMDELEGATE_P_H
 

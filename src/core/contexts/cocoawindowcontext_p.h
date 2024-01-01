@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef COCOAWINDOWCONTEXT_P_H
 #define COCOAWINDOWCONTEXT_P_H
 

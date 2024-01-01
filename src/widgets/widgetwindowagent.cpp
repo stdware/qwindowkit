@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #include "widgetwindowagent.h"
 #include "widgetwindowagent_p.h"
 

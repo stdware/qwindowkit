@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef ABSTRACTWINDOWCONTEXT_P_H
 #define ABSTRACTWINDOWCONTEXT_P_H
 

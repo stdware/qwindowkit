@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #ifndef WIN32WINDOWCONTEXT_P_H
 #define WIN32WINDOWCONTEXT_P_H
 

@@ -1,3 +1,6 @@
+// Copyright (C) 2023-2024 Stdware Collections
+// SPDX-License-Identifier: Apache-2.0
+
 #include "qwkquickglobal.h"
 
 #include <QtQml/QQmlEngine>
