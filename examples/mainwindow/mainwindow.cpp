@@ -8,6 +8,7 @@
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
 #include <QtGui/QPainter>
+#include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QPushButton>

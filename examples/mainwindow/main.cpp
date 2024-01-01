@@ -13,10 +13,11 @@ int main(int argc, char *argv[]) {
     qputenv("QSG_RHI_BACKEND", "d3d12");
     qputenv("QSG_RHI_HDR", "scrgb");
     qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
-#endif
-
+    
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+#endif
+
     QApplication a(argc, argv);
 
 #if 0 && defined(Q_OS_WINDOWS) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

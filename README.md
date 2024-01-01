@@ -46,7 +46,7 @@ You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share
 |:---------:|:-----------:|:-------------------------:|
 |    Qt     |   \>=5.12   | Core, Gui, Widgets, Quick |
 | Compiler  |  \>=C++17   |   MSVC 2019, GCC, Clang   |
-|   CMake   |   \>=3.17   |   >=3.20 is recommended   |
+|   CMake   |   \>=3.19   |   >=3.20 is recommended   |
 
 ### Tested Compilers
 
