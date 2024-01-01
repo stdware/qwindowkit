@@ -237,7 +237,8 @@ Window {
         window.visible = true
     }
     WindowAgent {
-      // ...
+        id: windowAgent
+        // ...
     }
 }
 ```
@@ -264,4 +265,8 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 
 ## License
 
-QWindowKit is licensed under the Apache 2.0 License.
+QWindowKit is licensed under the [Apache 2.0 License](./LICENSE).
+
+**You MUST keep a copyright notice of QWindowKit in a prominent place on your project, such as the README document and the About Dialog.**
+
+**You MUST NOT remove the license text from the header files and source files of QWindowKit.**
