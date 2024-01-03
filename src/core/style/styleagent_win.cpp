@@ -1,4 +1,5 @@
-// Copyright (C) 2023-2024 Stdware Collections
+// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
+// Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
 #include "styleagent_p.h"
@@ -63,7 +64,7 @@ namespace QWK {
             return false;
         }
 
-        static SystemSettingEventFilter *instance;
+        static inline SystemSettingEventFilter *instance = nullptr;
 
         static inline void install() {
             if (instance) {
@@ -80,8 +81,6 @@ namespace QWK {
             instance = nullptr;
         }
     };
-
-    SystemSettingEventFilter *SystemSettingEventFilter::instance = nullptr;
 
     void StyleAgentPrivate::setupSystemThemeHook() {
         systemTheme = getSystemTheme();

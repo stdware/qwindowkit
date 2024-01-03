@@ -1,4 +1,5 @@
-// Copyright (C) 2023-2024 Stdware Collections
+// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
+// Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
 #include "nativeeventfilter_p.h"
@@ -25,7 +26,7 @@ namespace QWK {
     }
 
     bool NativeEventDispatcher::nativeDispatch(const QByteArray &eventType, void *message,
-                                         QT_NATIVE_EVENT_RESULT_TYPE *result) {
+                                               QT_NATIVE_EVENT_RESULT_TYPE *result) {
         for (const auto &ef : std::as_const(m_nativeEventFilters)) {
             if (ef->nativeEventFilter(eventType, message, result))
                 return true;
@@ -66,12 +67,10 @@ namespace QWK {
             return nativeDispatch(eventType, message, result);
         }
 
-        static AppMasterNativeEventFilter *instance;
+        static inline AppMasterNativeEventFilter *instance = nullptr;
 
         friend class AppNativeEventFilter;
     };
-
-    AppMasterNativeEventFilter *AppMasterNativeEventFilter::instance = nullptr;
 
     AppNativeEventFilter::AppNativeEventFilter() {
         if (!AppMasterNativeEventFilter::instance) {
