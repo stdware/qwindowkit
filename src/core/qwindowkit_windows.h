@@ -116,6 +116,7 @@ namespace QWK {
     //
     // Registry Helpers
     //
+    
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     class QWK_CORE_EXPORT WindowsRegistryKey {
     public:
