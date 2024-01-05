@@ -4,7 +4,7 @@
     <LibraryPath>@MSBUILD_QWK_INSTALL_PREFIX@\@MSBUILD_QWK_INSTALL_LIBDIR@;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings">
-    <QtHeaderSearchPath>@MSBUILD_QWK_INSTALL_PREFIX@\@MSBUILD_QWK_INSTALL_INCDIR@;$(QtHeaderSearchPath)</QtHeaderSearchPath>
+    <QtHeaderSearchPath>@MSBUILD_QWK_INSTALL_PREFIX@\@MSBUILD_QWK_INSTALL_INCDIR@\QWindowKit;$(QtHeaderSearchPath)</QtHeaderSearchPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
