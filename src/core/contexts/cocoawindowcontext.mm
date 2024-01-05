@@ -513,7 +513,10 @@ namespace QWK {
 
     static inline void releaseWindowProxy(const WId windowId) {
         if (auto proxy = g_proxyList->take(windowId)) {
-            proxy->setSystemTitleBarVisible(true);
+            // TODO: Determine if the window is valid
+            
+            // The window has been destroyed
+            // proxy->setSystemTitleBarVisible(true);
             delete proxy;
         } else {
             return;
