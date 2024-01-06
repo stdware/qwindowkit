@@ -85,7 +85,10 @@ You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share
 ### Build & Install
 
 ```sh
-cmake -B build \
+git clone --recursive https://github.com/stdware/qwindowkit
+cd qwindowkit
+
+cmake -B build -S . \
   -Dqmsetup_DIR=<dir> \ # Optional
   -DCMAKE_INSTALL_PREFIX=/path/install \
   -G "Ninja Multi-Config"
