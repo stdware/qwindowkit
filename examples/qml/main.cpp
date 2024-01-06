@@ -4,6 +4,7 @@
 
 #include <QtGui/QGuiApplication>
 #include <QtQml/QQmlApplicationEngine>
+#include <QtQuick/QQuickWindow>
 
 #include <QWKQuick/qwkquickglobal.h>
 
@@ -23,6 +24,8 @@ int main(int argc, char *argv[]) {
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
     QGuiApplication application(argc, argv);
+    // Make sure alpha channel is requested, our special effects on Windows depends on it.
+    QQuickWindow::setDefaultAlphaBuffer(true);
     QQmlApplicationEngine engine;
     QWK::registerTypes(&engine);
     engine.load(QUrl(QStringLiteral("qrc:///main.qml")));

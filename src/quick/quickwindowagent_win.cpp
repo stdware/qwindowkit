@@ -45,7 +45,7 @@ namespace QWK {
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
         : QQuickPaintedItem(parent), context(context) {
-        setAntialiasing(true);   // We needs anti-aliasing to give us better result.
+        setAntialiasing(true);   // We need anti-aliasing to give us better result.
         setFillColor({});        // Will improve the performance a little bit.
         setOpaquePainting(true); // Will also improve the performance, we don't draw
                                  // semi-transparent borders of course.
@@ -56,7 +56,7 @@ namespace QWK {
         anchors->setLeft(parentPri->left());
         anchors->setRight(parentPri->right());
 
-        setZ(9999); // Make sure our fake border always above everything in the window.
+        setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above everything in the window.
 
         context->installNativeEventFilter(this);
         context->installSharedEventFilter(this);
@@ -69,7 +69,7 @@ namespace QWK {
     BorderItem::~BorderItem() = default;
 
     bool BorderItem::isNormalWindow() const {
-        return !(context->window()->windowState() &
+        return !(context->window()->windowStates() &
                  (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
     }
 
