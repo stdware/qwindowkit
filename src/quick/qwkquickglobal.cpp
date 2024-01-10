@@ -21,6 +21,7 @@ namespace QWK {
         }
         once = true;
 
+        // @uri QWindowKit
         qmlRegisterType<QuickWindowAgent>(kModuleUri, 1, 0, "WindowAgent");
         qmlRegisterModule(kModuleUri, 1, 0);
     }
