@@ -95,15 +95,19 @@ bool MainWindow::event(QEvent *event) {
     switch (event->type()) {
         case QEvent::WindowActivate: {
             auto menu = menuWidget();
-            menu->setProperty("bar-active", true);
-            style()->polish(menu);
+            if(menu) {
+                menu->setProperty("bar-active", true);
+                style()->polish(menu);
+            }
             break;
         }
 
         case QEvent::WindowDeactivate: {
             auto menu = menuWidget();
-            menu->setProperty("bar-active", false);
-            style()->polish(menu);
+            if(menu) {
+                menu->setProperty("bar-active", false);
+                style()->polish(menu);
+            }
             break;
         }
 
