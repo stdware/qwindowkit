@@ -104,6 +104,10 @@ namespace QWK {
         static_cast<QWidget *>(host)->setVisible(visible);
     }
 
+    void WidgetItemDelegate::setGeometry(QObject *host, const QRect &rect) {
+        static_cast<QWidget *>(host)->setGeometry(rect);
+    }
+
     void WidgetItemDelegate::bringWindowToTop(QObject *host) const {
         static_cast<QWidget *>(host)->raise();
     }

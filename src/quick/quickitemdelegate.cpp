@@ -80,6 +80,10 @@ namespace QWK {
         static_cast<QQuickWindow *>(host)->setVisible(visible);
     }
 
+    void QuickItemDelegate::setGeometry(QObject *host, const QRect &rect) {
+        static_cast<QQuickWindow *>(host)->setGeometry(rect);
+    }
+
     void QuickItemDelegate::bringWindowToTop(QObject *host) const {
         static_cast<QQuickWindow *>(host)->raise();
     }

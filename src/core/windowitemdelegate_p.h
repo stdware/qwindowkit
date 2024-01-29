@@ -49,6 +49,7 @@ namespace QWK {
         virtual void restoreCursorShape(QObject *host) const = 0;
         virtual void setWindowFlags(QObject *host, Qt::WindowFlags flags) const = 0;
         virtual void setWindowVisible(QObject *host, bool visible) const = 0;
+        virtual void setGeometry(QObject *host, const QRect &rect) = 0;
         virtual void bringWindowToTop(QObject *host) const = 0;
 
     private:

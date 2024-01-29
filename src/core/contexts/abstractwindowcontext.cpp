@@ -211,7 +211,7 @@ namespace QWK {
                 int y = (screenGeometry.height() - windowGeometry.height()) / 2;
                 QPoint pos(x, y);
                 pos += screenGeometry.topLeft();
-                m_windowHandle->setPosition(pos);
+                m_delegate->setGeometry(m_host, QRect(pos, windowGeometry.size()));
                 return;
             }
 
