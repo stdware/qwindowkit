@@ -51,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     setWindowTitle(tr("Example MainWindow"));
     resize(800, 600);
+
+    windowAgent->centralize();
 }
 
 static inline void emulateLeaveEvent(QWidget *widget) {
