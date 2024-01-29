@@ -92,6 +92,10 @@ namespace QWK {
         return static_cast<const QWidget *>(host)->windowFlags();
     }
 
+    QRect WidgetItemDelegate::getGeometry(const QObject *host) const {
+        return static_cast<const QWidget *>(host)->geometry();
+    }
+
     void WidgetItemDelegate::setWindowFlags(QObject *host, Qt::WindowFlags flags) const {
         static_cast<QWidget *>(host)->setWindowFlags(flags);
     }

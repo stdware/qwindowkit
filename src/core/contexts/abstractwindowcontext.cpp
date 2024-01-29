@@ -124,8 +124,7 @@ namespace QWK {
     }
 
 #ifdef Q_OS_MAC
-    void
-        AbstractWindowContext::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
+    void AbstractWindowContext::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
         m_systemButtonAreaCallback = callback;
         virtual_hook(SystemButtonAreaChangedHook, nullptr);
     }
@@ -206,9 +205,10 @@ namespace QWK {
                 if (!m_windowHandle)
                     return;
 
+                QRect windowGeometry = m_delegate->getGeometry(m_host);
                 QRect screenGeometry = m_windowHandle->screen()->geometry();
-                int x = (screenGeometry.width() - m_windowHandle->width()) / 2;
-                int y = (screenGeometry.height() - m_windowHandle->height()) / 2;
+                int x = (screenGeometry.width() - windowGeometry.width()) / 2;
+                int y = (screenGeometry.height() - windowGeometry.height()) / 2;
                 QPoint pos(x, y);
                 pos += screenGeometry.topLeft();
                 m_windowHandle->setPosition(pos);

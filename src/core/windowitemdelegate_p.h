@@ -40,6 +40,7 @@ namespace QWK {
         virtual bool isWindowActive(const QObject *host) const = 0;
         virtual Qt::WindowStates getWindowState(const QObject *host) const = 0;
         virtual Qt::WindowFlags getWindowFlags(const QObject *host) const = 0;
+        virtual QRect getGeometry(const QObject *host) const = 0;
 
         // Callbacks
         virtual void resetQtGrabbedControl(QObject *host) const;

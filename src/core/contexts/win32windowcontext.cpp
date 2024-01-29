@@ -98,18 +98,6 @@ namespace QWK {
         return monitorInfo;
     }
 
-    static inline void moveWindowToDesktopCenter(HWND hwnd) {
-        MONITORINFOEXW monitorInfo = getMonitorForWindow(hwnd);
-        RECT windowRect{};
-        ::GetWindowRect(hwnd, &windowRect);
-        const auto newX = monitorInfo.rcMonitor.left +
-                          (RECT_WIDTH(monitorInfo.rcMonitor) - RECT_WIDTH(windowRect)) / 2;
-        const auto newY = monitorInfo.rcMonitor.top +
-                          (RECT_HEIGHT(monitorInfo.rcMonitor) - RECT_HEIGHT(windowRect)) / 2;
-        ::SetWindowPos(hwnd, nullptr, newX, newY, 0, 0,
-                       SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-    }
-
     static inline void moveWindowToMonitor(HWND hwnd, const MONITORINFOEXW &activeMonitor) {
         RECT currentMonitorRect = getMonitorForWindow(hwnd).rcMonitor;
         RECT activeMonitorRect = activeMonitor.rcMonitor;
@@ -563,14 +551,6 @@ namespace QWK {
 
     void Win32WindowContext::virtual_hook(int id, void *data) {
         switch (id) {
-            case CentralizeHook: {
-                if (!windowId)
-                    return;
-                const auto hwnd = reinterpret_cast<HWND>(windowId);
-                moveWindowToDesktopCenter(hwnd);
-                return;
-            }
-
             case RaiseWindowHook: {
                 if (!windowId)
                     return;
@@ -606,8 +586,8 @@ namespace QWK {
                 return;
             }
 
-            case DrawWindows10BorderHook: {
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+            case DrawWindows10BorderHook: {
                 if (!windowId)
                     return;
 
@@ -647,12 +627,10 @@ namespace QWK {
                     QPoint{m_windowHandle->width(), 0}
                 });
                 painter.restore();
-#endif
                 return;
             }
 
             case DrawWindows10BorderHook2: {
-#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
                 if (!m_windowHandle)
                     return;
 
@@ -673,9 +651,9 @@ namespace QWK {
                 ::FillRect(hdc, &rcTopBorder,
                            reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
                 ::ReleaseDC(hWnd, hdc);
-#endif
                 return;
             }
+#endif
 
             default:
                 break;
@@ -1328,19 +1306,6 @@ namespace QWK {
     bool Win32WindowContext::customWindowHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                  LPARAM lParam, LRESULT *result) {
         switch (message) {
-            case WM_SHOWWINDOW: {
-                if (!initialCentered) {
-                    // If wParam is TRUE, the window is being shown.
-                    // If lParam is zero, the message was sent because of a call to the ShowWindow
-                    // function.
-                    if (wParam && !lParam) {
-                        initialCentered = true;
-                        moveWindowToDesktopCenter(hWnd);
-                    }
-                }
-                break;
-            }
-
             case WM_NCHITTEST: {
                 // 原生Win32窗口只有顶边是在窗口内部resize的，其余三边都是在窗口
                 // 外部进行resize的，其原理是，WS_THICKFRAME这个窗口样式会在窗

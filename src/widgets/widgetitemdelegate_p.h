@@ -38,6 +38,7 @@ namespace QWK {
         bool isWindowActive(const QObject *host) const override;
         Qt::WindowStates getWindowState(const QObject *host) const override;
         Qt::WindowFlags getWindowFlags(const QObject *host) const override;
+        QRect getGeometry(const QObject *host) const override;
 
         void resetQtGrabbedControl(QObject *host) const override;
         void setWindowState(QObject *host, Qt::WindowStates state) const override;

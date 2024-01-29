@@ -72,8 +72,6 @@ namespace QWK {
         // Whether the last mouse leave message is blocked, mainly for handling the unexpected
         // WM_MOUSELEAVE.
         bool mouseLeaveBlocked = false;
-
-        bool initialCentered = false;
     };
 
 }
