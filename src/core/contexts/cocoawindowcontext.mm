@@ -31,7 +31,7 @@ namespace QWK {
 
 struct QWK_NSWindowDelegate {
 public:
-    enum NSEventType {
+    enum NSEventType : quint8 {
         WillEnterFullScreen,
         DidEnterFullScreen,
         WillExitFullScreen,
@@ -134,7 +134,7 @@ public:
 namespace QWK {
 
     struct NSWindowProxy : public QWK_NSWindowDelegate {
-        enum class BlurMode {
+        enum class BlurMode : quint8 {
             Dark,
             Light,
             None,
@@ -532,7 +532,7 @@ namespace QWK {
         explicit CocoaWindowEventFilter(AbstractWindowContext *context);
         ~CocoaWindowEventFilter() override;
 
-        enum WindowStatus {
+        enum WindowStatus : quint8 {
             Idle,
             WaitingRelease,
             PreparingMove,

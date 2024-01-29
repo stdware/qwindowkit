@@ -19,6 +19,7 @@
 
 #include <QtCore/QSet>
 #include <QtCore/QPointer>
+#include <QtCore/QBitArray>
 #include <QtGui/QRegion>
 #include <QtGui/QWindow>
 
@@ -63,7 +64,7 @@ namespace QWK {
 
         virtual QString key() const;
 
-        enum WindowContextHook {
+        enum WindowContextHook : quint8 {
             CentralizeHook = 1,
             RaiseWindowHook,
             ShowSystemMenuHook,
@@ -79,6 +80,10 @@ namespace QWK {
 
         virtual QVariant windowAttribute(const QString &key) const;
         virtual bool setWindowAttribute(const QString &key, const QVariant &attribute);
+
+        void setFlag(quint8 bit, bool value = true);
+        bool isFlagSet(quint8 bit) const;
+        void toggleFlag(quint8 bit);
 
     protected:
         virtual void winIdChanged() = 0;
@@ -102,6 +107,8 @@ namespace QWK {
 
         std::unique_ptr<QObject> m_windowEventFilter;
         std::unique_ptr<QObject> m_winIdChangeEventFilter;
+
+        QBitArray m_flags;
     };
 
     inline QObject *AbstractWindowContext::host() const {

@@ -23,7 +23,7 @@ namespace QWK {
         explicit StyleAgent(QObject *parent = nullptr);
         ~StyleAgent() override;
 
-        enum SystemTheme {
+        enum SystemTheme : quint8 {
             Unknown,
             Light,
             Dark,

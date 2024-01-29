@@ -1329,7 +1329,7 @@ namespace QWK {
                                                  LPARAM lParam, LRESULT *result) {
         switch (message) {
             case WM_SHOWWINDOW: {
-                if (!initialCentered) {
+                if (!isFlagSet(WindowAgentBase::DontCenterWindowBeforeShow) && !initialCentered) {
                     // If wParam is TRUE, the window is being shown.
                     // If lParam is zero, the message was sent because of a call to the ShowWindow
                     // function.

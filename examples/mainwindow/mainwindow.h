@@ -18,7 +18,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    enum Theme {
+    enum Theme : quint8 {
         Dark,
         Light,
     };

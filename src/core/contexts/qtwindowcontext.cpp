@@ -86,7 +86,7 @@ namespace QWK {
         explicit QtWindowEventFilter(AbstractWindowContext *context);
         ~QtWindowEventFilter() override;
 
-        enum WindowStatus {
+        enum WindowStatus : quint8 {
             Idle,
             WaitingRelease,
             PreparingMove,

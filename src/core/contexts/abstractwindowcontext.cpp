@@ -56,7 +56,9 @@ namespace QWK {
 
     }
 
-    AbstractWindowContext::AbstractWindowContext() = default;
+    AbstractWindowContext::AbstractWindowContext() : m_flags(std::numeric_limits<quint8>::max()) {
+
+    }
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
@@ -304,6 +306,18 @@ namespace QWK {
                                                        const QVariant &attribute,
                                                        const QVariant &oldAttribute) {
         return false;
+    }
+
+    void AbstractWindowContext::setFlag(quint8 bit, bool value) {
+        m_flags.setBit(bit, value);
+    }
+
+    bool AbstractWindowContext::isFlagSet(quint8 bit) const {
+        return m_flags.testBit(bit);
+    }
+
+    void AbstractWindowContext::toggleFlag(quint8 bit) {
+        m_flags.toggleBit(bit);
     }
 
 }

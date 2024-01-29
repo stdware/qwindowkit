@@ -115,6 +115,30 @@ namespace QWK {
     }
 
     /*!
+        Set the given bit to \c value .
+    */
+    void WindowAgentBase::setFlag(quint8 bit, bool value) {
+        Q_D(WindowAgentBase);
+        d->context->setFlag(bit, value);
+    }
+
+    /*!
+        Detect whether the given \c bit is set to \c true or not.
+    */
+    bool WindowAgentBase::isFlagSet(quint8 bit) const {
+        Q_D(const WindowAgentBase);
+        return d->context->isFlagSet(bit);
+    }
+
+    /*!
+        Toggle the value of the given \c bit .
+    */
+    void WindowAgentBase::toggleFlag(quint8 bit) {
+        Q_D(WindowAgentBase);
+        d->context->toggleFlag(bit);
+    }
+
+    /*!
         Shows the system menu, it's only implemented on Windows.
     */
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {

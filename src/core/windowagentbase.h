@@ -21,7 +21,7 @@ namespace QWK {
     public:
         ~WindowAgentBase() override;
 
-        enum SystemButton {
+        enum SystemButton : quint8 {
             Unknown,
             WindowIcon,
             Help,
@@ -31,8 +31,17 @@ namespace QWK {
         };
         Q_ENUM(SystemButton)
 
+        enum SpecialBit : quint8 {
+            DontCenterWindowBeforeShow
+        };
+        Q_ENUM(SpecialBit)
+
         QVariant windowAttribute(const QString &key) const;
         Q_INVOKABLE bool setWindowAttribute(const QString &key, const QVariant &attribute);
+
+        Q_INVOKABLE void setFlag(quint8 bit, bool value = true);
+        bool isFlagSet(quint8 bit) const;
+        Q_INVOKABLE void toggleFlag(quint8 bit);
 
     public Q_SLOTS:
         void showSystemMenu(const QPoint &pos); // Only available on Windows now

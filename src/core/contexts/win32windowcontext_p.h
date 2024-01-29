@@ -25,7 +25,7 @@ namespace QWK {
         Win32WindowContext();
         ~Win32WindowContext() override;
 
-        enum WindowPart {
+        enum WindowPart : quint8 {
             Outside,
             ClientArea,
             ChromeButton,

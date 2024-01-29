@@ -8,6 +8,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
+#include <QtCore/QSettings>
 #include <QtGui/QPainter>
 #include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
@@ -23,6 +24,21 @@
 
 #include <widgetframe/windowbar.h>
 #include <widgetframe/windowbutton.h>
+
+static inline QSettings* settings() {
+    static QSettings ini(QCoreApplication::applicationDirPath() + QStringLiteral("/config.ini"), QSettings::IniFormat);
+    return &ini;
+}
+
+static inline const QString& stateKey() {
+    static const QString key = QStringLiteral("window/state");
+    return key;
+}
+
+static inline const QString& geometryKey() {
+    static const QString key = QStringLiteral("window/geometry");
+    return key;
+}
 
 class ClockWidget : public QLabel {
 public:
@@ -107,6 +123,24 @@ bool MainWindow::event(QEvent *event) {
             break;
         }
 
+        case QEvent::Show: {
+            const auto geometryData = settings()->value(geometryKey()).toByteArray();
+            if (!geometryData.isEmpty()) {
+                restoreGeometry(geometryData);
+            }
+            const auto stateData = settings()->value(stateKey()).toByteArray();
+            if (!stateData.isEmpty()) {
+                restoreState(stateData);
+            }
+            break;
+        }
+
+        case QEvent::Close: {
+            settings()->setValue(geometryKey(), saveGeometry());
+            settings()->setValue(stateKey(), saveState());
+            break;
+        }
+
         default:
             break;
     }
@@ -117,6 +151,7 @@ void MainWindow::installWindowAgent() {
     // 1. Setup window agent
     windowAgent = new QWK::WidgetWindowAgent(this);
     windowAgent->setup(this);
+    windowAgent->setFlag(QWK::WindowAgentBase::DontCenterWindowBeforeShow, settings()->allKeys().contains(geometryKey()));
 
     // 2. Construct your title bar
     auto menuBar = [this]() {
