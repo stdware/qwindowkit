@@ -47,17 +47,6 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 
 namespace QWK {
 
-    namespace Private {
-
-        class ObjectHelper : public QObject {
-        public:
-            static inline bool sendEvent(QObject *obj, QEvent *event) {
-                return static_cast<ObjectHelper *>(obj)->event(event);
-            }
-        };
-
-    }
-
     inline QPoint getMouseEventScenePos(const QMouseEvent *event) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return event->scenePosition().toPoint();

@@ -5,4 +5,14 @@ include(CMakeFindDependencyMacro)
 find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Core Gui REQUIRED)
 find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui REQUIRED)
 
+if ("Widgets" IN_LIST qmsetup_FIND_COMPONENTS)
+    find_dependency(QT NAMES Qt6 Qt5 Widgets REQUIRED)
+    find_dependency(Qt${QT_VERSION_MAJOR} Widgets REQUIRED)
+endif()
+
+if ("Quick" IN_LIST qmsetup_FIND_COMPONENTS)
+    find_dependency(QT NAMES Qt6 Qt5 Quick REQUIRED)
+    find_dependency(Qt${QT_VERSION_MAJOR} Quick REQUIRED)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/QWindowKitTargets.cmake")

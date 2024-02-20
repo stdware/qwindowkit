@@ -74,7 +74,7 @@ namespace QWK {
 
         inline void resumeWidgetEventAndDraw(QWidget *w, QEvent *event) {
             // Let the widget paint first
-            Private::ObjectHelper::sendEvent(w, event);
+            static_cast<QObject *>(w)->event(event);
 
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
@@ -84,7 +84,7 @@ namespace QWK {
 
         inline void resumeWindowEventAndDraw(QWindow *window, QEvent *event) {
             // Let Qt paint first
-            Private::ObjectHelper::sendEvent(window, event);
+            static_cast<QObject *>(window)->event(event);
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.
