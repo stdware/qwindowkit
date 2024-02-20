@@ -41,7 +41,18 @@ namespace QWK {
             explicit WindowEventFilter(QWindow *window, AbstractWindowContext *ctx,
                                        QObject *parent = nullptr)
                 : QObject(parent), ctx(ctx), window(window) {
-                window->installEventFilter(this);
+                if (window)
+                    window->installEventFilter(this);
+            }
+
+            inline void setWindow(QWindow *win) {
+                if (auto oldWin = window.data(); oldWin) {
+                    oldWin->removeEventFilter(this);
+                }
+                window = win;
+                if (win) {
+                    win->installEventFilter(this);
+                }
             }
 
         protected:
@@ -51,7 +62,7 @@ namespace QWK {
 
         protected:
             AbstractWindowContext *ctx;
-            QWindow *window;
+            QPointer<QWindow> window;
         };
 
     }
@@ -67,11 +78,11 @@ namespace QWK {
         m_host = host;
         m_delegate.reset(delegate);
         m_winIdChangeEventFilter = std::make_unique<WinIdChangeEventFilter>(host, this);
+        m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
 
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (m_windowHandle) {
             winIdChanged();
-            m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
         }
     }
 
@@ -248,14 +259,18 @@ namespace QWK {
     }
 
     void AbstractWindowContext::notifyWinIdChange() {
-        auto oldWindow = m_windowHandle;
+        auto windowEventFilter = static_cast<WindowEventFilter *>(m_windowEventFilter.get());
+        windowEventFilter->setWindow(nullptr);
+
+        // In Qt6, after QWidget::close() is called, the related QWindow's all surfaces and the
+        // platform window will be removed, and the WinId will be set to 0. After that, when the
+        // QWidget is shown again, the whole things will be recreated again.
+        // As a result, we must update our WindowContext each time the WinId changes.
         m_windowHandle = m_delegate->hostWindow(m_host);
-        if (oldWindow == m_windowHandle)
-            return;
-        m_windowEventFilter.reset();
         winIdChanged();
+
         if (m_windowHandle) {
-            m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
+            windowEventFilter->setWindow(m_windowHandle);
 
             // Refresh window attributes
             auto attributes = m_windowAttributes;

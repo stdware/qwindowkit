@@ -115,6 +115,14 @@ bool MainWindow::event(QEvent *event) {
     return QMainWindow::event(event);
 }
 
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (!(qApp->keyboardModifiers() & Qt::ControlModifier)) {
+        QTimer::singleShot(1000, this, &QWidget::show);
+    }
+    event->accept();
+}
+
 void MainWindow::installWindowAgent() {
     // 1. Setup window agent
     windowAgent = new QWK::WidgetWindowAgent(this);
