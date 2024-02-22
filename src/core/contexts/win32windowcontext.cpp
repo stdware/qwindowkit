@@ -695,12 +695,16 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(WId winId, WId oldWinId) {
+        // Reset the context data
+        mouseLeaveBlocked = false;
+        lastHitTestResult = WindowPart::Outside;
+
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
             removeManagedWindow(reinterpret_cast<HWND>(oldWinId));
         }
 
-        if (!m_windowHandle || ! winId) {
+        if (!m_windowHandle || !winId) {
             return;
         }
 
@@ -735,15 +739,11 @@ namespace QWK {
                                         LRESULT *result) {
         *result = FALSE;
 
-        if (message == WM_DESTROY) {
-            qDebug() << "WM_DESTROY";
-        }
-
         // We should skip these messages otherwise we will get crashes.
         // NOTE: WM_QUIT won't be posted to the WindowProc function.
         switch (message) {
-            case WM_CLOSE:
             case WM_DESTROY:
+            case WM_CLOSE:
             case WM_NCDESTROY:
             // Undocumented messages:
             case WM_UAHDESTROYWINDOW:
@@ -755,20 +755,6 @@ namespace QWK {
 
         if (!isValidWindow(hWnd, false, true)) {
             return false;
-        }
-
-        switch (message) {
-            case WM_NCMOUSELEAVE:
-                qDebug() << "WM_NCMOUSELEAVE" << mouseLeaveBlocked;
-                break;
-            case WM_MOUSEHOVER:
-                qDebug() << "WM_MOUSEHOVER" << mouseLeaveBlocked;
-                break;
-            case WM_NCMOUSEHOVER:
-                qDebug() << "WM_NCMOUSEHOVER" << mouseLeaveBlocked;
-                break;
-            default:
-                break;
         }
 
         // Test snap layout
@@ -1156,8 +1142,6 @@ namespace QWK {
                     }
                 }
                 mouseLeaveBlocked = false;
-                
-                qDebug() << "WM_MOUSELEAVE";
                 break;
             }
 
@@ -1166,7 +1150,6 @@ namespace QWK {
                 // we unset `mouseLeaveBlocked` mark and pretend as if Qt has received
                 // WM_MOUSELEAVE.
                 if (lastHitTestResult != WindowPart::ChromeButton && mouseLeaveBlocked) {
-                    qDebug() << lastHitTestResult << "Track";
                     mouseLeaveBlocked = false;
                     requestForMouseLeaveMessage(hWnd, false);
                 }
@@ -1243,19 +1226,14 @@ namespace QWK {
                         // the above problems would not arise.
 
                         m_delegate->resetQtGrabbedControl(m_host);
+
+                        // If the mouse moves from chrome buttons to other non-client areas, a
+                        // WM_MOUSELEAVE message should be sent.
                         if (mouseLeaveBlocked) {
                             emulateClientAreaMessage(hWnd, message, wParam, lParam,
                                                      WM_NCMOUSELEAVE);
                         }
                     }
-
-                    // We need to make sure we get the right hit-test result when a WM_NCMOUSELEAVE
-                    // comes, so we reset it when we receive a WM_NCMOUSEMOVE.
-
-                    // If the mouse is entering the client area, there must be a WM_NCHITTEST
-                    // setting it to `Client` before the WM_NCMOUSELEAVE comes; if the mouse is
-                    // leaving the window, current window part remains as `Outside`.
-                    // lastHitTestResult = WindowPart::Outside;
                 }
 
                 if (currentWindowPart == WindowPart::ChromeButton) {
@@ -1287,7 +1265,7 @@ namespace QWK {
                     // pressing area as HTCLIENT which maybe because of our former retransmission of
                     // WM_NCLBUTTONDOWN, as a result, a WM_NCMOUSELEAVE will come immediately and a
                     // lot of WM_MOUSEMOVE will come if we move the mouse, we should track the mouse
-                    // in advance.
+                    // in advance. (May be redundant?)
                     if (mouseLeaveBlocked) {
                         mouseLeaveBlocked = false;
                         requestForMouseLeaveMessage(hWnd, false);

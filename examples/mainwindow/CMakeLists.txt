@@ -4,7 +4,7 @@ file(GLOB _src *.h *.cpp)
 
 qwk_add_example(${PROJECT_NAME}
     SOURCES ${_src} mainwindow.qrc ../shared/resources/shared.qrc
-    QT_LINKS Core Gui Widgets
+    QT_LINKS Core Gui Widgets # WebEngineWidgets
     LINKS QWKWidgets WidgetFrame
 )
 

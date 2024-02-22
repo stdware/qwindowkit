@@ -19,6 +19,8 @@
 #  include <QtWidgets/QActionGroup>
 #endif
 
+// #include <QtWebEngineWidgets/QWebEngineView>
+
 #include <QWKWidgets/widgetwindowagent.h>
 
 #include <widgetframe/windowbar.h>
@@ -40,19 +42,25 @@ protected:
 };
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    installWindowAgent();
+     installWindowAgent();
 
+#if 1
     auto clockWidget = new ClockWidget();
     clockWidget->setObjectName(QStringLiteral("clock-widget"));
     clockWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setCentralWidget(clockWidget);
+#else
+    auto webView = new QWebEngineView();
+    webView->load(QUrl("https://www.baidu.com"));
+    setCentralWidget(webView);
+#endif
 
     loadStyleSheet(Dark);
 
     setWindowTitle(tr("Example MainWindow"));
     resize(800, 600);
 
-    windowAgent->centralize();
+    // windowAgent->centralize();
 }
 
 static inline void emulateLeaveEvent(QWidget *widget) {
@@ -117,9 +125,9 @@ bool MainWindow::event(QEvent *event) {
 
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    if (!(qApp->keyboardModifiers() & Qt::ControlModifier)) {
-        QTimer::singleShot(1000, this, &QWidget::show);
-    }
+    // if (!(qApp->keyboardModifiers() & Qt::ControlModifier)) {
+    //     QTimer::singleShot(1000, this, &QWidget::show);
+    // }
     event->accept();
 }
 
@@ -295,14 +303,14 @@ void MainWindow::installWindowAgent() {
     windowBar->setTitleLabel(titleLabel);
     windowBar->setHostWidget(this);
 
-    windowAgent->setTitleBar(windowBar);
+   windowAgent->setTitleBar(windowBar);
 #ifndef Q_OS_MAC
-    windowAgent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
-    windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
-    windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
-    windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
+   windowAgent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
+   windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
+   windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
+   windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
 #endif
-    windowAgent->setHitTestVisible(menuBar, true);
+   windowAgent->setHitTestVisible(menuBar, true);
 
 #ifdef Q_OS_MAC
     windowAgent->setSystemButtonAreaCallback([](const QSize &size) {

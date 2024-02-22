@@ -33,7 +33,9 @@ int main(int argc, char *argv[]) {
     MainWindow w;
     w.show();
 
+#if 0
     QMainWindow w2;
     w2.show();
+#endif
     return a.exec();
 }
