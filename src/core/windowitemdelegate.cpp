@@ -14,4 +14,10 @@ namespace QWK {
         Q_UNUSED(host);
     }
 
+    WinIdChangeEventFilter *
+        WindowItemDelegate::createWinIdEventFilter(QObject *host,
+                                                   AbstractWindowContext *context) const {
+        return new WindowWinIdChangeEventFilter(host, context);
+    }
+
 }

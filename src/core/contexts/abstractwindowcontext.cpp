@@ -7,34 +7,12 @@
 #include <QtGui/QPen>
 #include <QtGui/QPainter>
 #include <QtGui/QScreen>
-#include <memory>
 
 #include "qwkglobal_p.h"
 
 namespace QWK {
 
     namespace {
-
-        class WinIdChangeEventFilter : public QObject {
-        public:
-            explicit WinIdChangeEventFilter(QObject *widget, AbstractWindowContext *ctx,
-                                            QObject *parent = nullptr)
-                : QObject(parent), ctx(ctx) {
-                widget->installEventFilter(this);
-            }
-
-        protected:
-            bool eventFilter(QObject *obj, QEvent *event) override {
-                Q_UNUSED(obj)
-                if (event->type() == QEvent::WinIdChange) {
-                    ctx->notifyWinIdChange();
-                }
-                return false;
-            }
-
-        protected:
-            AbstractWindowContext *ctx;
-        };
 
         class WindowEventFilter : public QObject {
         public:
@@ -77,16 +55,10 @@ namespace QWK {
         }
         m_host = host;
         m_delegate.reset(delegate);
-        m_winIdChangeEventFilter = std::make_unique<WinIdChangeEventFilter>(host, this);
+        m_winIdChangeEventFilter.reset(delegate->createWinIdEventFilter(host, this));
         m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
-
-        m_windowHandle = m_delegate->hostWindow(m_host);
-        if (m_windowHandle) {
-            winIdChanged();
-        }
+        notifyWinIdChange();
     }
-
-
 
     bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
         Q_ASSERT(obj);
@@ -259,15 +231,21 @@ namespace QWK {
     }
 
     void AbstractWindowContext::notifyWinIdChange() {
-        auto windowEventFilter = static_cast<WindowEventFilter *>(m_windowEventFilter.get());
-        windowEventFilter->setWindow(nullptr);
+        auto oldWinId = m_windowId;
+        m_windowId = m_winIdChangeEventFilter->winId();
 
         // In Qt6, after QWidget::close() is called, the related QWindow's all surfaces and the
         // platform window will be removed, and the WinId will be set to 0. After that, when the
         // QWidget is shown again, the whole things will be recreated again.
         // As a result, we must update our WindowContext each time the WinId changes.
         m_windowHandle = m_delegate->hostWindow(m_host);
-        winIdChanged();
+
+        auto windowEventFilter = static_cast<WindowEventFilter *>(m_windowEventFilter.get());
+        windowEventFilter->setWindow(nullptr);
+
+        if (oldWinId != m_windowId) {
+            winIdChanged(m_windowId, oldWinId);
+        }
 
         if (m_windowHandle) {
             windowEventFilter->setWindow(m_windowHandle);

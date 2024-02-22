@@ -33,6 +33,7 @@ namespace QWK {
             FixedBorder,
             TitleBar,
         };
+        Q_ENUM(WindowPart)
 
         QString key() const override;
         void virtual_hook(int id, void *data) override;
@@ -40,7 +41,7 @@ namespace QWK {
         QVariant windowAttribute(const QString &key) const override;
 
     protected:
-        void winIdChanged() override;
+        void winIdChanged(WId winId, WId oldWinId) override;
         bool windowAttributeChanged(const QString &key, const QVariant &attribute,
                                     const QVariant &oldAttribute) override;
 
@@ -64,8 +65,6 @@ namespace QWK {
                                       LRESULT *result);
 
     protected:
-        WId windowId = 0;
-
         // The last hit test result, helpful to handle WM_MOUSEMOVE and WM_NCMOUSELEAVE.
         WindowPart lastHitTestResult = WindowPart::Outside;
 

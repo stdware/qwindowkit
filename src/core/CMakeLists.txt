@@ -15,6 +15,8 @@ set(_src
     kernel/nativeeventfilter.cpp
     kernel/sharedeventfilter_p.h
     kernel/sharedeventfilter.cpp
+    kernel/winidchangeeventfilter_p.h
+    kernel/winidchangeeventfilter.cpp
     shared/systemwindow_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp

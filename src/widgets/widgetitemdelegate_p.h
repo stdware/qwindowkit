@@ -48,6 +48,9 @@ namespace QWK {
         void setWindowVisible(QObject *host, bool visible) const override;
         void setGeometry(QObject *host, const QRect &rect) override;
         void bringWindowToTop(QObject *host) const override;
+
+        WinIdChangeEventFilter *
+            createWinIdEventFilter(QObject *host, AbstractWindowContext *context) const override;
     };
 
 }

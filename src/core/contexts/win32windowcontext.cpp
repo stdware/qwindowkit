@@ -321,7 +321,7 @@ namespace QWK {
             case HTBORDER:
                 return Win32WindowContext::FixedBorder;
             default:
-                // unreachable
+                Q_UNREACHABLE();
                 break;
         }
         return Win32WindowContext::Outside;
@@ -540,8 +540,8 @@ namespace QWK {
     }
 
     Win32WindowContext::~Win32WindowContext() {
-        if (windowId) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId));
+        if (m_windowId) {
+            removeManagedWindow(reinterpret_cast<HWND>(m_windowId));
         }
     }
 
@@ -552,19 +552,19 @@ namespace QWK {
     void Win32WindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case RaiseWindowHook: {
-                if (!windowId)
+                if (!m_windowId)
                     return;
                 m_delegate->setWindowVisible(m_host, true);
-                const auto hwnd = reinterpret_cast<HWND>(windowId);
+                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
                 bringWindowToFront(hwnd);
                 return;
             }
 
             case ShowSystemMenuHook: {
-                if (!windowId)
+                if (!m_windowId)
                     return;
                 const auto &pos = *static_cast<const QPoint *>(data);
-                auto hWnd = reinterpret_cast<HWND>(windowId);
+                auto hWnd = reinterpret_cast<HWND>(m_windowId);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 const QPoint nativeGlobalPos =
                     QHighDpi::toNativeGlobalPosition(pos, m_windowHandle);
@@ -588,14 +588,14 @@ namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
             case DrawWindows10BorderHook: {
-                if (!windowId)
+                if (!m_windowId)
                     return;
 
                 auto args = static_cast<void **>(data);
                 auto &painter = *static_cast<QPainter *>(args[0]);
                 const auto &rect = *static_cast<const QRect *>(args[1]);
                 const auto &region = *static_cast<const QRegion *>(args[2]);
-                const auto hwnd = reinterpret_cast<HWND>(windowId);
+                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
 
                 QPen pen;
                 pen.setWidth(int(getWindowFrameBorderThickness(hwnd)) * 2);
@@ -638,7 +638,7 @@ namespace QWK {
                 // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe#extending-the-client-frame
                 // Draw a black rectangle to make Windows native top border show
 
-                auto hWnd = reinterpret_cast<HWND>(windowId);
+                auto hWnd = reinterpret_cast<HWND>(m_windowId);
                 HDC hdc = ::GetDC(hWnd);
                 RECT windowRect{};
                 ::GetClientRect(hWnd, &windowRect);
@@ -667,7 +667,7 @@ namespace QWK {
                 return {};
 
             RECT frame{};
-            auto hwnd = reinterpret_cast<HWND>(windowId);
+            auto hwnd = reinterpret_cast<HWND>(m_windowId);
             // According to MSDN, WS_OVERLAPPED is not allowed for AdjustWindowRect.
             auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_OVERLAPPED);
             auto exStyle = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
@@ -687,28 +687,25 @@ namespace QWK {
 
         if (key == QStringLiteral("border-thickness")) {
             return m_windowHandle
-                       ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(windowId)))
+                       ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
                        : 0;
         }
 
         return AbstractWindowContext::windowAttribute(key);
     }
 
-    void Win32WindowContext::winIdChanged() {
+    void Win32WindowContext::winIdChanged(WId winId, WId oldWinId) {
         // If the original window id is valid, remove all resources related
-        if (windowId) {
-            removeManagedWindow(reinterpret_cast<HWND>(windowId));
-            windowId = 0;
+        if (oldWinId) {
+            removeManagedWindow(reinterpret_cast<HWND>(oldWinId));
         }
 
-        if (!m_windowHandle) {
+        if (!m_windowHandle || ! winId) {
             return;
         }
 
         // Install window hook
-        auto winId = m_windowHandle->winId();
         auto hWnd = reinterpret_cast<HWND>(winId);
-
         if (!isSystemBorderEnabled()) {
             static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
 
@@ -732,14 +729,15 @@ namespace QWK {
 
         // Add managed window
         addManagedWindow(m_windowHandle, hWnd, this);
-
-        // Cache win id
-        windowId = winId;
     }
 
     bool Win32WindowContext::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                         LRESULT *result) {
         *result = FALSE;
+
+        if (message == WM_DESTROY) {
+            qDebug() << "WM_DESTROY";
+        }
 
         // We should skip these messages otherwise we will get crashes.
         // NOTE: WM_QUIT won't be posted to the WindowProc function.
@@ -757,6 +755,20 @@ namespace QWK {
 
         if (!isValidWindow(hWnd, false, true)) {
             return false;
+        }
+
+        switch (message) {
+            case WM_NCMOUSELEAVE:
+                qDebug() << "WM_NCMOUSELEAVE" << mouseLeaveBlocked;
+                break;
+            case WM_MOUSEHOVER:
+                qDebug() << "WM_MOUSEHOVER" << mouseLeaveBlocked;
+                break;
+            case WM_NCMOUSEHOVER:
+                qDebug() << "WM_NCMOUSEHOVER" << mouseLeaveBlocked;
+                break;
+            default:
+                break;
         }
 
         // Test snap layout
@@ -794,7 +806,7 @@ namespace QWK {
                                                     const QVariant &oldAttribute) {
         Q_UNUSED(oldAttribute)
 
-        const auto hwnd = reinterpret_cast<HWND>(m_windowHandle->winId());
+        const auto hwnd = reinterpret_cast<HWND>(m_windowId);
         const DynamicApis &apis = DynamicApis::instance();
         static constexpr const MARGINS extendedMargins = {-1, -1, -1, -1};
         const auto &restoreMargins = [this, &apis, hwnd]() {
@@ -1144,6 +1156,8 @@ namespace QWK {
                     }
                 }
                 mouseLeaveBlocked = false;
+                
+                qDebug() << "WM_MOUSELEAVE";
                 break;
             }
 
@@ -1152,6 +1166,7 @@ namespace QWK {
                 // we unset `mouseLeaveBlocked` mark and pretend as if Qt has received
                 // WM_MOUSELEAVE.
                 if (lastHitTestResult != WindowPart::ChromeButton && mouseLeaveBlocked) {
+                    qDebug() << lastHitTestResult << "Track";
                     mouseLeaveBlocked = false;
                     requestForMouseLeaveMessage(hWnd, false);
                 }
@@ -1240,7 +1255,7 @@ namespace QWK {
                     // If the mouse is entering the client area, there must be a WM_NCHITTEST
                     // setting it to `Client` before the WM_NCMOUSELEAVE comes; if the mouse is
                     // leaving the window, current window part remains as `Outside`.
-                    lastHitTestResult = WindowPart::Outside;
+                    // lastHitTestResult = WindowPart::Outside;
                 }
 
                 if (currentWindowPart == WindowPart::ChromeButton) {

@@ -5,12 +5,37 @@
 #include "widgetitemdelegate_p.h"
 
 #include <QtGui/QMouseEvent>
-#include <QtWidgets/QWidget>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QWidget>
+
+#include <QWKCore/private/abstractwindowcontext_p.h>
 
 extern Q_DECL_IMPORT QWidget *qt_button_down;
 
 namespace QWK {
+
+    class WidgetWinIdChangeEventFilter : public WinIdChangeEventFilter {
+    public:
+        explicit WidgetWinIdChangeEventFilter(QObject *host, AbstractWindowContext *ctx)
+            : WinIdChangeEventFilter(host, ctx), widget(static_cast<QWidget *>(host)) {
+            widget->installEventFilter(this);
+        }
+
+        WId winId() const override {
+            return widget->effectiveWinId();
+        }
+
+    protected:
+        bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
+            if (event->type() == QEvent::WinIdChange) {
+                context->notifyWinIdChange();
+            }
+            return false;
+        }
+
+        QWidget *widget;
+    };
 
     WidgetItemDelegate::WidgetItemDelegate() = default;
 
@@ -110,6 +135,12 @@ namespace QWK {
 
     void WidgetItemDelegate::bringWindowToTop(QObject *host) const {
         static_cast<QWidget *>(host)->raise();
+    }
+
+    WinIdChangeEventFilter *
+        WidgetItemDelegate::createWinIdEventFilter(QObject *host,
+                                                   AbstractWindowContext *context) const {
+        return new WidgetWinIdChangeEventFilter(host, context);
     }
 
 }

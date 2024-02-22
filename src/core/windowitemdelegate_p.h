@@ -18,6 +18,7 @@
 #include <QtCore/QPoint>
 #include <QtGui/QWindow>
 
+#include <QWKCore/private/winidchangeeventfilter_p.h>
 #include <QWKCore/qwkglobal.h>
 
 namespace QWK {
@@ -51,6 +52,10 @@ namespace QWK {
         virtual void setWindowVisible(QObject *host, bool visible) const = 0;
         virtual void setGeometry(QObject *host, const QRect &rect) = 0;
         virtual void bringWindowToTop(QObject *host) const = 0;
+
+        // Factories
+        virtual WinIdChangeEventFilter *
+            createWinIdEventFilter(QObject *host, AbstractWindowContext *context) const;
 
     private:
         Q_DISABLE_COPY(WindowItemDelegate)

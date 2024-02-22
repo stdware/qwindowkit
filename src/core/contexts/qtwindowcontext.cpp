@@ -253,7 +253,7 @@ namespace QWK {
         AbstractWindowContext::virtual_hook(id, data);
     }
 
-    void QtWindowContext::winIdChanged() {
+    void QtWindowContext::winIdChanged(WId winId, WId oldWinId) {
         if (!m_windowHandle) {
             m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) &
                                                    ~Qt::FramelessWindowHint);

@@ -26,6 +26,7 @@
 #include <QWKCore/private/nativeeventfilter_p.h>
 #include <QWKCore/private/sharedeventfilter_p.h>
 #include <QWKCore/private/windowitemdelegate_p.h>
+#include <QWKCore/private/winidchangeeventfilter_p.h>
 
 namespace QWK {
 
@@ -81,7 +82,7 @@ namespace QWK {
         virtual bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
     protected:
-        virtual void winIdChanged() = 0;
+        virtual void winIdChanged(WId winId, WId oldWinId) = 0;
         virtual bool windowAttributeChanged(const QString &key, const QVariant &attribute,
                                             const QVariant &oldAttribute);
 
@@ -89,6 +90,7 @@ namespace QWK {
         QObject *m_host{};
         std::unique_ptr<WindowItemDelegate> m_delegate;
         QWindow *m_windowHandle{};
+        WId m_windowId{};
 
         QSet<const QObject *> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC
@@ -101,7 +103,7 @@ namespace QWK {
         QVariantHash m_windowAttributes;
 
         std::unique_ptr<QObject> m_windowEventFilter;
-        std::unique_ptr<QObject> m_winIdChangeEventFilter;
+        std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
     };
 
     inline QObject *AbstractWindowContext::host() const {

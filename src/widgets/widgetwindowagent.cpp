@@ -56,7 +56,7 @@ namespace QWK {
         }
 
         w->setAttribute(Qt::WA_DontCreateNativeAncestors);
-        w->setAttribute(Qt::WA_NativeWindow);
+        w->setAttribute(Qt::WA_NativeWindow); // Create new window id
 
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;

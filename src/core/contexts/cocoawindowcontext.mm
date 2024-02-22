@@ -664,7 +664,7 @@ namespace QWK {
     }
 
     CocoaWindowContext::~CocoaWindowContext() {
-        releaseWindowProxy(windowId);
+        releaseWindowProxy(m_windowId);
     }
 
     QString CocoaWindowContext::key() const {
@@ -674,7 +674,7 @@ namespace QWK {
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case SystemButtonAreaChangedHook: {
-                ensureWindowProxy(windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
+                ensureWindowProxy(m_windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
                 return;
             }
 
@@ -686,18 +686,17 @@ namespace QWK {
 
     QVariant CocoaWindowContext::windowAttribute(const QString &key) const {
         if (key == QStringLiteral("title-bar-height")) {
-            if (!m_windowHandle)
-                return 0;
-            return ensureWindowProxy(windowId)->titleBarHeight();
+            if (!m_windowId)
+                return {};
+            return ensureWindowProxy(m_windowId)->titleBarHeight();
         }
         return AbstractWindowContext::windowAttribute(key);
     }
 
-    void CocoaWindowContext::winIdChanged() {
+    void CocoaWindowContext::winIdChanged(WId winId, WId oldWinId) {
         // If the original window id is valid, remove all resources related
-        if (windowId) {
-            releaseWindowProxy(windowId);
-            windowId = 0;
+        if (oldWinId) {
+            releaseWindowProxy(oldWinId);
         }
 
         if (!m_windowHandle) {
@@ -705,8 +704,7 @@ namespace QWK {
         }
 
         // Allocate new resources
-        windowId = m_windowHandle->winId();
-        ensureWindowProxy(windowId)->setSystemTitleBarVisible(false);
+        ensureWindowProxy(winId)->setSystemTitleBarVisible(false);
     }
 
     bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
@@ -716,7 +714,7 @@ namespace QWK {
         if (key == QStringLiteral("no-system-buttons")) {
             if (attribute.type() != QVariant::Bool)
                 return false;
-            ensureWindowProxy(windowId)->setSystemButtonVisible(!attribute.toBool());
+            ensureWindowProxy(m_windowId)->setSystemButtonVisible(!attribute.toBool());
             return true;
         }
 
@@ -743,7 +741,7 @@ namespace QWK {
             } else {
                 return false;
             }
-            return ensureWindowProxy(windowId)->setBlurEffect(mode);
+            return ensureWindowProxy(m_windowId)->setBlurEffect(mode);
         }
 
         return false;
