@@ -631,7 +631,7 @@ namespace QWK {
             }
 
             case DrawWindows10BorderHook2: {
-                if (!m_windowHandle)
+                if (!m_windowId)
                     return;
 
                 // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L1025
@@ -663,7 +663,7 @@ namespace QWK {
 
     QVariant Win32WindowContext::windowAttribute(const QString &key) const {
         if (key == QStringLiteral("window-rect")) {
-            if (!m_windowHandle)
+            if (!m_windowId)
                 return {};
 
             RECT frame{};
@@ -686,7 +686,7 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("border-thickness")) {
-            return m_windowHandle
+            return m_windowId
                        ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
                        : 0;
         }
@@ -704,7 +704,7 @@ namespace QWK {
             removeManagedWindow(reinterpret_cast<HWND>(oldWinId));
         }
 
-        if (!m_windowHandle || !winId) {
+        if (!winId) {
             return;
         }
 

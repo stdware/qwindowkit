@@ -185,7 +185,7 @@ namespace QWK {
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case CentralizeHook: {
-                if (!m_windowHandle)
+                if (!m_windowId)
                     return;
 
                 QRect windowGeometry = m_delegate->getGeometry(m_host);
@@ -199,7 +199,7 @@ namespace QWK {
             }
 
             case RaiseWindowHook: {
-                if (!m_windowHandle)
+                if (!m_windowId)
                     return;
 
                 m_delegate->setWindowVisible(m_host, true);

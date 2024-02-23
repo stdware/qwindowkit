@@ -699,7 +699,7 @@ namespace QWK {
             releaseWindowProxy(oldWinId);
         }
 
-        if (!m_windowHandle) {
+        if (!winId) {
             return;
         }
 
