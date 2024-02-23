@@ -443,9 +443,12 @@ namespace QWK {
         return false;
     }
 
-    static inline bool forwardFilteredEvents(QWindow *window, HWND hWnd, UINT message,
-                                             WPARAM wParam, LPARAM lParam, LRESULT *result) {
+    static inline bool forwardFilteredEvent(QWindow *window, HWND hWnd, UINT message, WPARAM wParam,
+                                            LPARAM lParam, LRESULT *result) {
         MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
+
+        // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1025
+        // Do exact the same as what Qt Windows plugin does.
 
         // Run the native event filters. QTBUG-67095: Exclude input messages which are sent
         // by QEventDispatcherWin32::processEvents()
@@ -592,7 +595,7 @@ namespace QWK {
             // Forward the event to user-defined native event filters, there may be some messages
             // that need to be processed by the user.
             std::ignore =
-                forwardFilteredEvents(ctx->window(), hWnd, message, wParam, lParam, &result);
+                forwardFilteredEvent(ctx->window(), hWnd, message, wParam, lParam, &result);
             return result;
         }
 
@@ -1480,11 +1483,8 @@ namespace QWK {
                 // Terminal does, however, later I found that if we choose a proper
                 // color, our homemade top border can almost have exactly the same
                 // appearance with the system's one.
-                qDebug() << QDateTime::currentDateTime() << "HITTEST";
                 [[maybe_unused]] const auto &hitTestRecorder = qScopeGuard([this, result]() {
                     lastHitTestResult = getHitWindowPart(int(*result)); //
-
-                    qDebug() << lastHitTestResult;
                 });
 
                 POINT nativeGlobalPos{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
