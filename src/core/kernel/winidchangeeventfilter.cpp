@@ -4,7 +4,7 @@
 
 #include "winidchangeeventfilter_p.h"
 
-#include <qpa/qplatformwindow.h>
+#include <QtGui/qpa/qplatformwindow.h>
 
 #include "abstractwindowcontext_p.h"
 

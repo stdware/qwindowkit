@@ -10,10 +10,12 @@
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTimer>
 #include <QtCore/QDateTime>
+#include <QtCore/QAbstractEventDispatcher>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
 
+#include <QtGui/qpa/qwindowsysteminterface.h>
 #include <QtGui/private/qhighdpiscaling_p.h>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #  include <QtGui/private/qguiapplication_p.h>
@@ -1478,8 +1480,11 @@ namespace QWK {
                 // Terminal does, however, later I found that if we choose a proper
                 // color, our homemade top border can almost have exactly the same
                 // appearance with the system's one.
+                qDebug() << QDateTime::currentDateTime() << "HITTEST";
                 [[maybe_unused]] const auto &hitTestRecorder = qScopeGuard([this, result]() {
                     lastHitTestResult = getHitWindowPart(int(*result)); //
+
+                    qDebug() << lastHitTestResult;
                 });
 
                 POINT nativeGlobalPos{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
