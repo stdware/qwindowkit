@@ -359,6 +359,104 @@ namespace QWK {
         return true;
     }
 
+    static inline constexpr bool isNonClientMessage(const UINT message) {
+        if (((message >= WM_NCCREATE) && (message <= WM_NCACTIVATE)) ||
+            ((message >= WM_NCMOUSEMOVE) && (message <= WM_NCMBUTTONDBLCLK)) ||
+            ((message >= WM_NCXBUTTONDOWN) && (message <= WM_NCXBUTTONDBLCLK))
+#if (WINVER >= _WIN32_WINNT_WIN8)
+            || ((message >= WM_NCPOINTERUPDATE) && (message <= WM_NCPOINTERUP))
+#endif
+            || ((message == WM_NCMOUSEHOVER) || (message == WM_NCMOUSELEAVE))) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    static MSG createMessageBlock(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+        MSG msg;
+        msg.hwnd = hWnd;       // re-create MSG structure
+        msg.message = message; // time and pt fields ignored
+        msg.wParam = wParam;
+        msg.lParam = lParam;
+
+        const DWORD dwScreenPos = ::GetMessagePos();
+        msg.pt.x = GET_X_LPARAM(dwScreenPos);
+        msg.pt.y = GET_Y_LPARAM(dwScreenPos);
+        if (!isNonClientMessage(message)) {
+            ::ScreenToClient(hWnd, &msg.pt);
+        }
+        return msg;
+    }
+
+    static inline constexpr bool isInputMessage(UINT m) {
+        switch (m) {
+            case WM_IME_STARTCOMPOSITION:
+            case WM_IME_ENDCOMPOSITION:
+            case WM_IME_COMPOSITION:
+            case WM_INPUT:
+            case WM_TOUCH:
+            case WM_MOUSEHOVER:
+            case WM_MOUSELEAVE:
+            case WM_NCMOUSEHOVER:
+            case WM_NCMOUSELEAVE:
+            case WM_SIZING:
+            case WM_MOVING:
+            case WM_SYSCOMMAND:
+            case WM_COMMAND:
+            case WM_DWMNCRENDERINGCHANGED:
+            case WM_PAINT:
+                return true;
+            default:
+                break;
+        }
+        return (m >= WM_MOUSEFIRST && m <= WM_MOUSELAST) ||
+               (m >= WM_NCMOUSEMOVE && m <= WM_NCXBUTTONDBLCLK) ||
+               (m >= WM_KEYFIRST && m <= WM_KEYLAST);
+    }
+
+    static inline QByteArray nativeEventType() {
+        return QByteArrayLiteral("windows_generic_MSG");
+    }
+
+    // Send to QAbstractEventDispatcher
+    bool filterNativeEvent(MSG *msg, LRESULT *result) {
+        auto dispatcher = QAbstractEventDispatcher::instance();
+        QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
+        if (dispatcher && dispatcher->filterNativeEvent(nativeEventType(), msg, &filterResult)) {
+            *result = LRESULT(filterResult);
+            return true;
+        }
+        return false;
+    }
+
+    // Send to QWindowSystemInterface
+    bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
+        QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
+        if (QWindowSystemInterface::handleNativeEvent(window, nativeEventType(), msg,
+                                                      &filterResult)) {
+            *result = LRESULT(filterResult);
+            return true;
+        }
+        return false;
+    }
+
+    static inline bool forwardFilteredEvents(QWindow *window, HWND hWnd, UINT message,
+                                             WPARAM wParam, LPARAM lParam, LRESULT *result) {
+        MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
+
+        // Run the native event filters. QTBUG-67095: Exclude input messages which are sent
+        // by QEventDispatcherWin32::processEvents()
+        if (!isInputMessage(msg.message) && filterNativeEvent(&msg, result))
+            return true;
+
+        auto platformWindow = window->handle();
+        if (platformWindow && filterNativeEvent(platformWindow->window(), &msg, result))
+            return true;
+
+        return false;
+    }
+
     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1556
     // In QWindowsContext::windowsProc(), the messages will be passed to all global native event
     // filters, but because we have already filtered the messages in the hook WndProc function for
@@ -489,6 +587,10 @@ namespace QWK {
         // Try hooked procedure and save result
         LRESULT result;
         if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
+            // Forward the event to user-defined native event filters, there may be some messages
+            // that need to be processed by the user.
+            std::ignore =
+                forwardFilteredEvents(ctx->window(), hWnd, message, wParam, lParam, &result);
             return result;
         }
 
@@ -774,13 +876,9 @@ namespace QWK {
 
         // Forward to native event filter subscribers
         if (!m_nativeEventFilters.isEmpty()) {
-            MSG msg;
-            msg.hwnd = hWnd;
-            msg.message = message;
-            msg.wParam = wParam;
-            msg.lParam = lParam;
+            MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
             QT_NATIVE_EVENT_RESULT_TYPE res = 0;
-            if (nativeDispatch(QByteArrayLiteral("windows_generic_MSG"), &msg, &res)) {
+            if (nativeDispatch(nativeEventType(), &msg, &res)) {
                 *result = LRESULT(res);
                 return true;
             }
