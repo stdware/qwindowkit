@@ -35,8 +35,9 @@
 
 // https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L2791
 // https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L3321
-// This implementation contradicts with QTBUG-113736 patch.
-#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS) && QT_VERSION >= QT_VERSION_CHECK(6, 6, 1)
+// This issue exists only in Qt 6.6.1, and was introduced by QTBUG-113736 patch and fixed by
+// QTBUG-117704 patch.
+#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS) && QT_VERSION == QT_VERSION_CHECK(6, 6, 1)
 #  define QTBUG_113736_WORKAROUND
 #endif
 
