@@ -260,6 +260,12 @@ namespace QWK {
                 m_windowAttributes.insert(it.key(), it.value());
             }
         }
+
+        // Send to shared dispatchers
+        if (oldWinId != m_windowId) {
+            QEvent e(QEvent::WinIdChange);
+            sharedDispatch(m_host, &e);
+        }
     }
 
     QVariant AbstractWindowContext::windowAttribute(const QString &key) const {

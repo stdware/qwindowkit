@@ -56,7 +56,8 @@ namespace QWK {
         anchors->setLeft(parentPri->left());
         anchors->setRight(parentPri->right());
 
-        setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above everything in the window.
+        setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above
+                                                 // everything in the window.
 
         context->installNativeEventFilter(this);
         context->installSharedEventFilter(this);
@@ -130,8 +131,14 @@ namespace QWK {
 
     bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
         Q_UNUSED(obj)
-        
+
         switch (event->type()) {
+            case QEvent::WinIdChange: {
+                if (auto winId = context->windowId()) {
+                    updateGeometry();
+                }
+                break;
+            }
             case QEvent::WindowStateChange: {
                 updateGeometry();
                 break;

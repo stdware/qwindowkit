@@ -43,6 +43,7 @@ namespace QWK {
 
         inline QObject *host() const;
         inline QWindow *window() const;
+        inline WId windowId() const;
         inline WindowItemDelegate *delegate() const;
 
         inline bool isHitTestVisible(const QObject *obj) const;
@@ -112,6 +113,10 @@ namespace QWK {
 
     inline QWindow *AbstractWindowContext::window() const {
         return m_windowHandle;
+    }
+
+    inline WId AbstractWindowContext::windowId() const {
+        return m_windowId;
     }
 
     inline WindowItemDelegate *AbstractWindowContext::delegate() const {

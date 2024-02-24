@@ -10,6 +10,12 @@
 
 namespace QWK {
 
+    WindowWinIdChangeEventFilter::WindowWinIdChangeEventFilter(QWindow *host,
+                                                               AbstractWindowContext *context)
+        : WinIdChangeEventFilter(host, context), win(host), isAboutToBeDestroyed(false) {
+        host->installEventFilter(this);
+    }
+
     WId WindowWinIdChangeEventFilter::winId() const {
         auto win = static_cast<QWindow *>(host);
         if (isAboutToBeDestroyed)

@@ -37,10 +37,7 @@ namespace QWK {
 
     class QWK_CORE_EXPORT WindowWinIdChangeEventFilter : public WinIdChangeEventFilter {
     public:
-        WindowWinIdChangeEventFilter(QObject *host, AbstractWindowContext *context)
-            : WinIdChangeEventFilter(host, context), win(static_cast<QWindow *>(host)),
-              isAboutToBeDestroyed(false) {
-        }
+        WindowWinIdChangeEventFilter(QWindow *host, AbstractWindowContext *context);
 
         WId winId() const override;
 
