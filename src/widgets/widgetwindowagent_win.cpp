@@ -10,6 +10,7 @@
 
 #include <QWKCore/qwindowkit_windows.h>
 #include <QWKCore/private/qwkglobal_p.h>
+#include <QWKCore/private/windows10borderhandler_p.h>
 
 namespace QWK {
 
@@ -37,101 +38,49 @@ namespace QWK {
     // returns, because Qt calls BeginPaint() and EndPaint() itself. We should make sure that we
     // draw the top border between these two calls, otherwise some display exceptions may arise.
 
-    class WidgetBorderHandler : public QObject, public NativeEventFilter, public SharedEventFilter {
+    class WidgetBorderHandler : public QObject, public Windows10BorderHandler {
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
                                      QObject *parent = nullptr)
-            : QObject(parent), widget(widget), ctx(ctx) {
+            : QObject(parent), Windows10BorderHandler(ctx), widget(widget) {
             widget->installEventFilter(this);
 
-            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
-            // Must extend top frame to client area
-            static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
-            ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
-
-            // Enable dark mode by default, otherwise the system borders are white
-            ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
-
-            ctx->installNativeEventFilter(this);
-            ctx->installSharedEventFilter(this);
-
-            updateGeometry();
-        }
-
-        inline bool isNormalWindow() const {
-            return !(widget->windowState() &
-                     (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
-        }
-
-        inline void updateGeometry() {
-            if (isNormalWindow()) {
-                widget->setContentsMargins(
-                    {0, ctx->windowAttribute(QStringLiteral("border-thickness")).toInt(), 0, 0});
-            } else {
-                widget->setContentsMargins({});
+            // First update
+            if (ctx->windowId()) {
+                setupNecessaryAttributes();
             }
+            WidgetBorderHandler::updateGeometry();
         }
 
-        inline void resumeWidgetEventAndDraw(QWidget *w, QEvent *event) {
+        void updateGeometry() override {
+            widget->setContentsMargins(isNormalWindow() ? QMargins(0, borderThickness(), 0, 0)
+                                                        : QMargins());
+        }
+
+        bool isWindowActive() const override {
+            return widget->isActiveWindow();
+        }
+
+        inline void forwardEventToWidgetAndDraw(QWidget *w, QEvent *event) {
             // Let the widget paint first
             static_cast<QObject *>(w)->event(event);
 
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
             // and then update the top border area.
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+            drawBorder();
         }
 
-        inline void resumeWindowEventAndDraw(QWindow *window, QEvent *event) {
+        inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
             // Let Qt paint first
             static_cast<QObject *>(window)->event(event);
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
-        }
-
-        inline void updateExtraMargins(bool windowActive) {
-            if (windowActive) {
-                // Restore margins when the window is active
-                static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
-                ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
-                return;
-            }
-
-            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
-            // When the window is inactive, there is a transparency bug in the top
-            // border, and we need to extend the non-client area to the whole title
-            // bar.
-            QRect frame = ctx->windowAttribute(QStringLiteral("window-rect")).toRect();
-            QMargins margins{0, -frame.top(), 0, 0};
-            ctx->setWindowAttribute(QStringLiteral("extra-margins"), QVariant::fromValue(margins));
+            drawBorder();
         }
 
     protected:
-        bool nativeEventFilter(const QByteArray &eventType, void *message,
-                               QT_NATIVE_EVENT_RESULT_TYPE *result) override {
-            Q_UNUSED(eventType)
-
-            const auto msg = static_cast<const MSG *>(message);
-            switch (msg->message) {
-                case WM_DPICHANGED: {
-                    updateGeometry();
-                    updateExtraMargins(widget->isActiveWindow());
-                    break;
-                }
-
-                case WM_ACTIVATE: {
-                    updateExtraMargins(LOWORD(msg->wParam) != WA_INACTIVE);
-                    break;
-                }
-
-                default:
-                    break;
-            }
-            return false;
-        }
-
         bool sharedEventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
 
@@ -147,21 +96,15 @@ namespace QWK {
                     // simply ignore it.
                     auto ee = static_cast<QExposeEvent *>(event);
                     if (window->isExposed() && isNormalWindow() && !ee->region().isNull()) {
-                        resumeWindowEventAndDraw(window, event);
+                        forwardEventToWindowAndDraw(window, event);
                         return true;
-                    }
-                    break;
-                }
-                case QEvent::WinIdChange: {
-                    if (auto winId = ctx->windowId()) {
-                        updateGeometry();
                     }
                     break;
                 }
                 default:
                     break;
             }
-            return false;
+            return Windows10BorderHandler::sharedEventFilter(obj, event);
         }
 
         bool eventFilter(QObject *obj, QEvent *event) override {
@@ -171,7 +114,7 @@ namespace QWK {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())
                         break;
-                    resumeWidgetEventAndDraw(widget, event);
+                    forwardEventToWidgetAndDraw(widget, event);
                     return true;
                 }
 
@@ -193,7 +136,6 @@ namespace QWK {
         }
 
         QWidget *widget;
-        AbstractWindowContext *ctx;
     };
 
     void WidgetWindowAgentPrivate::setupWindows10BorderWorkaround() {

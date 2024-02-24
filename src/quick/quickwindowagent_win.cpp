@@ -8,43 +8,51 @@
 #include <QtQuick/private/qquickitem_p.h>
 
 #include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/private/windows10borderhandler_p.h>
 
 namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
-    // TODO: Find a way to draw native border
-    // We haven't found a way to place hooks in the Quick program and call the GDI API to draw
-    // the native border area so that we'll use the emulated drawn border for now.
 
-    class BorderItem : public QQuickPaintedItem,
-                       public NativeEventFilter,
-                       public SharedEventFilter {
+    class DeferredDeleteHook;
+
+    class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
 
-        inline bool isNormalWindow() const;
-
-        inline void updateGeometry();
+        void updateGeometry() override;
 
     public:
         void paint(QPainter *painter) override;
         void itemChange(ItemChange change, const ItemChangeData &data) override;
 
     protected:
-        bool nativeEventFilter(const QByteArray &eventType, void *message,
-                               QT_NATIVE_EVENT_RESULT_TYPE *result) override;
-
         bool sharedEventFilter(QObject *obj, QEvent *event) override;
 
-        AbstractWindowContext *context;
+        std::unique_ptr<DeferredDeleteHook> paintHook;
+    };
 
-    private:
-        void _q_windowActivityChanged();
+    class DeferredDeleteHook : public QObject {
+    public:
+        DeferredDeleteHook(BorderItem *item) : item(item) {
+        }
+
+        // Override deferred delete handler
+        bool event(QEvent *event) override {
+            if (event->type() == QEvent::DeferredDelete) {
+                item->drawBorder();
+                return true;
+            }
+            return QObject::event(event);
+        }
+
+        BorderItem *item;
     };
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
-        : QQuickPaintedItem(parent), context(context) {
+        : QQuickPaintedItem(parent), Windows10BorderHandler(context),
+          paintHook(std::make_unique<DeferredDeleteHook>(this)) {
         setAntialiasing(true);   // We need anti-aliasing to give us better result.
         setFillColor({});        // Will improve the performance a little bit.
         setOpaquePainting(true); // Will also improve the performance, we don't draw
@@ -59,35 +67,29 @@ namespace QWK {
         setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above
                                                  // everything in the window.
 
-        context->installNativeEventFilter(this);
-        context->installSharedEventFilter(this);
-
-        connect(window(), &QQuickWindow::activeChanged, this,
-                &BorderItem::_q_windowActivityChanged);
-        updateGeometry();
+        // First update
+        if (context->windowId()) {
+            setupNecessaryAttributes();
+        }
+        BorderItem::updateGeometry();
     }
 
     BorderItem::~BorderItem() = default;
 
-    bool BorderItem::isNormalWindow() const {
-        return !(context->window()->windowStates() &
-                 (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
-    }
-
     void BorderItem::updateGeometry() {
-        setHeight(context->windowAttribute(QStringLiteral("border-thickness")).toInt());
+        setHeight(borderThickness());
         setVisible(isNormalWindow());
     }
 
     void BorderItem::paint(QPainter *painter) {
-        QRect rect(QPoint(0, 0), size().toSize());
-        QRegion region(rect);
-        void *args[] = {
-            painter,
-            &rect,
-            &region,
-        };
-        context->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
+        Q_UNUSED(painter)
+
+        // https://github.com/qt/qtdeclarative/blob/cc04afbb382fd4b1f65173d71f44d3372c47b0e1/src/quick/scenegraph/qsgthreadedrenderloop.cpp#L551
+        // https://github.com/qt/qtdeclarative/blob/cc04afbb382fd4b1f65173d71f44d3372c47b0e1/src/quick/scenegraph/qsgthreadedrenderloop.cpp#L561
+        // QCoreApplication must process all DeferredDelay events right away after rendering, we can
+        // hook it by overriding a specifiy QObject's event handler and draw the native border in
+        // it.
+        paintHook->deleteLater();
     }
 
     void BorderItem::itemChange(ItemChange change, const ItemChangeData &data) {
@@ -103,42 +105,10 @@ namespace QWK {
         }
     }
 
-    bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
-                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
-        Q_UNUSED(eventType)
-
-        const auto msg = static_cast<const MSG *>(message);
-        switch (msg->message) {
-            case WM_THEMECHANGED:
-            case WM_SYSCOLORCHANGE:
-            case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                update();
-                break;
-            }
-
-            case WM_SETTINGCHANGE: {
-                if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
-                    update();
-                }
-                break;
-            }
-
-            default:
-                break;
-        }
-        return false;
-    }
-
     bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
         Q_UNUSED(obj)
 
         switch (event->type()) {
-            case QEvent::WinIdChange: {
-                if (auto winId = context->windowId()) {
-                    updateGeometry();
-                }
-                break;
-            }
             case QEvent::WindowStateChange: {
                 updateGeometry();
                 break;
@@ -146,11 +116,7 @@ namespace QWK {
             default:
                 break;
         }
-        return false;
-    }
-
-    void BorderItem::_q_windowActivityChanged() {
-        update();
+        return Windows10BorderHandler::sharedEventFilter(obj, event);
     }
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {

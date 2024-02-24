@@ -29,6 +29,7 @@ if(WIN32)
         qwindowkit_windows.h
         qwindowkit_windows.cpp
         shared/qwkwindowsextra_p.h
+        shared/windows10borderhandler_p.h
     )
 elseif(APPLE)
 else()
