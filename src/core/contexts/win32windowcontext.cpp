@@ -6,16 +6,17 @@
 
 #include <optional>
 
+#include <QtCore/QAbstractEventDispatcher>
+#include <QtCore/QDateTime>
 #include <QtCore/QHash>
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTimer>
-#include <QtCore/QDateTime>
-#include <QtCore/QAbstractEventDispatcher>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPainter>
 #include <QtGui/QPalette>
 
 #include <QtGui/qpa/qwindowsysteminterface.h>
+
 #include <QtGui/private/qhighdpiscaling_p.h>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #  include <QtGui/private/qguiapplication_p.h>
@@ -31,6 +32,13 @@
 
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
+
+// https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L2791
+// https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L3321
+// This implementation contradicts with QTBUG-113736 patch.
+#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS) && QT_VERSION >= QT_VERSION_CHECK(6, 6, 1)
+#  define QTBUG_113736_WORKAROUND
+#endif
 
 namespace QWK {
 
@@ -155,7 +163,7 @@ namespace QWK {
         [[maybe_unused]] const auto &cleaner =
             qScopeGuard([windowThreadProcessId, currentThreadId]() {
                 ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE); //
-            });
+            }); // TODO: Remove it
 
         ::BringWindowToTop(hwnd);
         // Activate the window too. This will force us to the virtual desktop this
@@ -604,7 +612,8 @@ namespace QWK {
     }
 
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
-        const auto margins = [hWnd]() -> QMargins {
+#ifndef QTBUG_113736_WORKAROUND
+        const auto margins = [](HWND hWnd) -> QMargins {
             const auto titleBarHeight = int(getTitleBarHeight(hWnd));
             if (isSystemBorderEnabled()) {
                 return {0, -titleBarHeight, 0, 0};
@@ -612,10 +621,11 @@ namespace QWK {
                 const auto frameSize = int(getResizeBorderThickness(hWnd));
                 return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
             }
-        }();
+        }(hWnd);
 
         // Inform Qt we want and have set custom margins
         setInternalWindowFrameMargins(window, margins);
+#endif
 
         // Store original window proc
         if (!g_qtWindowProc) {
@@ -805,6 +815,11 @@ namespace QWK {
         // Reset the context data
         mouseLeaveBlocked = false;
         lastHitTestResult = WindowPart::Outside;
+
+#ifdef QTBUG_113736_WORKAROUND
+        m_delegate->setWindowFlags(m_host,
+                                   m_delegate->getWindowFlags(m_host) | Qt::FramelessWindowHint);
+#endif
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
