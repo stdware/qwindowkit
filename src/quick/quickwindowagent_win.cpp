@@ -14,8 +14,6 @@ namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
 
-    class DeferredDeleteHook;
-
     class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
@@ -30,29 +28,16 @@ namespace QWK {
     protected:
         bool sharedEventFilter(QObject *obj, QEvent *event) override;
 
-        std::unique_ptr<DeferredDeleteHook> paintHook;
-    };
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        volatile bool needPaint = false;
 
-    class DeferredDeleteHook : public QObject {
-    public:
-        DeferredDeleteHook(BorderItem *item) : item(item) {
-        }
-
-        // Override deferred delete handler
-        bool event(QEvent *event) override {
-            if (event->type() == QEvent::DeferredDelete) {
-                item->drawBorder();
-                return true;
-            }
-            return QObject::event(event);
-        }
-
-        BorderItem *item;
+    private:
+        void _q_afterSynchronizing();
+#  endif
     };
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
-        : QQuickPaintedItem(parent), Windows10BorderHandler(context),
-          paintHook(std::make_unique<DeferredDeleteHook>(this)) {
+        : QQuickPaintedItem(parent), Windows10BorderHandler(context) {
         setAntialiasing(true);   // We need anti-aliasing to give us better result.
         setFillColor({});        // Will improve the performance a little bit.
         setOpaquePainting(true); // Will also improve the performance, we don't draw
@@ -66,6 +51,11 @@ namespace QWK {
 
         setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above
                                                  // everything in the window.
+
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        connect(window(), &QQuickWindow::afterSynchronizing, this,
+                &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
+#  endif
 
         // First update
         if (context->windowId()) {
@@ -84,12 +74,23 @@ namespace QWK {
     void BorderItem::paint(QPainter *painter) {
         Q_UNUSED(painter)
 
-        // https://github.com/qt/qtdeclarative/blob/cc04afbb382fd4b1f65173d71f44d3372c47b0e1/src/quick/scenegraph/qsgthreadedrenderloop.cpp#L551
-        // https://github.com/qt/qtdeclarative/blob/cc04afbb382fd4b1f65173d71f44d3372c47b0e1/src/quick/scenegraph/qsgthreadedrenderloop.cpp#L561
-        // QCoreApplication must process all DeferredDelay events right away after rendering, we can
-        // hook it by overriding a specifiy QObject's event handler and draw the native border in
-        // it.
-        paintHook->deleteLater();
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (auto api = window()->rendererInterface()->graphicsApi();
+            !(api == QSGRendererInterface::Direct3D11 || api == QSGRendererInterface::Direct3D12)) {
+#  endif
+            QRect rect(QPoint(0, 0), size().toSize());
+            QRegion region(rect);
+            void *args[] = {
+                painter,
+                &rect,
+                &region,
+            };
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        } else {
+            needPaint = true;
+        }
+#  endif
     }
 
     void BorderItem::itemChange(ItemChange change, const ItemChangeData &data) {
@@ -111,13 +112,21 @@ namespace QWK {
         switch (event->type()) {
             case QEvent::WindowStateChange: {
                 updateGeometry();
-                break;
             }
             default:
                 break;
         }
         return Windows10BorderHandler::sharedEventFilter(obj, event);
     }
+
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    void BorderItem::_q_afterSynchronizing() {
+        if (needPaint) {
+            needPaint = false;
+            drawBorder();
+        }
+    }
+#  endif
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
         // Install painting hook

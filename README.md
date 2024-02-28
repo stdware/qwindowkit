@@ -255,6 +255,12 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 + QWindowKit Internals [TODO]
 + [FramelessHelper Related](docs/framelesshelper-related.md)
 
+
+### Vulnerabilities
+
++ Once you have made the window frameless, it will not be able to switch back to the system border.
++ There must not be any child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window. If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container.
+
 ## TODO
 
 + Fix 5.15 window abnormal behavior

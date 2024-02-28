@@ -33,14 +33,6 @@
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
 
-// https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L2791
-// https://github.com/qt/qtbase/blob/6.6.1/src/plugins/platforms/windows/qwindowswindow.cpp#L3321
-// This issue exists only in Qt 6.6.1, and was introduced by QTBUG-113736 patch and fixed by
-// QTBUG-117704 patch.
-#if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS) && QT_VERSION == QT_VERSION_CHECK(6, 6, 1)
-#  define QTBUG_113736_WORKAROUND
-#endif
-
 namespace QWK {
 
     // The thickness of an auto-hide taskbar in pixels.
@@ -490,17 +482,38 @@ namespace QWK {
                 return false;
             }
 
-            // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
-            // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been processed, so we
-            // have to process it after Qt acquires the initial data.
             auto msg = static_cast<const MSG *>(message);
-            if (msg->message == WM_NCCALCSIZE && lastMessageContext) {
-                LRESULT res;
-                if (lastMessageContext->nonClientCalcSizeHandler(msg->hwnd, msg->message,
-                                                                 msg->wParam, msg->lParam, &res)) {
-                    *result = decltype(*result)(res);
-                    return true;
+            switch (msg->message) {
+                case WM_NCCALCSIZE: {
+                    // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
+                    // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been
+                    // processed, so we have to process it after Qt acquires the initial data.
+                    if (lastMessageContext) {
+                        LRESULT res;
+                        if (lastMessageContext->nonClientCalcSizeHandler(
+                                msg->hwnd, msg->message, msg->wParam, msg->lParam, &res)) {
+                            *result = decltype(*result)(res);
+                            return true;
+                        }
+                    }
+                    break;
                 }
+
+                    // case WM_NCHITTEST: {
+                    //     // The child window must return HTTRANSPARENT when processing
+                    //     WM_NCHITTEST for
+                    //     // the parent window to receive WM_NCHITTEST.
+                    //     if (!lastMessageContext) {
+                    //         auto rootHWnd = ::GetAncestor(msg->hwnd, GA_ROOT);
+                    //         if (rootHWnd != msg->hwnd) {
+                    //             if (auto ctx = g_wndProcHash->value(rootHWnd)) {
+                    //                 *result = HTTRANSPARENT;
+                    //                 return true;
+                    //             }
+                    //         }
+                    //     }
+                    //     break;
+                    // }
             }
             return false;
         }
@@ -589,13 +602,15 @@ namespace QWK {
             return ::DefWindowProcW(hWnd, message, wParam, lParam);
         }
 
+        WindowsNativeEventFilter::lastMessageContext = ctx;
+        const auto &contextCleaner = qScopeGuard([]() {
+            WindowsNativeEventFilter::lastMessageContext = nullptr; //
+        });
+
         // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
         // forward it right away and process it in our native event filter.
         if (message == WM_NCCALCSIZE) {
-            WindowsNativeEventFilter::lastMessageContext = ctx;
-            LRESULT result = ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
-            WindowsNativeEventFilter::lastMessageContext = nullptr;
-            return result;
+            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
         }
 
         // Try hooked procedure and save result
@@ -613,20 +628,10 @@ namespace QWK {
     }
 
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
-#ifndef QTBUG_113736_WORKAROUND
-        const auto margins = [](HWND hWnd) -> QMargins {
-            const auto titleBarHeight = int(getTitleBarHeight(hWnd));
-            if (isSystemBorderEnabled()) {
-                return {0, -titleBarHeight, 0, 0};
-            } else {
-                const auto frameSize = int(getResizeBorderThickness(hWnd));
-                return {-frameSize, -titleBarHeight, -frameSize, -frameSize};
-            }
-        }(hWnd);
-
-        // Inform Qt we want and have set custom margins
-        setInternalWindowFrameMargins(window, margins);
-#endif
+        if (isSystemBorderEnabled()) {
+            // Inform Qt we want and have set custom margins
+            setInternalWindowFrameMargins(window, QMargins(0, -int(getTitleBarHeight(hWnd)), 0, 0));
+        }
 
         // Store original window proc
         if (!g_qtWindowProc) {
@@ -817,10 +822,10 @@ namespace QWK {
         mouseLeaveBlocked = false;
         lastHitTestResult = WindowPart::Outside;
 
-#ifdef QTBUG_113736_WORKAROUND
-        m_delegate->setWindowFlags(m_host,
-                                   m_delegate->getWindowFlags(m_host) | Qt::FramelessWindowHint);
-#endif
+        if (!isSystemBorderEnabled()) {
+            m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) |
+                                                   Qt::FramelessWindowHint);
+        }
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {

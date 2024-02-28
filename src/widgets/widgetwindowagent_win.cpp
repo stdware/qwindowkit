@@ -84,7 +84,6 @@ namespace QWK {
         bool sharedEventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
 
-            auto window = widget->windowHandle();
             switch (event->type()) {
                 case QEvent::Expose: {
                     // Qt will absolutely send a QExposeEvent or QResizeEvent to the QWindow when it
@@ -95,6 +94,7 @@ namespace QWK {
                     // Since a QExposeEvent will be sent immediately after the QResizeEvent, we can
                     // simply ignore it.
                     auto ee = static_cast<QExposeEvent *>(event);
+                    auto window = widget->windowHandle();
                     if (window->isExposed() && isNormalWindow() && !ee->region().isNull()) {
                         forwardEventToWindowAndDraw(window, event);
                         return true;
