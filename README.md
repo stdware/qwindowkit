@@ -259,7 +259,9 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 ### Vulnerabilities
 
 + Once you have made the window frameless, it will not be able to switch back to the system border.
-+ There must not be any child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window. If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container.
++ There must not be any child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
+    + If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container.
+    + If you want to show a non-modal dialog as a child of a frameless window, you should call `QGuiApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings)` before the dialog constructs or in the very beginning in the main entry.
 
 ## TODO
 
