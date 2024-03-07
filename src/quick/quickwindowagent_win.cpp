@@ -76,7 +76,12 @@ namespace QWK {
 
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         if (auto api = window()->rendererInterface()->graphicsApi();
-            !(api == QSGRendererInterface::Direct3D11 || api == QSGRendererInterface::Direct3D12)) {
+            !(api == QSGRendererInterface::Direct3D11
+
+#    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+              || api == QSGRendererInterface::Direct3D12
+#    endif
+              )) {
 #  endif
             QRect rect(QPoint(0, 0), size().toSize());
             QRegion region(rect);
