@@ -434,7 +434,7 @@ namespace QWK {
     static inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetSystemMetricsForDpi) {
-            return ::GetSystemMetricsForDpi(index, dpi);
+            return apis.pGetSystemMetricsForDpi(index, dpi);
         }
         return ::GetSystemMetrics(index);
     }
