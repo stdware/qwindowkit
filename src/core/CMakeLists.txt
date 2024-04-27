@@ -94,7 +94,7 @@ qwk_add_library(${PROJECT_NAME} AUTOGEN
     LINKS_PRIVATE ${_links_private}
     QT_LINKS Core Gui
     QT_INCLUDE_PRIVATE Core Gui
-    INCLUDE_PRIVATE kernel contexts shared
+    INCLUDE_PRIVATE *
     PREFIX QWK_CORE
     SYNC_INCLUDE_OPTIONS ${_sync_include_options}
 )

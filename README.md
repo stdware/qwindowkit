@@ -107,7 +107,7 @@ project.
 #### CMake Project
 
 ```sh
-cmake -B build -DQWindowKit_DIR=/path/install/cmake/QWindowKit
+cmake -B build -DQWindowKit_DIR=/path/install/lib/cmake/QWindowKit
 ```
 
 ```cmake
@@ -139,7 +139,7 @@ TODO
 The following initialization should be done before any widget constructs.
 
 ```cpp
-#include <QWKQuick/qwkquickglobal.h>
+#include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[])
 {
