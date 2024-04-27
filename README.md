@@ -89,7 +89,7 @@ git clone --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
-  -Dqmsetup_DIR=<dir> \ # Optional: This can usually be "./qwindowkit/qmsetup"
+  -Dqmsetup_DIR=<dir> \ # Optional
   -DCMAKE_INSTALL_PREFIX=/path/to/install \
   -G "Ninja Multi-Config"
 
