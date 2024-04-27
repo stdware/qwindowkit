@@ -89,8 +89,8 @@ git clone --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
-  -Dqmsetup_DIR=<dir> \ # Optional
-  -DCMAKE_INSTALL_PREFIX=/path/install \
+  -Dqmsetup_DIR=<dir> \ # Optional: This can usually be "./qwindowkit/qmsetup"
+  -DCMAKE_INSTALL_PREFIX=/path/to/install \
   -G "Ninja Multi-Config"
 
 cmake --build build --target install --config Debug
@@ -107,12 +107,24 @@ project.
 #### CMake Project
 
 ```sh
-cmake -B build -DQWindowKit_DIR=/path/install/cmake/QWindowKit
+cmake -B build -DQWindowKit_DIR=/path/to/install/lib/cmake/QWindowKit
 ```
+Or, in the project settings of Qt Creator, locate the "CMake configuration"
+and then add a key-value pair in the "Current Configuration":
+
+|Key|Value|
+|:--|:--|
+|QWindowKit_DIR|/path/to/install/lib/cmake/QWindowKit|
 
 ```cmake
 find_package(QWindowKit REQUIRED)
+
+# Other configurations ...
+
+# Please note whether your project corresponds to 'Widgets' or 'Qt Quick'
+# Widget App
 target_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
+# Quick App
 target_link_libraries(quick_app PUBLIC QWindowKit::Quick)
 ```
 
@@ -139,7 +151,7 @@ TODO
 The following initialization should be done before any widget constructs.
 
 ```cpp
-#include <QWKQuick/qwkquickglobal.h>
+#include <QWKWidgets/widgetwindowagent.h>
 
 int main(int argc, char *argv[])
 {

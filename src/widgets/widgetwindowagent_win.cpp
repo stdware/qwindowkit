@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
+﻿// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
@@ -81,6 +81,35 @@ namespace QWK {
         }
 
     protected:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        bool sharedEventFilter(QObject *obj, QEvent *event) override {
+            Q_UNUSED(obj)
+
+            switch (event->type()) {
+                case QEvent::Expose: {
+                    // Qt will absolutely send a QExposeEvent or QResizeEvent to the QWindow when it
+                    // receives a WM_PAINT message. When the control flow enters the expose handler,
+                    // Qt must have already called BeginPaint() and it's the best time for us to
+                    // draw the top border.
+
+                    // Since a QExposeEvent will be sent immediately after the QResizeEvent, we can
+                    // simply ignore it.
+                    auto ee = static_cast<QExposeEvent *>(event);
+                    auto window = widget->windowHandle();
+                    // 'const QRegion& QExposeEvent::region() const' is deprecated in Qt6
+                    // Change the condition to check for QPaintEvent instead of QExposeEvent
+                    if (window->isExposed() && isNormalWindow() && event->type() == QEvent::Paint) {
+                        forwardEventToWindowAndDraw(window, event);
+                        return true;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            return Windows10BorderHandler::sharedEventFilter(obj, event);
+        }
+#else
         bool sharedEventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
 
@@ -106,6 +135,7 @@ namespace QWK {
             }
             return Windows10BorderHandler::sharedEventFilter(obj, event);
         }
+#endif
 
         bool eventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
