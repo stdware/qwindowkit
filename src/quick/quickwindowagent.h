@@ -44,8 +44,8 @@ namespace QWK {
 #endif
 
     Q_SIGNALS:
-        void titleBarWidgetChanged(const QQuickItem *item);
-        void systemButtonChanged(SystemButton button, const QQuickItem *item);
+        void titleBarWidgetChanged(QQuickItem *item);
+        void systemButtonChanged(SystemButton button, QQuickItem *item);
 
     protected:
         QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent = nullptr);

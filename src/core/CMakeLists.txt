@@ -85,7 +85,7 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
         list(APPEND _src style/styleagent_linux.cpp)
     endif()
 else()
-    list(APPEND _sync_include_options EXCLUDE "style/\\.+")
+    list(APPEND _sync_include_options EXCLUDE "src/core/style/\\.+")
 endif()
 
 qwk_add_library(${PROJECT_NAME} AUTOGEN
