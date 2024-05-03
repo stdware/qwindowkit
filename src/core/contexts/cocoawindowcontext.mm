@@ -330,13 +330,9 @@ namespace QWK {
             nswindow.movableByWindowBackground = NO;
             nswindow.movable = NO; // This line causes the window in the wrong position when
                                    // become fullscreen.
-            //  For some unknown reason, we don't need the following hack in Qt versions below or
-            //  equal to 6.2.4.
-#if (QT_VERSION > QT_VERSION_CHECK(6, 2, 4))
-            [nswindow standardWindowButton:NSWindowCloseButton].hidden = (visible ? NO : YES);
-            [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = (visible ? NO : YES);
-            [nswindow standardWindowButton:NSWindowZoomButton].hidden = (visible ? NO : YES);
-#endif
+            [nswindow standardWindowButton:NSWindowCloseButton].hidden = NO;
+            [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = NO;
+            [nswindow standardWindowButton:NSWindowZoomButton].hidden = NO;
         }
 
         static void replaceImplementations() {
