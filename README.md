@@ -13,16 +13,16 @@ You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share
 
 ## Supported Platforms
 
-+ Microsoft Windows
-+ Apple macOS (11+)
-+ GNU/Linux
+- Microsoft Windows
+- Apple macOS (11+)
+- GNU/Linux
 
 ## Features
 
-+ Full support of Windows 11 Snap Layout
-+ Better workaround to handle Windows 10 top border issue
-+ Support Mac system buttons geometry customization
-+ Simpler APIs, more detailed documentations and comments
+- Full support of Windows 11 Snap Layout
+- Better workaround to handle Windows 10 top border issue
+- Support Mac system buttons geometry customization
+- Simpler APIs, more detailed documentations and comments
 
 ## Gallery
 
@@ -48,20 +48,22 @@ You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share
 | Compiler  |  \>=C++17   |   MSVC 2019, GCC, Clang   |
 |   CMake   |   \>=3.19   |   >=3.20 is recommended   |
 
+Please read [Vulnerabilities](#Vulnerabilities) carefully to acquire detailed requirements.
+
 ### Tested Compilers
 
-+ Windows
-    + MSVC: 2019, 2022
-    + MinGW (GCC): 13.2.0
-+ macOS
-    + Clang 14.0.3
-+ Ubuntu
-    + GCC: 9.4.0
+- Windows
+    - MSVC: 2019, 2022
+    - MinGW (GCC): 13.2.0
+- macOS
+    - Clang 14.0.3
+- Ubuntu
+    - GCC: 9.4.0
 
 ## Dependencies
 
-+ Qt 5.12 or higher
-+ [qmsetup](https://github.com/stdware/qmsetup)
+- Qt 5.12 or higher
+- [qmsetup](https://github.com/stdware/qmsetup)
 
 ## Integrate
 
@@ -82,8 +84,7 @@ cmake --build build --target install --config Release
 
 You can also include this directory as a subproject if you choose CMake as your build system.
 
-For other build systems, you need to install with CMake first and include the corresponding configuration files in your
-project.
+For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
 
 ### Import
 
@@ -250,26 +251,36 @@ You can omit the version number or use "auto" instead of "1.0" for the module UR
 
 See [examples](examples) for more demo use cases. The examples have no High DPI support.
 
-+ QWindowKit Internals [TODO]
-+ [FramelessHelper Related](docs/framelesshelper-related.md)
+- QWindowKit Internals [TODO]
+- [FramelessHelper Related](docs/framelesshelper-related.md)
 
 
 ### Vulnerabilities
 
-+ Once you have made the window frameless, it will not be able to switch back to the system border.
-+ There must not be any internal child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
-    + If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container.
+#### Qt Version
+- To achieve better frameless functionality, QWindowKit depends heavily on Qt's internal implementation. However, there are differences in different versions of Qt, and earlier versions of Qt5 and Qt6 have many bugs which make it extremely difficult for QWindowKit to workaround without changing the Qt source code.
+- And also due to limited manpower, although QWindowKit can be successfully compiled on Qt 5.12 or later, it can hardly work perfectly on all Qt versions.
+- Therefore, the following Qt version ranges are recommended, if there are any exceptions with QWindowKit in your application, make sure the Qt version you use is in the ranges before raising the issue.
+    - Qt 5: 5.15.2 or higher
+    - Qt 6: 6.6.2 or higher
+
+#### Hot Switch
+- Once you have made the window frameless, it will not be able to switch back to the system border.
+
+#### Native Child Widget
+- There **must not** be any internal child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
+    - If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container window.
 
 ## TODO
 
-+ Fix 5.15 window abnormal behavior
-+ More documentations
-+ When do we support Linux native features?
+- Fix 5.15 window abnormal behavior
+- More documentations
+- When do we support Linux native features?
 
 ## Special Thanks
 
-+ [Maplespe](https://github.com/Maplespe)
-+ [zhiyiYo](https://github.com/zhiyiYo)
+- [Maplespe](https://github.com/Maplespe)
+- [zhiyiYo](https://github.com/zhiyiYo)
 
 ## License
 
