@@ -2128,8 +2128,14 @@ namespace QWK {
         if (shouldShowSystemMenu) {
             bool triggeredByIconButton = iconButtonClickTime > 0;
             if (triggeredByIconButton) {
-                // TODO: Adjust `nativeGlobalPos` to (0, realTitleBarHeight)
-                // hint: use m_delgegate->mapGeometryToScene
+                POINT menuPos{ 0, static_cast<LONG>(getTitleBarHeight(hWnd)) };
+                if (const auto tb = titleBar()) {
+                    auto titleBarHeight = qreal(m_delegate->mapGeometryToScene(tb).height());
+                    titleBarHeight *= m_windowHandle->devicePixelRatio();
+                    menuPos.y = qRound(titleBarHeight);
+                }
+                ::ClientToScreen(hWnd, &menuPos);
+                nativeGlobalPos = menuPos;
             }
             bool res = showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard,
                                           m_delegate->isHostSizeFixed(m_host));
