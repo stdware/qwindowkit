@@ -39,6 +39,8 @@
 #endif
 
 // Maybe undocumented Windows messages
+// https://github.com/tinysec/public/blob/master/win32k/MessageTable.md
+// https://ulib.sourceforge.io/doxy/a00239.html
 #ifndef WM_UAHDESTROYWINDOW
 #  define WM_UAHDESTROYWINDOW (0x0090)
 #endif

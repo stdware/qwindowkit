@@ -321,24 +321,6 @@ void MainWindow::installWindowAgent() {
 
     setMenuWidget(windowBar);
 
-    // 3. Adds simulated mouse events to the title bar buttons
-#ifdef Q_OS_WINDOWS
-    // Emulate Window system menu button behaviors
-    connect(iconButton, &QAbstractButton::clicked, windowAgent, [this, iconButton] {
-        iconButton->setProperty("double-click-close", false);
-
-        // Pick a suitable time threshold
-        QTimer::singleShot(75, windowAgent, [this, iconButton]() {
-            if (iconButton->property("double-click-close").toBool())
-                return;
-            windowAgent->showSystemMenu(iconButton->mapToGlobal(QPoint{0, iconButton->height()}));
-        });
-    });
-    connect(iconButton, &QWK::WindowButton::doubleClicked, this, [iconButton, this]() {
-        iconButton->setProperty("double-click-close", true);
-        close();
-    });
-#endif
 
 #ifndef Q_OS_MAC
     connect(windowBar, &QWK::WindowBar::minimizeRequested, this, &QWidget::showMinimized);
