@@ -94,7 +94,7 @@ cmake -B build -DQWindowKit_DIR=/path/install/lib/cmake/QWindowKit
 ```
 
 ```cmake
-find_package(QWindowKit REQUIRED)
+find_package(QWindowKit COMPONENTS Core Widgets Quick REQUIRED)
 target_link_libraries(widgets_app PUBLIC QWindowKit::Widgets)
 target_link_libraries(quick_app PUBLIC QWindowKit::Quick)
 ```

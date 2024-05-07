@@ -18,7 +18,7 @@ option(QWINDOWKIT_ENABLE_STYLE_AGENT "Enable building style agent" ON)
 
 #[[
 
-Detailed Introcuction to Congigure Options:
+Detailed Introcuction to Configure Options:
 
 `QWINDOWKIT_BUILD_DOCUMENTATIONS`
   - If you have installed `Doxygen`, you can ENABLE this option so that the documentations
