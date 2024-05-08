@@ -1388,8 +1388,7 @@ namespace QWK {
                                     // menu while Windows will create and execute a new event loop
                                     // until the menu returns
                                     iconButtonClickTime = ::GetTickCount64();
-                                    *result =
-                                        ::DefWindowProcW(hWnd, WM_NCLBUTTONDOWN, wParam, lParam);
+                                    *result = ::DefWindowProcW(hWnd, message, wParam, lParam);
                                     if (iconButtonClickLevel & IconButtonTriggersClose) {
                                         ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
                                     }
@@ -2176,14 +2175,23 @@ namespace QWK {
                         WH_MOUSE,
                         [](int nCode, WPARAM wParam, LPARAM lParam) {
                             if (nCode >= 0) {
-                                if (wParam == WM_LBUTTONDOWN || wParam == WM_LBUTTONDBLCLK) {
-                                    if (wParam == WM_LBUTTONDBLCLK) {
+                                switch (wParam) {
+                                    case WM_LBUTTONDBLCLK:
                                         mouseDoubleClicked = true;
+                                        Q_FALLTHROUGH();
+
+                                        // case WM_POINTERDOWN:
+
+                                    case WM_LBUTTONDOWN: {
+                                        auto pMouseStruct =
+                                            reinterpret_cast<MOUSEHOOKSTRUCT *>(lParam);
+                                        if (pMouseStruct) {
+                                            mouseClickPos = pMouseStruct->pt;
+                                        }
+                                        break;
                                     }
-                                    auto pMouseStruct = reinterpret_cast<MOUSEHOOKSTRUCT *>(lParam);
-                                    if (pMouseStruct) {
-                                        mouseClickPos = pMouseStruct->pt;
-                                    }
+                                    default:
+                                        break;
                                 }
                             }
                             return ::CallNextHookEx(nullptr, nCode, wParam, lParam);
