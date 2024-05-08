@@ -2223,6 +2223,7 @@ namespace QWK {
 
                 mouseHook = nullptr;
                 mouseClickPos.reset();
+                mouseDoubleClicked = false;
             }
 
             // QPA's internal code will handle system menu events separately, and its
