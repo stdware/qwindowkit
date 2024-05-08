@@ -45,7 +45,6 @@ Window {
         id: titleBar
         anchors {
             top: parent.top
-            topMargin: 1
             left: parent.left
             right: parent.right
         }
@@ -64,6 +63,7 @@ Window {
             height: 18
             mipmap: true
             source: "qrc:///app/example.png"
+            Component.onCompleted: windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
         }
 
         Text {
