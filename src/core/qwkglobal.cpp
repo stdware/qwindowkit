@@ -10,17 +10,10 @@
 
 namespace QWK {
 
-    class HackedObject : public QObject {
-    public:
-        QObjectPrivate *d_func() const {
-            return static_cast<QObjectPrivate *>(d_ptr.data());
-        }
-    };
-
     bool forwardObjectEventFilters(QObject *currentFilter, QObject *receiver, QEvent *event) {
         // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/corelib/kernel/qcoreapplication.cpp#L1244
         // Send the event through the rest event filters
-        auto d = static_cast<HackedObject *>(receiver)->d_func();
+        auto d = QObjectPrivate::get(receiver);
         bool findCurrent = false;
         if (receiver != QCoreApplication::instance() && d->extraData) {
             for (qsizetype i = 0; i < d->extraData->eventFilters.size(); ++i) {
@@ -34,7 +27,7 @@ namespace QWK {
 
                 if (!obj)
                     continue;
-                if (static_cast<HackedObject *>(obj)->d_func()->threadData.loadRelaxed() !=
+                if (QObjectPrivate::get(obj)->threadData.loadRelaxed() !=
                     d->threadData.loadRelaxed()) {
                     qWarning(
                         "QCoreApplication: Object event filter cannot be in a different thread.");
