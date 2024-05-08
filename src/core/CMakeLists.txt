@@ -6,6 +6,7 @@ project(QWKCore
 set(_src
     qwkglobal.h
     qwkglobal_p.h
+    qwkglobal.cpp
     windowagentbase.h
     windowagentbase_p.h
     windowagentbase.cpp

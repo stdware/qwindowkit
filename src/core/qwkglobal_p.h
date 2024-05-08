@@ -62,6 +62,10 @@ namespace QWK {
         return event->screenPos().toPoint();
 #endif
     }
+
+    // Be careful when apply this function to a widget
+    QWK_CORE_EXPORT bool forwardObjectEventFilters(QObject *currentFilter, QObject *receiver,
+                                                   QEvent *event);
 }
 
 #endif // QWKGLOBAL_P_H

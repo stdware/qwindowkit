@@ -699,9 +699,9 @@ namespace QWK {
                 auto hWnd = reinterpret_cast<HWND>(m_windowId);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 const QPoint nativeGlobalPos =
-                    QHighDpi::toNativeGlobalPosition(pos, m_windowHandle);
+                    QHighDpi::toNativeGlobalPosition(pos, m_windowHandle.data());
 #else
-                const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle);
+                const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
 #endif
                 std::ignore = showSystemMenu_sys(hWnd, qpoint2point(nativeGlobalPos), false,
                                                  m_delegate->isHostSizeFixed(m_host));
@@ -1263,7 +1263,7 @@ namespace QWK {
                     POINT screenPoint{GET_X_LPARAM(dwScreenPos), GET_Y_LPARAM(dwScreenPos)};
                     ::ScreenToClient(hWnd, &screenPoint);
                     QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(screenPoint),
-                                                                          m_windowHandle);
+                                                                          m_windowHandle.data());
                     auto dummy = WindowAgentBase::Unknown;
                     if (isInSystemButtons(qtScenePos, &dummy)) {
                         // We must record whether the last WM_MOUSELEAVE was filtered, because if
@@ -1563,8 +1563,8 @@ namespace QWK {
                 auto clientWidth = RECT_WIDTH(clientRect);
                 auto clientHeight = RECT_HEIGHT(clientRect);
 
-                QPoint qtScenePos =
-                    QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
+                QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos),
+                                                                      m_windowHandle.data());
 
                 bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
@@ -2104,8 +2104,8 @@ namespace QWK {
         switch (message) {
             case WM_RBUTTONUP: {
                 const POINT nativeLocalPos = getNativePosFromMouse();
-                const QPoint qtScenePos =
-                    QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
+                const QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
+                    point2qpoint(nativeLocalPos), m_windowHandle.data());
                 WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                 if (isInTitleBarDraggableArea(qtScenePos) ||
                     (isInSystemButtons(qtScenePos, &sysButtonType) &&
@@ -2217,7 +2217,7 @@ namespace QWK {
                     POINT nativeLocalPos = mouseClickPos.value();
                     ::ScreenToClient(hWnd, &nativeLocalPos);
                     QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
-                        point2qpoint(nativeLocalPos), m_windowHandle);
+                        point2qpoint(nativeLocalPos), m_windowHandle.data());
                     WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                     if (isInSystemButtons(qtScenePos, &sysButtonType) &&
                         sysButtonType == WindowAgentBase::WindowIcon) {

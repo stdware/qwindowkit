@@ -83,6 +83,9 @@ namespace QWK {
         virtual bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
     protected:
+        bool eventFilter(QObject *obj, QEvent *event) override;
+
+    protected:
         virtual void winIdChanged(WId winId, WId oldWinId) = 0;
         virtual bool windowAttributeChanged(const QString &key, const QVariant &attribute,
                                             const QVariant &oldAttribute);
@@ -90,7 +93,7 @@ namespace QWK {
     protected:
         QObject *m_host{};
         std::unique_ptr<WindowItemDelegate> m_delegate;
-        QWindow *m_windowHandle{};
+        QPointer<QWindow> m_windowHandle;
         WId m_windowId{};
 
         QSet<const QObject *> m_hitTestVisibleItems;
@@ -102,8 +105,6 @@ namespace QWK {
         std::array<QObject *, WindowAgentBase::Close + 1> m_systemButtons{};
 
         QVariantHash m_windowAttributes;
-
-        std::unique_ptr<QObject> m_windowEventFilter;
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
     };
 

@@ -12,39 +12,6 @@
 
 namespace QWK {
 
-    namespace {
-
-        class WindowEventFilter : public QObject {
-        public:
-            explicit WindowEventFilter(QWindow *window, AbstractWindowContext *ctx,
-                                       QObject *parent = nullptr)
-                : QObject(parent), ctx(ctx), window(window) {
-                if (window)
-                    window->installEventFilter(this);
-            }
-
-            inline void setWindow(QWindow *win) {
-                if (auto oldWin = window.data(); oldWin) {
-                    oldWin->removeEventFilter(this);
-                }
-                window = win;
-                if (win) {
-                    win->installEventFilter(this);
-                }
-            }
-
-        protected:
-            bool eventFilter(QObject *obj, QEvent *event) override {
-                return ctx->sharedDispatch(obj, event);
-            }
-
-        protected:
-            AbstractWindowContext *ctx;
-            QPointer<QWindow> window;
-        };
-
-    }
-
     AbstractWindowContext::AbstractWindowContext() = default;
 
     AbstractWindowContext::~AbstractWindowContext() = default;
@@ -56,7 +23,6 @@ namespace QWK {
         m_host = host;
         m_delegate.reset(delegate);
         m_winIdChangeEventFilter.reset(delegate->createWinIdEventFilter(host, this));
-        m_windowEventFilter = std::make_unique<WindowEventFilter>(m_windowHandle, this);
         notifyWinIdChange();
     }
 
@@ -238,17 +204,17 @@ namespace QWK {
         // platform window will be removed, and the WinId will be set to 0. After that, when the
         // QWidget is shown again, the whole things will be recreated again.
         // As a result, we must update our WindowContext each time the WinId changes.
+        if (m_windowHandle) {
+            removeEventFilter(m_windowHandle);
+        }
         m_windowHandle = m_delegate->hostWindow(m_host);
-
-        auto windowEventFilter = static_cast<WindowEventFilter *>(m_windowEventFilter.get());
-        windowEventFilter->setWindow(nullptr);
 
         if (oldWinId != m_windowId) {
             winIdChanged(m_windowId, oldWinId);
         }
 
         if (m_windowHandle) {
-            windowEventFilter->setWindow(m_windowHandle);
+            m_windowHandle->installEventFilter(this);
 
             // Refresh window attributes
             auto attributes = m_windowAttributes;
@@ -297,6 +263,13 @@ namespace QWK {
             m_windowAttributes.erase(it);
         }
         return true;
+    }
+
+    bool AbstractWindowContext::eventFilter(QObject *obj, QEvent *event) {
+        if (obj == m_windowHandle && sharedDispatch(obj, event)) {
+            return true;
+        }
+        return QObject::eventFilter(obj, event);
     }
 
     bool AbstractWindowContext::windowAttributeChanged(const QString &key,

@@ -8,6 +8,8 @@
 #include <QtCore/QDateTime>
 #include <QtGui/QPainter>
 
+#include <QtCore/private/qcoreapplication_p.h>
+
 #include <QWKCore/qwindowkit_windows.h>
 #include <QWKCore/private/qwkglobal_p.h>
 #include <QWKCore/private/windows10borderhandler_p.h>
@@ -62,8 +64,13 @@ namespace QWK {
         }
 
         inline void forwardEventToWidgetAndDraw(QWidget *w, QEvent *event) {
-            // Let the widget paint first
-            static_cast<QObject *>(w)->event(event);
+            // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
+            // Deliver the event
+            if (!forwardObjectEventFilters(ctx, w, event)) {
+                // Let the widget paint first
+                std::ignore = static_cast<QObject *>(w)->event(event);
+                QCoreApplicationPrivate::setEventSpontaneous(event, false);
+            }
 
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
@@ -72,8 +79,13 @@ namespace QWK {
         }
 
         inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
-            // Let Qt paint first
-            static_cast<QObject *>(window)->event(event);
+            // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
+            // Deliver the event;
+            if (!forwardObjectEventFilters(ctx, window, event)) {
+                // Let Qt paint first
+                std::ignore = static_cast<QObject *>(window)->event(event);
+                QCoreApplicationPrivate::setEventSpontaneous(event, false);
+            }
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.
