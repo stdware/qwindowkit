@@ -1389,6 +1389,7 @@ namespace QWK {
                                     // until the menu returns
                                     iconButtonClickTime = ::GetTickCount64();
                                     *result = ::DefWindowProcW(hWnd, message, wParam, lParam);
+                                    iconButtonClickTime = 0;
                                     if (iconButtonClickLevel & IconButtonTriggersClose) {
                                         ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
                                     }
@@ -2105,7 +2106,10 @@ namespace QWK {
                 const POINT nativeLocalPos = getNativePosFromMouse();
                 const QPoint qtScenePos =
                     QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos), m_windowHandle);
-                if (isInTitleBarDraggableArea(qtScenePos)) {
+                WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
+                if (isInTitleBarDraggableArea(qtScenePos) ||
+                    (isInSystemButtons(qtScenePos, &sysButtonType) &&
+                     sysButtonType == WindowAgentBase::WindowIcon)) {
                     shouldShowSystemMenu = true;
                     nativeGlobalPos = nativeLocalPos;
                     ::ClientToScreen(hWnd, &nativeGlobalPos);
@@ -2209,7 +2213,6 @@ namespace QWK {
                 ::UnhookWindowsHookEx(mouseHook);
 
                 // Emulate the Windows icon button's behavior
-                static uint32_t doubleClickTime = ::GetDoubleClickTime();
                 if (!res && mouseClickPos.has_value()) {
                     POINT nativeLocalPos = mouseClickPos.value();
                     ::ScreenToClient(hWnd, &nativeLocalPos);
@@ -2219,7 +2222,7 @@ namespace QWK {
                     if (isInSystemButtons(qtScenePos, &sysButtonType) &&
                         sysButtonType == WindowAgentBase::WindowIcon) {
                         iconButtonClickLevel |= IconButtonClicked;
-                        if (::GetTickCount64() - iconButtonClickTime <= doubleClickTime) {
+                        if (::GetTickCount64() - iconButtonClickTime <= ::GetDoubleClickTime()) {
                             iconButtonClickLevel |= IconButtonTriggersClose;
                         }
                     }
