@@ -66,7 +66,7 @@ namespace QWK {
         inline void forwardEventToWidgetAndDraw(QWidget *w, QEvent *event) {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
             // Deliver the event
-            if (!forwardObjectEventFilters(ctx, w, event)) {
+            if (!forwardObjectEventFilters(this, w, event)) {
                 // Let the widget paint first
                 std::ignore = static_cast<QObject *>(w)->event(event);
                 QCoreApplicationPrivate::setEventSpontaneous(event, false);
@@ -80,7 +80,7 @@ namespace QWK {
 
         inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
-            // Deliver the event;
+            // Deliver the event
             if (!forwardObjectEventFilters(ctx, window, event)) {
                 // Let Qt paint first
                 std::ignore = static_cast<QObject *>(window)->event(event);
