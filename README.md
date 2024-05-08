@@ -271,6 +271,12 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 - There **must not** be any internal child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
     - If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container window.
 
+#### Windows 10
+
+- Due to the inherent defects in the Windows 10 window system, the top border will disappear when the system title bar is removed. We have filtered Qt's event and perfectly reshown the system top border, thanks to the implementation of Windows Terminal for our reference. However, this workaround only works with QtWidgets and QtQuick(Only D3D) applications.
+
+- In QtQuick applications that use OpenGL or other rendering backends, we use Qt's painting system to emulate this border. But since Windows 10 system border is translucent, the difference from the system border is more noticeable in a dark background.
+
 ## TODO
 
 - Fix 5.15 window abnormal behavior
