@@ -35,6 +35,12 @@
 
 namespace QWK {
 
+    enum IconButtonClickLevelFlag {
+        IconButtonClicked = 1,
+        IconButtonDoubleClicked = 2,
+        IconButtonTriggersClose = 4,
+    };
+
     // The thickness of an auto-hide taskbar in pixels.
     static constexpr const quint8 kAutoHideTaskBarThickness = 2;
 
@@ -1384,11 +1390,15 @@ namespace QWK {
                                     iconButtonClickTime = ::GetTickCount64();
                                     *result =
                                         ::DefWindowProcW(hWnd, WM_NCLBUTTONDOWN, wParam, lParam);
-                                    if (iconButtonClickLevel == 2) {
+                                    if (iconButtonClickLevel & IconButtonTriggersClose) {
                                         ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
                                     }
-                                    // No need to reset `iconButtonClickLevel`, if it has value,
-                                    // there must be another incoming WM_NCLBUTTONDOWN
+                                    if (iconButtonClickLevel & IconButtonDoubleClicked) {
+                                        iconButtonClickLevel = 0;
+                                    }
+                                    // Otherwise, no need to reset `iconButtonClickLevel` if not to
+                                    // close, if it has value, there must be another incoming
+                                    // WM_NCLBUTTONDOWN
                                 } else {
                                     iconButtonClickLevel = 0;
                                 }
@@ -2146,6 +2156,7 @@ namespace QWK {
         if (shouldShowSystemMenu) {
             static HHOOK mouseHook = nullptr;
             static std::optional<POINT> mouseClickPos;
+            static bool mouseDoubleClicked = false;
             bool mouseHookedLocal = false;
 
             // The menu is triggered by a click on icon button
@@ -2166,6 +2177,9 @@ namespace QWK {
                         [](int nCode, WPARAM wParam, LPARAM lParam) {
                             if (nCode >= 0) {
                                 if (wParam == WM_LBUTTONDOWN || wParam == WM_LBUTTONDBLCLK) {
+                                    if (wParam == WM_LBUTTONDBLCLK) {
+                                        mouseDoubleClicked = true;
+                                    }
                                     auto pMouseStruct = reinterpret_cast<MOUSEHOOKSTRUCT *>(lParam);
                                     if (pMouseStruct) {
                                         mouseClickPos = pMouseStruct->pt;
@@ -2196,11 +2210,15 @@ namespace QWK {
                     WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                     if (isInSystemButtons(qtScenePos, &sysButtonType) &&
                         sysButtonType == WindowAgentBase::WindowIcon) {
-                        iconButtonClickLevel = 1;
+                        iconButtonClickLevel |= IconButtonClicked;
                         if (::GetTickCount64() - iconButtonClickTime <= doubleClickTime) {
-                            iconButtonClickLevel = 2;
+                            iconButtonClickLevel |= IconButtonTriggersClose;
                         }
                     }
+                }
+
+                if (mouseDoubleClicked) {
+                    iconButtonClickLevel |= IconButtonDoubleClicked;
                 }
 
                 mouseHook = nullptr;
