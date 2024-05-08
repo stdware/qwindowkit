@@ -1376,7 +1376,7 @@ namespace QWK {
                     if (lastHitTestResultRaw == HTSYSMENU) {
                         switch (message) {
                             case WM_NCLBUTTONDOWN:
-                                if (iconButtonClickTime == 0) {
+                                if (iconButtonClickLevel == 0) {
                                     // A message of WM_SYSCOMMAND with SC_MOUSEMENU will be sent by
                                     // Windows, and the current control flow will be blocked by the
                                     // menu while Windows will create and execute a new event loop
@@ -1384,10 +1384,13 @@ namespace QWK {
                                     iconButtonClickTime = ::GetTickCount64();
                                     *result =
                                         ::DefWindowProcW(hWnd, WM_NCLBUTTONDOWN, wParam, lParam);
-                                    iconButtonClickTime = 0;
+                                    if (iconButtonClickLevel == 2) {
+                                        ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+                                    }
+                                    // No need to reset `iconButtonClickLevel`, if it has value,
+                                    // there must be another incoming WM_NCLBUTTONDOWN
                                 } else {
-                                    *result = FALSE;
-                                    emulateClientAreaMessage(hWnd, message, wParam, lParam);
+                                    iconButtonClickLevel = 0;
                                 }
                                 break;
                             case WM_NCLBUTTONDBLCLK:
@@ -2144,6 +2147,8 @@ namespace QWK {
             static HHOOK mouseHook = nullptr;
             static std::optional<POINT> mouseClickPos;
             bool mouseHookedLocal = false;
+
+            // The menu is triggered by a click on icon button
             if (iconButtonClickTime > 0) {
                 POINT menuPos{0, static_cast<LONG>(getTitleBarHeight(hWnd))};
                 if (const auto tb = titleBar()) {
@@ -2173,6 +2178,7 @@ namespace QWK {
                     mouseHookedLocal = true;
                 }
             }
+
             bool res = showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard,
                                           m_delegate->isHostSizeFixed(m_host));
 
@@ -2182,8 +2188,7 @@ namespace QWK {
 
                 // Emulate the Windows icon button's behavior
                 static uint32_t doubleClickTime = ::GetDoubleClickTime();
-                if (!res && mouseClickPos.has_value() &&
-                    ::GetTickCount64() - iconButtonClickTime <= doubleClickTime) {
+                if (!res && mouseClickPos.has_value()) {
                     POINT nativeLocalPos = mouseClickPos.value();
                     ::ScreenToClient(hWnd, &nativeLocalPos);
                     QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(
@@ -2191,7 +2196,10 @@ namespace QWK {
                     WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                     if (isInSystemButtons(qtScenePos, &sysButtonType) &&
                         sysButtonType == WindowAgentBase::WindowIcon) {
-                        ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+                        iconButtonClickLevel = 1;
+                        if (::GetTickCount64() - iconButtonClickTime <= doubleClickTime) {
+                            iconButtonClickLevel = 2;
+                        }
                     }
                 }
 

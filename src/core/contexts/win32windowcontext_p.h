@@ -73,7 +73,9 @@ namespace QWK {
         // WM_MOUSELEAVE.
         bool mouseLeaveBlocked = false;
 
+        // For emulating traditional icon button behavior
         uint64_t iconButtonClickTime = 0;
+        int iconButtonClickLevel = 0;
     };
 
 }
