@@ -34,7 +34,6 @@ namespace QWK {
         QRect mapGeometryToScene(const QObject *obj) const override;
 
         QWindow *hostWindow(const QObject *host) const override;
-        bool isHostSizeFixed(const QObject *host) const override;
         bool isWindowActive(const QObject *host) const override;
         Qt::WindowStates getWindowState(const QObject *host) const override;
         Qt::WindowFlags getWindowFlags(const QObject *host) const override;

@@ -121,7 +121,7 @@ namespace QWK {
         auto window = m_context->window();
         auto delegate = m_context->delegate();
         auto me = static_cast<const QMouseEvent *>(event);
-        bool fixedSize = delegate->isHostSizeFixed(host);
+        bool fixedSize = m_context->isHostSizeFixed();
 
         QPoint scenePos = getMouseEventScenePos(me);
         QPoint globalPos = getMouseEventGlobalPos(me);

@@ -63,6 +63,24 @@ namespace QWK {
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
+        inline bool isHostWidthFixed() const {
+            return m_windowHandle
+                       ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                          m_windowHandle->minimumWidth() == m_windowHandle->maximumWidth())
+                       : false;
+        }
+        inline bool isHostHeightFixed() const {
+            return m_windowHandle
+                       ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                          m_windowHandle->minimumHeight() == m_windowHandle->maximumHeight())
+                       : false;
+        }
+        inline bool isHostSizeFixed() const {
+            return m_windowHandle ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                                     m_windowHandle->minimumSize() == m_windowHandle->maximumSize())
+                                  : false;
+        }
+
         virtual QString key() const;
 
         enum WindowContextHook {

@@ -510,7 +510,7 @@ namespace QWK {
     static inline void releaseWindowProxy(const WId windowId) {
         if (auto proxy = g_proxyList->take(windowId)) {
             // TODO: Determine if the window is valid
-            
+
             // The window has been destroyed
             // proxy->setSystemTitleBarVisible(true);
             delete proxy;
@@ -633,8 +633,7 @@ namespace QWK {
             }
 
             case QEvent::MouseButtonDblClick: {
-                if (me->button() == Qt::LeftButton && inTitleBar &&
-                    !delegate->isHostSizeFixed(host)) {
+                if (me->button() == Qt::LeftButton && inTitleBar && !m_context->isHostSizeFixed()) {
                     Qt::WindowStates windowState = delegate->getWindowState(host);
                     if (!(windowState & Qt::WindowFullScreen)) {
                         if (windowState & Qt::WindowMaximized) {

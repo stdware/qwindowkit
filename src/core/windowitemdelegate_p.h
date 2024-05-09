@@ -37,7 +37,6 @@ namespace QWK {
 
         // Host property query
         virtual QWindow *hostWindow(const QObject *host) const = 0;
-        virtual bool isHostSizeFixed(const QObject *host) const = 0;
         virtual bool isWindowActive(const QObject *host) const = 0;
         virtual Qt::WindowStates getWindowState(const QObject *host) const = 0;
         virtual Qt::WindowFlags getWindowFlags(const QObject *host) const = 0;

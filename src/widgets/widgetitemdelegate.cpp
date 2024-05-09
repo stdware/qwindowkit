@@ -64,21 +64,6 @@ namespace QWK {
         return static_cast<const QWidget *>(host)->windowHandle();
     }
 
-    bool WidgetItemDelegate::isHostSizeFixed(const QObject *host) const {
-        const auto widget = static_cast<const QWidget *>(host);
-        // "Qt::MSWindowsFixedSizeDialogHint" is used cross-platform actually.
-        if (widget->windowFlags() & Qt::MSWindowsFixedSizeDialogHint) {
-            return true;
-        }
-        // Caused by setFixedWidth/Height/Size().
-        const QSize minSize = widget->minimumSize();
-        const QSize maxSize = widget->maximumSize();
-        if (!minSize.isEmpty() && !maxSize.isEmpty() && (minSize == maxSize)) {
-            return true;
-        }
-        return false;
-    }
-
     bool WidgetItemDelegate::isWindowActive(const QObject *host) const {
         return static_cast<const QWidget *>(host)->isActiveWindow();
     }

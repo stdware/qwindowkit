@@ -625,6 +625,7 @@ namespace QWK {
         // Try hooked procedure and save result
         LRESULT result;
         if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
+            // https://github.com/stdware/qwindowkit/issues/45
             // Forward the event to user-defined native event filters, there may be some messages
             // that need to be processed by the user.
             std::ignore =
@@ -704,7 +705,7 @@ namespace QWK {
                 const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
 #endif
                 std::ignore = showSystemMenu_sys(hWnd, qpoint2point(nativeGlobalPos), false,
-                                                 m_delegate->isHostSizeFixed(m_host));
+                                                 isHostSizeFixed());
                 return;
             }
 
@@ -1566,7 +1567,7 @@ namespace QWK {
                 QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos),
                                                                       m_windowHandle.data());
 
-                bool isFixedSize = m_delegate->isHostSizeFixed(m_host);
+                bool isFixedSize = isHostSizeFixed();
                 bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
                 bool dontOverrideCursor = false; // ### TODO
 
@@ -2205,8 +2206,8 @@ namespace QWK {
                 }
             }
 
-            bool res = showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard,
-                                          m_delegate->isHostSizeFixed(m_host));
+            bool res =
+                showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
 
             // Uninstall mouse hook and check if it's a double-click
             if (mouseHookedLocal) {
