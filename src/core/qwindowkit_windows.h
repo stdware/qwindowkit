@@ -22,14 +22,6 @@
 #  define GET_Y_LPARAM(lp) (static_cast<int>(static_cast<short>(HIWORD(lp))))
 #endif
 
-#ifndef IsMinimized
-#  define IsMinimized(hwnd) (::IsIconic(hwnd))
-#endif
-
-#ifndef IsMaximized
-#  define IsMaximized(hwnd) (::IsZoomed(hwnd))
-#endif
-
 #ifndef RECT_WIDTH
 #  define RECT_WIDTH(rect) ((rect).right - (rect).left)
 #endif

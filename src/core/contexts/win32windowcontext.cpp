@@ -124,6 +124,36 @@ namespace QWK {
                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
 
+    static inline bool isFullScreen(HWND hwnd) {
+        RECT windowRect{};
+        ::GetWindowRect(hwnd, &windowRect);
+        // Compare to the full area of the screen, not the work area.
+        return (windowRect == getMonitorForWindow(hwnd).rcMonitor);
+    }
+
+    static inline bool isMaximized(HWND hwnd) {
+        return ::IsZoomed(hwnd);
+    }
+
+    static inline bool isMinimized(HWND hwnd) {
+        return ::IsIconic(hwnd);
+    }
+
+    static inline bool isWindowNoState(HWND hwnd) {
+#if 0
+        WINDOWPLACEMENT wp{};
+        wp.length = sizeof(wp);
+        ::GetWindowPlacement(hwnd, &wp);
+        return ((wp.showCmd == SW_NORMAL) || (wp.showCmd == SW_RESTORE));
+#else
+        if (isFullScreen(hwnd)) {
+            return false;
+        }
+        const auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE));
+        return (!(style & (WS_MINIMIZE | WS_MAXIMIZE)));
+#endif
+    }
+
     static inline void bringWindowToFront(HWND hwnd) {
         HWND oldForegroundWindow = ::GetForegroundWindow();
         if (!oldForegroundWindow) {
@@ -135,7 +165,7 @@ namespace QWK {
         if (!::IsWindowVisible(hwnd)) {
             ::ShowWindow(hwnd, SW_SHOW);
         }
-        if (IsMinimized(hwnd)) {
+        if (isMinimized(hwnd)) {
             // Restore the window if it is minimized.
             ::ShowWindow(hwnd, SW_RESTORE);
             // Once we've been restored, throw us on the active monitor.
@@ -170,28 +200,6 @@ namespace QWK {
         ::SetActiveWindow(hwnd);
         // Throw us on the active monitor.
         moveWindowToMonitor(hwnd, activeMonitor);
-    }
-
-    static inline bool isFullScreen(HWND hwnd) {
-        RECT windowRect{};
-        ::GetWindowRect(hwnd, &windowRect);
-        // Compare to the full area of the screen, not the work area.
-        return (windowRect == getMonitorForWindow(hwnd).rcMonitor);
-    }
-
-    static inline bool isWindowNoState(HWND hwnd) {
-#if 0
-        WINDOWPLACEMENT wp{};
-        wp.length = sizeof(wp);
-        ::GetWindowPlacement(hwnd, &wp);
-        return ((wp.showCmd == SW_NORMAL) || (wp.showCmd == SW_RESTORE));
-#else
-        if (isFullScreen(hwnd)) {
-            return false;
-        }
-        const auto style = static_cast<DWORD>(::GetWindowLongPtrW(hwnd, GWL_STYLE));
-        return (!(style & (WS_MINIMIZE | WS_MAXIMIZE)));
-#endif
     }
 
     static void syncPaintEventWithDwm() {
@@ -250,7 +258,7 @@ namespace QWK {
             return true;
         }
 
-        const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
+        const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
         ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | MFS_ENABLED));
         ::EnableMenuItem(hMenu, SC_MAXIMIZE,
                          (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
@@ -1646,7 +1654,7 @@ namespace QWK {
                 // OK, we are not inside any chrome buttons, try to find out which part of the
                 // window are we hitting.
 
-                bool max = IsMaximized(hWnd);
+                bool max = isMaximized(hWnd);
                 bool full = isFullScreen(hWnd);
                 int frameSize = getResizeBorderThickness(hWnd);
                 bool isTop = (nativeLocalPos.y < frameSize);
@@ -1958,7 +1966,7 @@ namespace QWK {
             clientRect->top = originalTop;
         }
 
-        const bool max = IsMaximized(hWnd);
+        const bool max = isMaximized(hWnd);
         const bool full = isFullScreen(hWnd);
         // We don't need this correction when we're fullscreen. We will
         // have the WS_POPUP size, so we don't have to worry about
@@ -2073,7 +2081,7 @@ namespace QWK {
             return {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
         };
         const auto getNativeGlobalPosFromKeyboard = [hWnd]() -> POINT {
-            const bool maxOrFull = IsMaximized(hWnd) || isFullScreen(hWnd);
+            const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
             const quint32 frameSize = getResizeBorderThickness(hWnd);
             const quint32 horizontalOffset =
                 ((maxOrFull || !isSystemBorderEnabled()) ? 0 : frameSize);
