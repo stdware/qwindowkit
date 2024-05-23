@@ -1575,12 +1575,21 @@ namespace QWK {
                 QPoint qtScenePos = QHighDpi::fromNativeLocalPosition(point2qpoint(nativeLocalPos),
                                                                       m_windowHandle.data());
 
+                int frameSize = getResizeBorderThickness(hWnd);
+
+                bool isFixedWidth = isHostWidthFixed();
+                bool isFixedHeight = isHostHeightFixed();
                 bool isFixedSize = isHostSizeFixed();
-                bool isTitleBar = isInTitleBarDraggableArea(qtScenePos);
+                bool isInLeftBorder = nativeLocalPos.x <= frameSize;
+                bool isInTopBorder = nativeLocalPos.y <= frameSize;
+                bool isInRightBorder = nativeLocalPos.x > clientWidth - frameSize;
+                bool isInBottomBorder = nativeLocalPos.y > clientHeight - frameSize;
+                bool isInTitleBar = isInTitleBarDraggableArea(qtScenePos);
+                WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
+                bool isInCaptionButtons = isInSystemButtons(qtScenePos, &sysButtonType);
                 bool dontOverrideCursor = false; // ### TODO
 
-                WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
-                if (!isFixedSize && isInSystemButtons(qtScenePos, &sysButtonType)) {
+                if (isInCaptionButtons) {
                     // Firstly, we set the hit test result to a default value to be able to detect
                     // whether we have changed it or not afterwards.
                     *result = HTNOWHERE;
@@ -1590,29 +1599,41 @@ namespace QWK {
                     // window is not maximized/fullscreen/minimized, of course).
                     if (isWindowNoState(hWnd)) {
                         static constexpr const quint8 kBorderSize = 2;
-                        bool isTop = (nativeLocalPos.y <= kBorderSize);
+                        bool isTop = nativeLocalPos.y <= kBorderSize;
                         bool isLeft = nativeLocalPos.x <= kBorderSize;
-                        bool isRight = (nativeLocalPos.x >= (clientWidth - kBorderSize));
+                        bool isRight = nativeLocalPos.x > clientWidth - kBorderSize;
                         if (isTop || isLeft || isRight) {
-                            if (dontOverrideCursor) {
+                            if (isFixedSize || dontOverrideCursor) {
                                 // The user doesn't want the window to be resized, so we tell
                                 // Windows we are in the client area so that the controls beneath
                                 // the mouse cursor can still be hovered or clicked.
-                                *result = (isTitleBar ? HTCAPTION : HTCLIENT);
+                                *result = isInTitleBar ? HTCAPTION : HTCLIENT;
                             } else {
                                 if (isTop) {
                                     if (isLeft) {
-                                        *result = HTTOPLEFT;
+                                        if (isFixedWidth) {
+                                            *result = HTTOP;
+                                        } else if (isFixedHeight) {
+                                            *result = HTLEFT;
+                                        } else {
+                                            *result = HTTOPLEFT;
+                                        }
                                     } else if (isRight) {
-                                        *result = HTTOPRIGHT;
+                                        if (isFixedWidth) {
+                                            *result = HTTOP;
+                                        } else if (isFixedHeight) {
+                                            *result = HTRIGHT;
+                                        } else {
+                                            *result = HTTOPRIGHT;
+                                        }
                                     } else {
-                                        *result = HTTOP;
+                                        *result = isFixedHeight ? HTBORDER : HTTOP;
                                     }
                                 } else {
-                                    if (isLeft) {
-                                        *result = HTLEFT;
+                                    if (isFixedWidth) {
+                                        *result = HTBORDER;
                                     } else {
-                                        *result = HTRIGHT;
+                                        *result = isLeft ? HTLEFT : HTRIGHT;
                                     }
                                 }
                             }
@@ -1656,8 +1677,6 @@ namespace QWK {
 
                 bool max = isMaximized(hWnd);
                 bool full = isFullScreen(hWnd);
-                int frameSize = getResizeBorderThickness(hWnd);
-                bool isTop = (nativeLocalPos.y < frameSize);
 
                 if (isSystemBorderEnabled()) {
                     // This will handle the left, right and bottom parts of the frame
@@ -1669,8 +1688,48 @@ namespace QWK {
                         // outside the window, that is, the three transparent window resize area.
                         // Returning HTCLIENT will confuse Windows, we can't put our controls there
                         // anyway.
-                        *result = ((isFixedSize || dontOverrideCursor) ? HTBORDER
-                                                                       : originalHitTestResult);
+                        *result = HTNOWHERE; // Make sure we can know we don't set any value explicitly later.
+                        if (originalHitTestResult == HTCAPTION) {
+                        } else if (isFixedSize || dontOverrideCursor) {
+                            *result = HTBORDER;
+                        } else if (isFixedWidth || isFixedHeight) {
+                            if (originalHitTestResult == HTTOPLEFT) {
+                                if (isFixedWidth) {
+                                    *result = HTTOP;
+                                } else {
+                                    *result = HTLEFT;
+                                }
+                            } else if (originalHitTestResult == HTTOPRIGHT) {
+                                if (isFixedWidth) {
+                                    *result = HTTOP;
+                                } else {
+                                    *result = HTRIGHT;
+                                }
+                            } else if (originalHitTestResult == HTBOTTOMRIGHT) {
+                                if (isFixedWidth) {
+                                    *result = HTBOTTOM;
+                                } else {
+                                    *result = HTRIGHT;
+                                }
+                            } else if (originalHitTestResult == HTBOTTOMLEFT) {
+                                if (isFixedWidth) {
+                                    *result = HTBOTTOM;
+                                } else {
+                                    *result = HTLEFT;
+                                }
+                            } else if (originalHitTestResult == HTLEFT || originalHitTestResult == HTRIGHT) {
+                                if (isFixedWidth) {
+                                    *result = HTBORDER;
+                                }
+                            } else if (originalHitTestResult == HTTOP || originalHitTestResult == HTBOTTOM) {
+                                if (isFixedHeight) {
+                                    *result = HTBORDER;
+                                }
+                            }
+                        }
+                        if (*result == HTNOWHERE) {
+                            *result = originalHitTestResult;
+                        }
                         return true;
                     }
                     if (full) {
@@ -1678,7 +1737,7 @@ namespace QWK {
                         return true;
                     }
                     if (max) {
-                        *result = (isTitleBar ? HTCAPTION : HTCLIENT);
+                        *result = isInTitleBar ? HTCAPTION : HTCLIENT;
                         return true;
                     }
                     // At this point, we know that the cursor is inside the client area,
@@ -1686,16 +1745,24 @@ namespace QWK {
                     // title bar or the drag bar. Apparently, it must be the drag bar or
                     // the little border at the top which the user can use to move or
                     // resize the window.
-                    if (isTop) {
+                    if (isInTopBorder) {
                         // Return HTCLIENT instead of HTBORDER here, because the mouse is
                         // inside our homemade title bar now, return HTCLIENT to let our
                         // title bar can still capture mouse events.
-                        *result = ((isFixedSize || dontOverrideCursor)
-                                       ? (isTitleBar ? HTCAPTION : HTCLIENT)
-                                       : HTTOP);
+                        *result = [&]() {
+                            if (isFixedSize || isFixedHeight || dontOverrideCursor || (isFixedWidth && (isInLeftBorder || isInRightBorder))) {
+                                if (isInTitleBar) {
+                                    return HTCAPTION;
+                                } else {
+                                    return HTCLIENT;
+                                }
+                            } else {
+                                return HTTOP;
+                            }
+                        }();
                         return true;
                     }
-                    if (isTitleBar) {
+                    if (isInTitleBar) {
                         *result = HTCAPTION;
                         return true;
                     }
@@ -1706,58 +1773,86 @@ namespace QWK {
                         *result = HTCLIENT;
                         return true;
                     }
-                    if (max) {
-                        *result = (isTitleBar ? HTCAPTION : HTCLIENT);
+                    if (max || isFixedSize || dontOverrideCursor) {
+                        *result = isInTitleBar ? HTCAPTION : HTCLIENT;
                         return true;
                     }
-                    if (!isFixedSize) {
-                        const bool isBottom = (nativeLocalPos.y >= (clientHeight - frameSize));
-                        // Make the border a little wider to let the user easy to resize on corners.
-                        const auto scaleFactor = ((isTop || isBottom) ? qreal(2) : qreal(1));
-                        const int scaledFrameSize = std::round(qreal(frameSize) * scaleFactor);
-                        const bool isLeft = (nativeLocalPos.x < scaledFrameSize);
-                        const bool isRight = (nativeLocalPos.x >= (clientWidth - scaledFrameSize));
-                        if (dontOverrideCursor && (isTop || isBottom || isLeft || isRight)) {
-                            // Return HTCLIENT instead of HTBORDER here, because the mouse is
-                            // inside the window now, return HTCLIENT to let the controls
-                            // inside our window can still capture mouse events.
-                            *result = (isTitleBar ? HTCAPTION : HTCLIENT);
-                            return true;
+                    if (isFixedWidth || isFixedHeight) {
+                        if (isInLeftBorder && isInTopBorder) {
+                            if (isFixedWidth) {
+                                *result = HTTOP;
+                            } else {
+                                *result = HTLEFT;
+                            }
+                        } else if (isInRightBorder && isInTopBorder) {
+                            if (isFixedWidth) {
+                                *result = HTTOP;
+                            } else {
+                                *result = HTRIGHT;
+                            }
+                        } else if (isInRightBorder && isInBottomBorder) {
+                            if (isFixedWidth) {
+                                *result = HTBOTTOM;
+                            } else {
+                                *result = HTRIGHT;
+                            }
+                        } else if (isInLeftBorder && isInBottomBorder) {
+                            if (isFixedWidth) {
+                                *result = HTBOTTOM;
+                            } else {
+                                *result = HTLEFT;
+                            }
+                        } else if (isInLeftBorder || isInRightBorder) {
+                            if (isFixedWidth) {
+                                *result = HTCLIENT;
+                            } else {
+                                *result = isInLeftBorder ? HTLEFT : HTRIGHT;
+                            }
+                        } else if (isInTopBorder || isInBottomBorder) {
+                            if (isFixedHeight) {
+                                *result = HTCLIENT;
+                            } else {
+                                *result = isInTopBorder ? HTTOP : HTBOTTOM;
+                            }
+                        } else {
+                            *result = HTCLIENT;
                         }
-                        if (isTop) {
-                            if (isLeft) {
+                        return true;
+                    } else {
+                        if (isInTopBorder) {
+                            if (isInLeftBorder) {
                                 *result = HTTOPLEFT;
                                 return true;
                             }
-                            if (isRight) {
+                            if (isInRightBorder) {
                                 *result = HTTOPRIGHT;
                                 return true;
                             }
                             *result = HTTOP;
                             return true;
                         }
-                        if (isBottom) {
-                            if (isLeft) {
+                        if (isInBottomBorder) {
+                            if (isInLeftBorder) {
                                 *result = HTBOTTOMLEFT;
                                 return true;
                             }
-                            if (isRight) {
+                            if (isInRightBorder) {
                                 *result = HTBOTTOMRIGHT;
                                 return true;
                             }
                             *result = HTBOTTOM;
                             return true;
                         }
-                        if (isLeft) {
+                        if (isInLeftBorder) {
                             *result = HTLEFT;
                             return true;
                         }
-                        if (isRight) {
+                        if (isInRightBorder) {
                             *result = HTRIGHT;
                             return true;
                         }
                     }
-                    if (isTitleBar) {
+                    if (isInTitleBar) {
                         *result = HTCAPTION;
                         return true;
                     }
