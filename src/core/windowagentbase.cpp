@@ -99,6 +99,10 @@ namespace QWK {
             \li \c extra-margins: Specify a margin value to change the \c dwm extended area
                    geometry, you shouldn't change this attribute because it may break the
                    internal state.
+            \li \c border-thickness: Returns the system border thickness. (Readonly)
+            \li \c title-bar-height: Returns the system title bar height, some system features may
+                   be related to this property so that it is recommended to set the custom title bar
+                   height to this value. (Readonly)
 
         On macOS,
             \li \c no-system-buttons: Specify a boolean value to set the system buttons'

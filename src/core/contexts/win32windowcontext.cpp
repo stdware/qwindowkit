@@ -831,6 +831,12 @@ namespace QWK {
                        ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
                        : 0;
         }
+
+        if (key == QStringLiteral("title-bar-height")) {
+            return m_windowId
+                       ? int(getTitleBarHeight(reinterpret_cast<HWND>(m_windowId)))
+                       : 0;
+        }
         return AbstractWindowContext::windowAttribute(key);
     }
 

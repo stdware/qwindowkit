@@ -179,36 +179,14 @@ endif()
 # Install
 # ----------------------------------
 if(QWINDOWKIT_INSTALL)
-    # Add install target
-    set(_install_dir ${CMAKE_INSTALL_LIBDIR}/cmake/${QWINDOWKIT_INSTALL_NAME})
-
-    # Add version file
-    write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/${QWINDOWKIT_INSTALL_NAME}ConfigVersion.cmake"
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY AnyNewerVersion
-    )
-
-    # Add configuration file
-    configure_package_config_file(
-        ${CMAKE_CURRENT_LIST_DIR}/${QWINDOWKIT_INSTALL_NAME}Config.cmake.in
-        "${CMAKE_CURRENT_BINARY_DIR}/${QWINDOWKIT_INSTALL_NAME}Config.cmake"
-        INSTALL_DESTINATION ${_install_dir}
-        NO_CHECK_REQUIRED_COMPONENTS_MACRO
-    )
-
-    # Install cmake files
-    install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/${QWINDOWKIT_INSTALL_NAME}Config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/${QWINDOWKIT_INSTALL_NAME}ConfigVersion.cmake"
-        DESTINATION ${_install_dir}
-    )
-
-    # Install cmake targets files
-    install(EXPORT ${QWINDOWKIT_INSTALL_NAME}Targets
-        FILE "${QWINDOWKIT_INSTALL_NAME}Targets.cmake"
+    qm_basic_install(
+        NAME ${QWINDOWKIT_INSTALL_NAME}
+        VERSION ${QWINDOWKIT_VERSION}
+        INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${QWINDOWKIT_INSTALL_NAME}
+        CONFIG_TEMPLATE "${QWINDOWKIT_INSTALL_NAME}Config.cmake.in"
         NAMESPACE ${QWINDOWKIT_INSTALL_NAME}::
-        DESTINATION ${_install_dir}
+        EXPORT ${QWINDOWKIT_INSTALL_NAME}Targets
+        WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
     )
 
     # Install shared files
