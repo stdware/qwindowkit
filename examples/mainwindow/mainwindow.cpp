@@ -60,8 +60,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(tr("Example MainWindow"));
     resize(800, 600);
 
-    setFixedHeight(600);
-
+    // setFixedHeight(600);
     // windowAgent->centralize();
 }
 
