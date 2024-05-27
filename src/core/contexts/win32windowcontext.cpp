@@ -81,6 +81,8 @@ namespace QWK {
 
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
         const QVariant marginsVar = QVariant::fromValue(margins);
+
+        // TODO: Add comments
         window->setProperty("_q_windowsCustomMargins", marginsVar);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
@@ -1956,9 +1958,9 @@ namespace QWK {
             // that's also how most applications customize their title bars on Windows. It's
             // totally OK but since we want to preserve as much original frame as possible,
             // we can't use that solution.
-            const LRESULT hitTestResult = ::DefWindowProcW(hWnd, WM_NCCALCSIZE, wParam, lParam);
-            if ((hitTestResult != HTERROR) && (hitTestResult != HTNOWHERE)) {
-                *result = hitTestResult;
+            const LRESULT originalResult = ::DefWindowProcW(hWnd, WM_NCCALCSIZE, wParam, lParam);
+            if (originalResult != 0) {
+                *result = originalResult;
                 return true;
             }
             // Re-apply the original top from before the size of the default frame was
