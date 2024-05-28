@@ -82,7 +82,7 @@ cmake --build build --target install --config Debug --parallel
 cmake --build build --target install/strip --config Release --parallel
 ```
 
-If you forget to clone the submodules or they failed to download, you can try `git submodule update --recursive` to clone it separately.
+If you forget to clone the submodules or they failed to download, you can try `git submodule update --init --recursive` to clone it separately. You can remove the `--init` parameter if you are just going to update the submodules, not clone them.
 
 You can also include this directory as a subproject if you choose CMake as your build system.
 
