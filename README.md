@@ -70,7 +70,7 @@ Please read [Vulnerabilities](#Vulnerabilities) carefully to acquire detailed re
 ### Build & Install
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone -b main --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
@@ -78,9 +78,11 @@ cmake -B build -S . \
   -DCMAKE_INSTALL_PREFIX=/path/install \
   -G "Ninja Multi-Config"
 
-cmake --build build --target install --config Debug
-cmake --build build --target install --config Release
+cmake --build build --target install --config Debug --parallel
+cmake --build build --target install/strip --config Release --parallel
 ```
+
+If you forget to clone the submodules or they failed to download, you can try `git submodule update --recursive` to clone it separately.
 
 You can also include this directory as a subproject if you choose CMake as your build system.
 
@@ -157,6 +159,8 @@ auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
 
+You should call `QWK::WidgetWindowAgent::setup` as early as possible, especially when you need to set the minimum width/height/size and/or maximum width/height/size. QWindowKit will change some Qt internal data which will affect how Qt calculates the window size, and thus you need to let QWindowKit initialize as soon as possible.
+
 #### Construct Title bar
 
 Then, construct your title bar widget, without which the window lacks the basic interaction feature, and it's better to
@@ -185,13 +189,13 @@ Doing this does not mean that these buttons' click events are automatically asso
 
 On macOS, this step can be skipped because it is better to use the buttons provided by the system.
 
-Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know other widgets that desire to receive mouse events.
+Last but not least, set hit-test visible hint to let `WidgetWindowAgent` know which widgets are willing to receive mouse events.
 
 ```c++
 agent->setHitTestVisible(myTitleBar->menuBar(), true);
 ```
 
-The rest region within the title bar will be regarded as the draggable area for the user to move the window.
+The rest region within the title bar will be regarded as the draggable area for the user to move the window, and thus any QWidgets inside it will not receive any user interaction events such as mouse events/focus events/etc anymore, but you can still send/post such events to these widgets manually, either through Qt API or system API.
 
 <!-- #### Window Attributes (Experimental)
 
@@ -247,6 +251,8 @@ Window {
 
 You can omit the version number or use "auto" instead of "1.0" for the module URI if you are using Qt6.
 
+As we just mentioned above, if you are going to change the minimum width/height/size and/or maximum width/height/size, please do it after `windowAgent.setup` is called.
+
 ### Learn More
 
 See [examples](examples) for more demo use cases. The examples have no High DPI support.
@@ -258,22 +264,27 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 ### Vulnerabilities
 
 #### Qt Version
-- To achieve better frameless functionality, QWindowKit depends heavily on Qt's internal implementation. However, there are differences in different versions of Qt, and earlier versions of Qt5 and Qt6 have many bugs which make it extremely difficult for QWindowKit to workaround without changing the Qt source code.
+- To achieve better frameless functionality, QWindowKit depends heavily on Qt's internal implementation. However, there are many differences in different versions of Qt, and earlier versions of Qt5 and Qt6 have many bugs which make it extremely difficult for QWindowKit to workaround without changing the Qt source code.
 - And also due to limited manpower, although QWindowKit can be successfully compiled on Qt 5.12 or later, it can hardly work perfectly on all Qt versions.
 - Therefore, the following Qt version ranges are recommended, if there are any exceptions with QWindowKit in your application, make sure the Qt version you use is in the ranges before raising the issue.
-    - Qt 5: 5.15.2 or higher
-    - Qt 6: 6.6.2 or higher
+    - Qt 5: 5.15.2 or higher (the newer, the better)
+    - Qt 6: 6.6.2 or higher (the newer, the better)
 
 #### Hot Switch
-- Once you have made the window frameless, it will not be able to switch back to the system border.
+- Once you have made the window frameless, it will not be able to switch back to the system frame again unless you destroy your window and recreate it with different settings.
 
 #### Native Child Widget
 - There **must not** be any internal child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
     - If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container window.
 
+#### Fixed width/height/size
+- If you want to disable window resizing, you can set a same minimum size and maximum size, which is officially supported by QWK. If you use other special means to achieve this, QWK doesn't guarantee everything can still be fully functional.
+- If you want to disable window maximization, you can remove the `Qt::WindowMaximizeButtonHint` flag from the window.
+- If you only set a fixed width or height, not fully fixed size, the window size you obtained from Qt may not always be correct in some cases. You may workaround this by using system APIs such as `GetWindowRect` or `GetClientRect`. The root cause lies deep in Qt QPA code and currently we don't know how to fix it without modifying Qt itself.
+
 #### Windows 10
 
-- Due to the inherent defects in the Windows 10 window system, the top border will disappear when the system title bar is removed. We have filtered Qt's event and perfectly reshown the system top border, thanks to the implementation of Windows Terminal for our reference. However, this workaround only works with QtWidgets and QtQuick(Only D3D) applications.
+- Due to the inherent defects in the Windows 10 window system, the top border will disappear when the system title bar is removed. We have filtered Qt's event and perfectly reshown the system top border, thanks to the implementation of Windows Terminal for our reference. However, this workaround only works with QtWidgets and QtQuick (**only when rendering through D3D**) applications.
 
 - In QtQuick applications that use OpenGL or other rendering backends, we use Qt's painting system to emulate this border. But since Windows 10 system border is translucent, the difference from the system border is more noticeable in a dark background.
 
