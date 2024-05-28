@@ -70,7 +70,7 @@ Please read [Vulnerabilities](#Vulnerabilities) carefully to acquire detailed re
 ### Build & Install
 
 ```sh
-git clone -b main --recursive https://github.com/stdware/qwindowkit
+git clone --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
@@ -81,9 +81,6 @@ cmake -B build -S . \
 cmake --build build --target install --config Debug --parallel
 cmake --build build --target install/strip --config Release --parallel
 ```
-
-If you forget to clone the submodules or they failed to download, you can try `git submodule update --init --recursive` to clone it separately. You can remove the `--init` parameter if you are just going to update the submodules, not clone them.
-
 You can also include this directory as a subproject if you choose CMake as your build system.
 
 For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
@@ -159,7 +156,7 @@ auto agent = new QWK::WidgetWindowAgent(w);
 agent->setup(w);
 ```
 
-You should call `QWK::WidgetWindowAgent::setup` as early as possible, especially when you need to set the minimum width/height/size and/or maximum width/height/size. QWindowKit will change some Qt internal data which will affect how Qt calculates the window size, and thus you need to let QWindowKit initialize as soon as possible.
+You should call `QWK::WidgetWindowAgent::setup()` as early as possible, especially when you need to set the size constrains. QWindowKit will change some Qt internal data which will affect how Qt calculates the window size, and thus you need to let QWindowKit initialize at the very beginning.
 
 #### Construct Title bar
 
@@ -197,6 +194,8 @@ agent->setHitTestVisible(myTitleBar->menuBar(), true);
 
 The rest region within the title bar will be regarded as the draggable area for the user to move the window, and thus any QWidgets inside it will not receive any user interaction events such as mouse events/focus events/etc anymore, but you can still send/post such events to these widgets manually, either through Qt API or system API.
 
+- If you want to disable window maximization, you can remove the `Qt::WindowMaximizeButtonHint` flag from the window.
+
 <!-- #### Window Attributes (Experimental)
 
 On Windows 11, you can use this API to enable system effects.
@@ -228,7 +227,7 @@ int main(int argc, char *argv[])
 
 #### Setup Window Components
 
-Then you can use `QWindowKit` data types and classes by importing it's URI:
+Then you can use `QWindowKit` data types and classes by importing its URI:
 
 ```qml
 import QtQuick 2.15
@@ -251,7 +250,7 @@ Window {
 
 You can omit the version number or use "auto" instead of "1.0" for the module URI if you are using Qt6.
 
-As we just mentioned above, if you are going to change the minimum width/height/size and/or maximum width/height/size, please do it after `windowAgent.setup` is called.
+As we just mentioned above, if you are going to set the size constrains, please do it after `windowAgent.setup()` is called.
 
 ### Learn More
 
@@ -267,7 +266,7 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 - To achieve better frameless functionality, QWindowKit depends heavily on Qt's internal implementation. However, there are many differences in different versions of Qt, and earlier versions of Qt5 and Qt6 have many bugs which make it extremely difficult for QWindowKit to workaround without changing the Qt source code.
 - And also due to limited manpower, although QWindowKit can be successfully compiled on Qt 5.12 or later, it can hardly work perfectly on all Qt versions.
 - Therefore, the following Qt version ranges are recommended, if there are any exceptions with QWindowKit in your application, make sure the Qt version you use is in the ranges before raising the issue.
-    - Qt 5: 5.15.2 or higher (the newer, the better)
+    - Qt 5: 5.15.2 or higher
     - Qt 6: 6.6.2 or higher (the newer, the better)
 
 #### Hot Switch
@@ -277,10 +276,9 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 - There **must not** be any internal child widget with `Qt::WA_NativeWindow` property enabled, otherwise the native features and display may be abnormal. Therefore, do not set any widget that has called `QWidget::winId()` or `QWidget::setAttribute(Qt::WA_NativeWindow)` as a descendant of a frameless window.
     - If you really need to move widgets between different windows, make sure that the widget is not a top-level window and wrap it with a frameless container window.
 
-#### Fixed width/height/size
-- If you want to disable window resizing, you can set a same minimum size and maximum size, which is officially supported by QWK. If you use other special means to achieve this, QWK doesn't guarantee everything can still be fully functional.
-- If you want to disable window maximization, you can remove the `Qt::WindowMaximizeButtonHint` flag from the window.
-- If you only set a fixed width or height, not fully fixed size, the window size you obtained from Qt may not always be correct in some cases. You may workaround this by using system APIs such as `GetWindowRect` or `GetClientRect`. The root cause lies deep in Qt QPA code and currently we don't know how to fix it without modifying Qt itself.
+#### Size Constrains
+- If you want to disable window resizing, you can set a fixed size, which is officially supported by QWindowKit. If you use other special means to achieve this, QWK doesn't guarantee everything can still be fully functional.
+- If you set a maximized width or height, the window should not be maximized because you cannot get the correct window size through Qt APIs. You may workaround this by using system APIs such as `GetWindowRect` or `GetClientRect`. The root cause lies deep in Qt QPA implementations and currently we don't know how to fix it without modifying Qt itself.
 
 #### Windows 10
 
@@ -290,7 +288,7 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 
 ## TODO
 
-- Fix 5.15 window abnormal behavior
+- Fix mouse cursor mapping issues
 - More documentations
 - When do we support Linux native features?
 
