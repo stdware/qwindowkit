@@ -20,4 +20,6 @@
     } else {
         LIBS += -l@QMAKE_QWK_CORE_NAME_RELEASE@
     }
+
+    @QMAKE_QWK_CORE_STATIC_MACRO@
 }

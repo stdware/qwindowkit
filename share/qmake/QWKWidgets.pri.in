@@ -8,4 +8,6 @@
     } else {
         LIBS += -l@QMAKE_QWK_WIDGETS_NAME_RELEASE@
     }
+
+    @QMAKE_QWK_WIDGETS_STATIC_MACRO@
 }
