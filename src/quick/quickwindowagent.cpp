@@ -82,12 +82,19 @@ namespace QWK {
         Q_EMIT systemButtonChanged(button, item);
     }
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const {
+#else
     bool QuickWindowAgent::isHitTestVisible(const QQuickItem *item) const {
+#endif
         Q_D(const QuickWindowAgent);
         return d->context->isHitTestVisible(item);
     }
-
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    void QuickWindowAgent::setHitTestVisible(QQuickItem *item, bool visible) {
+#else
     void QuickWindowAgent::setHitTestVisible(const QQuickItem *item, bool visible) {
+#endif
         Q_D(QuickWindowAgent);
         d->context->setHitTestVisible(item, visible);
     }

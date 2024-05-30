@@ -31,8 +31,13 @@ namespace QWK {
         Q_INVOKABLE QQuickItem *systemButton(SystemButton button) const;
         Q_INVOKABLE void setSystemButton(SystemButton button, QQuickItem *item);
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+        Q_INVOKABLE bool isHitTestVisible(QQuickItem *item) const;
+        Q_INVOKABLE void setHitTestVisible(QQuickItem *item, bool visible = true);
+#else
         Q_INVOKABLE bool isHitTestVisible(const QQuickItem *item) const;
         Q_INVOKABLE void setHitTestVisible(const QQuickItem *item, bool visible = true);
+#endif
 
 #ifdef Q_OS_MAC
         // The system button area APIs are experimental, very likely to change in the future.
