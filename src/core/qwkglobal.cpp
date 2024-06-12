@@ -27,10 +27,14 @@ namespace QWK {
 
                 if (!obj)
                     continue;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
                 if (QObjectPrivate::get(obj)->threadData.loadRelaxed() !=
                     d->threadData.loadRelaxed()) {
-                    qWarning(
-                        "QCoreApplication: Object event filter cannot be in a different thread.");
+#else
+                if (QObjectPrivate::get(obj)->threadData != d->threadData) {
+#endif
+                    qWarning("QCoreApplication: Object event filter cannot be in a different "
+                             "thread.");
                     continue;
                 }
                 if (obj->eventFilter(receiver, event))
@@ -39,5 +43,4 @@ namespace QWK {
         }
         return false;
     }
-
 }
