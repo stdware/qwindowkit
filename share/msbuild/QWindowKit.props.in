@@ -15,4 +15,7 @@
       <AdditionalDependencies Condition="'$(Configuration)'=='Release'">@MSBUILD_QWK_LIBRARY_LIST_RELEASE@;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <PropertyGroup>
+    @MSBUILD_QWK_STATIC_MACRO@
+  </PropertyGroup>
 </Project>

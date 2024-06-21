@@ -77,6 +77,12 @@ if(MSVC)
     to_dos_separator(MSBUILD_QWK_INSTALL_LIBDIR)
     to_dos_separator(MSBUILD_QWK_INSTALL_INCDIR)
 
+    if(QWINDOWKIT_BUILD_STATIC)
+        set(MSBUILD_QWK_STATIC_MACRO 
+            "<PreprocessorDefinitions>QWK_CORE_STATIC;QWK_WIDGETS_STATIC;QWK_QUICK_STATIC</PreprocessorDefinitions>"
+        )
+    endif()
+
     configure_file(${CMAKE_CURRENT_LIST_DIR}/msbuild/QWindowKit.props.in
         ${_build_data_dir}/msbuild/QWindowKit.props
         @ONLY
