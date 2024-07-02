@@ -78,8 +78,8 @@ cmake -B build -S . \
   -DCMAKE_INSTALL_PREFIX=/path/install \
   -G "Ninja Multi-Config"
 
-cmake --build build --target install --config Debug --parallel
-cmake --build build --target install/strip --config Release --parallel
+cmake --build build --target install --config Debug
+cmake --build build --target install --config Release
 ```
 You can also include this directory as a subproject if you choose CMake as your build system.
 
