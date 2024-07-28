@@ -26,16 +26,27 @@ namespace QWK {
         notifyWinIdChange();
     }
 
-    bool AbstractWindowContext::setHitTestVisible(const QObject *obj, bool visible) {
+    bool AbstractWindowContext::setHitTestVisible(QObject *obj, bool visible) {
         Q_ASSERT(obj);
         if (!obj) {
             return false;
         }
 
+        auto it = m_hitTestVisibleItems.find(obj);
         if (visible) {
+            if (it != m_hitTestVisibleItems.end()) {
+                return true;
+            }
+            connect(obj, &QObject::destroyed, this,
+                    &AbstractWindowContext::_q_hitTestVisibleItemDestroyed);
             m_hitTestVisibleItems.insert(obj);
         } else {
-            m_hitTestVisibleItems.remove(obj);
+            if (it == m_hitTestVisibleItems.end()) {
+                return false;
+            }
+            disconnect(obj, &QObject::destroyed, this,
+                       &AbstractWindowContext::_q_hitTestVisibleItemDestroyed);
+            m_hitTestVisibleItems.erase(it);
         }
         return true;
     }
@@ -47,8 +58,18 @@ namespace QWK {
             return false;
         }
 
-        if (m_systemButtons[button] == obj) {
-            return false;
+        auto org = m_systemButtons[button];
+        if (org == obj) {
+            return true;
+        }
+
+        if (org) {
+            disconnect(org, &QObject::destroyed, this,
+                       &AbstractWindowContext::_q_systemButtonDestroyed);
+        }
+        if (obj) {
+            connect(obj, &QObject::destroyed, this,
+                    &AbstractWindowContext::_q_systemButtonDestroyed);
         }
         m_systemButtons[button] = obj;
         return true;
@@ -56,18 +77,20 @@ namespace QWK {
 
     bool AbstractWindowContext::setTitleBar(QObject *item) {
         Q_ASSERT(item);
-        if (m_titleBar == item) {
+        auto org = m_titleBar;
+        if (org == item) {
             return false;
         }
 
-        if (m_titleBar) {
+        if (org) {
             // Since the title bar is changed, all items inside it should be dereferenced right away
-            for (auto &button : m_systemButtons) {
-                button = nullptr;
-            }
-            m_hitTestVisibleItems.clear();
+            removeSystemButtonsAndHitTestItems();
+            disconnect(org, &QObject::destroyed, this,
+                       &AbstractWindowContext::_q_titleBarDistroyed);
         }
-
+        if (item) {
+            connect(item, &QObject::destroyed, this, &AbstractWindowContext::_q_titleBarDistroyed);
+        }
         m_titleBar = item;
         return true;
     }
@@ -276,6 +299,40 @@ namespace QWK {
                                                        const QVariant &attribute,
                                                        const QVariant &oldAttribute) {
         return false;
+    }
+
+    void AbstractWindowContext::removeSystemButtonsAndHitTestItems() {
+        for (auto &button : m_systemButtons) {
+            if (!button) {
+                continue;
+            }
+            disconnect(button, &QObject::destroyed, this,
+                       &AbstractWindowContext::_q_systemButtonDestroyed);
+            button = nullptr;
+        }
+        for (auto &item : m_hitTestVisibleItems) {
+            disconnect(item, &QObject::destroyed, this,
+                       &AbstractWindowContext::_q_hitTestVisibleItemDestroyed);
+        }
+        m_hitTestVisibleItems.clear();
+    }
+
+    void AbstractWindowContext::_q_titleBarDistroyed(QObject *obj) {
+        Q_UNUSED(obj)
+        removeSystemButtonsAndHitTestItems();
+        m_titleBar = nullptr;
+    }
+
+    void AbstractWindowContext::_q_hitTestVisibleItemDestroyed(QObject *obj) {
+        m_hitTestVisibleItems.remove(obj);
+    }
+
+    void AbstractWindowContext::_q_systemButtonDestroyed(QObject *obj) {
+        for (auto &item : m_systemButtons) {
+            if (item == obj) {
+                item = nullptr;
+            }
+        }
     }
 
 }

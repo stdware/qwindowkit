@@ -40,7 +40,7 @@ namespace QWK {
 #endif
 
         bool isHitTestVisible(const QWidget *w) const;
-        void setHitTestVisible(const QWidget *w, bool visible = true);
+        void setHitTestVisible(QWidget *w, bool visible = true);
 
     Q_SIGNALS:
         void titleBarChanged(QWidget *w);

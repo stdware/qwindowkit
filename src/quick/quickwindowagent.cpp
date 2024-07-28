@@ -90,11 +90,8 @@ namespace QWK {
         Q_D(const QuickWindowAgent);
         return d->context->isHitTestVisible(item);
     }
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+
     void QuickWindowAgent::setHitTestVisible(QQuickItem *item, bool visible) {
-#else
-    void QuickWindowAgent::setHitTestVisible(const QQuickItem *item, bool visible) {
-#endif
         Q_D(QuickWindowAgent);
         d->context->setHitTestVisible(item, visible);
     }

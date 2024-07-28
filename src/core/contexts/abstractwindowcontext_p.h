@@ -47,7 +47,7 @@ namespace QWK {
         inline WindowItemDelegate *delegate() const;
 
         inline bool isHitTestVisible(const QObject *obj) const;
-        bool setHitTestVisible(const QObject *obj, bool visible);
+        bool setHitTestVisible(QObject *obj, bool visible);
 
         inline QObject *systemButton(WindowAgentBase::SystemButton button) const;
         bool setSystemButton(WindowAgentBase::SystemButton button, QObject *obj);
@@ -124,6 +124,13 @@ namespace QWK {
 
         QVariantHash m_windowAttributes;
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
+        
+        void removeSystemButtonsAndHitTestItems();
+
+    private:
+        void _q_titleBarDistroyed(QObject *obj);
+        void _q_hitTestVisibleItemDestroyed(QObject *obj);
+        void _q_systemButtonDestroyed(QObject *obj);
     };
 
     inline QObject *AbstractWindowContext::host() const {
