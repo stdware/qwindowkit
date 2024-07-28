@@ -123,7 +123,7 @@ namespace QWK {
         You're supposed to make sure that the specified widget \a w is a child or descendant
         of the title bar widget.
     */
-    void WidgetWindowAgent::setHitTestVisible(const QWidget *w, bool visible) {
+    void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
         Q_D(WidgetWindowAgent);
         d->context->setHitTestVisible(w, visible);
     }
