@@ -343,7 +343,6 @@ namespace QWK {
             case HTBORDER:
                 return Win32WindowContext::FixedBorder;
             default:
-                Q_UNREACHABLE();
                 break;
         }
         return Win32WindowContext::Outside;
