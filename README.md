@@ -7,9 +7,12 @@ implementation, with a complete refactoring and upgrading of the architecture.
 
 Feature requests are welcome.
 
-## Join with Us :triangular_flag_on_post:
+## Stay In Touch :triangular_flag_on_post:
 
-You can join our [Discord channel](https://discord.gg/grrM4Tmesy). You can share your findings, thoughts and ideas on improving / implementing FramelessHelper functionalities on more platforms and apps!
+You can share your findings, thoughts and ideas on improving / implementing QWindowKit functionalities on more platforms and apps!
+
+- Chat with us on [Discord](https://discord.gg/grrM4Tmesy)
+- 中文用户可加入 QQ 群 876419693
 
 ## Supported Platforms
 
