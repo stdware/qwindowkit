@@ -834,9 +834,7 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("title-bar-height")) {
-            return m_windowId
-                       ? int(getTitleBarHeight(reinterpret_cast<HWND>(m_windowId)))
-                       : 0;
+            return m_windowId ? int(getTitleBarHeight(reinterpret_cast<HWND>(m_windowId))) : 0;
         }
         return AbstractWindowContext::windowAttribute(key);
     }
@@ -1695,7 +1693,8 @@ namespace QWK {
                         // outside the window, that is, the three transparent window resize area.
                         // Returning HTCLIENT will confuse Windows, we can't put our controls there
                         // anyway.
-                        *result = HTNOWHERE; // Make sure we can know we don't set any value explicitly later.
+                        *result = HTNOWHERE; // Make sure we can know we don't set any value
+                                             // explicitly later.
                         if (originalHitTestResult == HTCAPTION) {
                         } else if (isFixedSize || dontOverrideCursor) {
                             *result = HTBORDER;
@@ -1724,11 +1723,13 @@ namespace QWK {
                                 } else {
                                     *result = HTLEFT;
                                 }
-                            } else if (originalHitTestResult == HTLEFT || originalHitTestResult == HTRIGHT) {
+                            } else if (originalHitTestResult == HTLEFT ||
+                                       originalHitTestResult == HTRIGHT) {
                                 if (isFixedWidth) {
                                     *result = HTBORDER;
                                 }
-                            } else if (originalHitTestResult == HTTOP || originalHitTestResult == HTBOTTOM) {
+                            } else if (originalHitTestResult == HTTOP ||
+                                       originalHitTestResult == HTBOTTOM) {
                                 if (isFixedHeight) {
                                     *result = HTBORDER;
                                 }
@@ -1757,7 +1758,8 @@ namespace QWK {
                         // inside our homemade title bar now, return HTCLIENT to let our
                         // title bar can still capture mouse events.
                         *result = [&]() {
-                            if (isFixedSize || isFixedHeight || dontOverrideCursor || (isFixedWidth && (isInLeftBorder || isInRightBorder))) {
+                            if (isFixedSize || isFixedHeight || dontOverrideCursor ||
+                                (isFixedWidth && (isInLeftBorder || isInRightBorder))) {
                                 if (isInTitleBar) {
                                     return HTCAPTION;
                                 } else {
@@ -2173,7 +2175,7 @@ namespace QWK {
         // of the upper-left non-client area. It's confirmed that this issue exists
         // from Windows 7 to Windows 10. Not tested on Windows 11 yet. Don't know
         // whether it exists on Windows XP to Windows Vista or not.
-        *result = wParam ? WVR_REDRAW : FALSE;
+        *result = FALSE;
         return true;
     }
 
