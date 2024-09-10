@@ -2175,6 +2175,9 @@ namespace QWK {
         // of the upper-left non-client area. It's confirmed that this issue exists
         // from Windows 7 to Windows 10. Not tested on Windows 11 yet. Don't know
         // whether it exists on Windows XP to Windows Vista or not.
+
+        // https://github.com/chromium/chromium/blob/5d297da3cf2a642e9ace2b23fed097370bc70814/ui/views/win/hwnd_message_handler.cc#L2330
+        // Do not return WVR_REDRAW otherwise child HWNDs will be mispositioned.
         *result = FALSE;
         return true;
     }
