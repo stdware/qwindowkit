@@ -143,7 +143,7 @@ void MainWindow::installWindowAgent() {
 
     // 2. Construct your title bar
     auto menuBar = [this]() {
-        auto menuBar = new QMenuBar();
+        auto menuBar = new QMenuBar(this);
 
         // Virtual menu
         auto file = new QMenu(tr("File(&F)"), menuBar);
@@ -167,44 +167,38 @@ void MainWindow::installWindowAgent() {
 
 #ifdef Q_OS_WIN
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
+        dwmBlurAction->setData(QStringLiteral("dwm-blur"));
         dwmBlurAction->setCheckable(true);
-        connect(dwmBlurAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), checked)) {
-                return;
-            }
-            setProperty("custom-style", checked);
-            style()->polish(this);
-        });
 
         auto acrylicAction = new QAction(tr("Enable acrylic material"), menuBar);
+        acrylicAction->setData(QStringLiteral("acrylic-material"));
         acrylicAction->setCheckable(true);
-        connect(acrylicAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), true)) {
-                return;
-            }
-            setProperty("custom-style", checked);
-            style()->polish(this);
-        });
 
         auto micaAction = new QAction(tr("Enable mica"), menuBar);
+        micaAction->setData(QStringLiteral("mica"));
         micaAction->setCheckable(true);
-        connect(micaAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("mica"), checked)) {
-                return;
+
+        auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
+        micaAltAction->setData(QStringLiteral("mica-alt"));
+        micaAltAction->setCheckable(true);
+
+        auto winStyleGroup = new QActionGroup(menuBar);
+        // At most one action can be checked at any one time. The actions can also be all unchecked.
+        winStyleGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+        winStyleGroup->addAction(dwmBlurAction);
+        winStyleGroup->addAction(acrylicAction);
+        winStyleGroup->addAction(micaAction);
+        winStyleGroup->addAction(micaAltAction);
+        connect(winStyleGroup, &QActionGroup::triggered, this, [this, winStyleGroup](QAction *action) {
+            // Unset all custom style attributes first, otherwise the style will not display correctly
+            for (auto _act : winStyleGroup->actions()) {
+                windowAgent->setWindowAttribute(_act->data().toString(), false);
             }
-            setProperty("custom-style", checked);
+            windowAgent->setWindowAttribute(action->data().toString(), action->isChecked());
+            setProperty("custom-style", action->isChecked());
             style()->polish(this);
         });
 
-        auto micaAltAction = new QAction(tr("Enable mica alt"), menuBar);
-        micaAltAction->setCheckable(true);
-        connect(micaAltAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("mica-alt"), checked)) {
-                return;
-            }
-            setProperty("custom-style", checked);
-            style()->polish(this);
-        });
 #elif defined(Q_OS_MAC)
         auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);
         darkBlurAction->setCheckable(true);
