@@ -77,13 +77,16 @@ git clone --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
-  -Dqmsetup_DIR=<dir> \ # Optional
+  -Dqmsetup_DIR=<dir> \             # Optional
+  -DQWINDOWKIT_BUILD_QUICK=TRUE \   # Optional
   -DCMAKE_INSTALL_PREFIX=/path/install \
   -G "Ninja Multi-Config"
 
 cmake --build build --target install --config Debug
 cmake --build build --target install --config Release
 ```
+Read the root `CMakeLists.txt` for more build options.
+
 You can also include this directory as a subproject if you choose CMake as your build system.
 
 For other build systems, you need to install with CMake first and include the corresponding configuration files in your project.
