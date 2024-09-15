@@ -12,6 +12,7 @@ Window {
     title: qsTr("Hello, world!")
     Component.onCompleted: {
         windowAgent.setup(window)
+        windowAgent.setWindowAttribute("dark-mode", true)
         window.visible = true
     }
 
@@ -35,10 +36,9 @@ Window {
         id: windowAgent
     }
 
-    MouseArea {
-        anchors.fill: parent
+    TapHandler {
         acceptedButtons: Qt.RightButton
-        onClicked: contextMenu.open()
+        onTapped: contextMenu.open()
     }
 
     Rectangle {
@@ -63,6 +63,7 @@ Window {
             height: 18
             mipmap: true
             source: "qrc:///app/example.png"
+            fillMode: Image.PreserveAspectFit
             Component.onCompleted: windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
         }
 
@@ -140,6 +141,11 @@ Window {
             bold: true
         }
         color: "#FEFEFE"
+        Component.onCompleted: {
+            if ($curveRenderingAvailable) {
+                timeLabel.renderType = Text.CurveRendering
+            }
+        }
     }
 
     Menu {
@@ -163,6 +169,7 @@ Window {
             MenuItem {
                 text: qsTr("Dark")
                 checkable: true
+                checked: true
                 onTriggered: windowAgent.setWindowAttribute("dark-mode", true)
             }
         }
@@ -178,11 +185,28 @@ Window {
 
             MenuItem {
                 enabled: Qt.platform.os === "windows"
+                text: qsTr("None")
+                checkable: true
+                checked: true
+                onTriggered: {
+                    window.color = darkStyle.windowBackgroundColor
+                    windowAgent.setWindowAttribute("dwm-blur", false)
+                    windowAgent.setWindowAttribute("acrylic-material", false)
+                    windowAgent.setWindowAttribute("mica", false)
+                    windowAgent.setWindowAttribute("mica-alt", false)
+                }
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "windows"
                 text: qsTr("DWM blur")
                 checkable: true
                 onTriggered: {
-                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
-                    windowAgent.setWindowAttribute("dwm-blur", checked)
+                    window.color = "transparent"
+                    windowAgent.setWindowAttribute("acrylic-material", false)
+                    windowAgent.setWindowAttribute("mica", false)
+                    windowAgent.setWindowAttribute("mica-alt", false)
+                    windowAgent.setWindowAttribute("dwm-blur", true)
                 }
             }
 
@@ -191,8 +215,11 @@ Window {
                 text: qsTr("Acrylic material")
                 checkable: true
                 onTriggered: {
-                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
-                    windowAgent.setWindowAttribute("acrylic-material", checked)
+                    window.color = "transparent"
+                    windowAgent.setWindowAttribute("dwm-blur", false)
+                    windowAgent.setWindowAttribute("mica", false)
+                    windowAgent.setWindowAttribute("mica-alt", false)
+                    windowAgent.setWindowAttribute("acrylic-material", true)
                 }
             }
 
@@ -201,8 +228,11 @@ Window {
                 text: qsTr("Mica")
                 checkable: true
                 onTriggered: {
-                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
-                    windowAgent.setWindowAttribute("mica", checked)
+                    window.color = "transparent"
+                    windowAgent.setWindowAttribute("dwm-blur", false)
+                    windowAgent.setWindowAttribute("acrylic-material", false)
+                    windowAgent.setWindowAttribute("mica-alt", false)
+                    windowAgent.setWindowAttribute("mica", true)
                 }
             }
 
@@ -211,8 +241,11 @@ Window {
                 text: qsTr("Mica Alt")
                 checkable: true
                 onTriggered: {
-                    window.color = checked ? "transparent" : darkStyle.windowBackgroundColor
-                    windowAgent.setWindowAttribute("mica-alt", checked)
+                    window.color = "transparent"
+                    windowAgent.setWindowAttribute("dwm-blur", false)
+                    windowAgent.setWindowAttribute("acrylic-material", false)
+                    windowAgent.setWindowAttribute("mica", false)
+                    windowAgent.setWindowAttribute("mica-alt", true)
                 }
             }
         }

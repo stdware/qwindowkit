@@ -37,11 +37,14 @@ public:
 
 protected:
     void timerEvent(QTimerEvent *event) override {
+        QLabel::timerEvent(event);
         setText(QTime::currentTime().toString(QStringLiteral("hh:mm:ss")));
     }
 };
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    setAttribute(Qt::WA_DontCreateNativeAncestors);
+
     installWindowAgent();
 
 #if 1
@@ -128,14 +131,6 @@ bool MainWindow::event(QEvent *event) {
     return QMainWindow::event(event);
 }
 
-
-void MainWindow::closeEvent(QCloseEvent *event) {
-    // if (!(qApp->keyboardModifiers() & Qt::ControlModifier)) {
-    //     QTimer::singleShot(1000, this, &QWidget::show);
-    // }
-    event->accept();
-}
-
 void MainWindow::installWindowAgent() {
     // 1. Setup window agent
     windowAgent = new QWK::WidgetWindowAgent(this);
@@ -166,6 +161,11 @@ void MainWindow::installWindowAgent() {
         });
 
 #ifdef Q_OS_WIN
+        auto noneAction = new QAction(tr("None"), menuBar);
+        noneAction->setData(QStringLiteral("none"));
+        noneAction->setCheckable(true);
+        noneAction->setChecked(true);
+
         auto dwmBlurAction = new QAction(tr("Enable DWM blur"), menuBar);
         dwmBlurAction->setData(QStringLiteral("dwm-blur"));
         dwmBlurAction->setCheckable(true);
@@ -183,19 +183,27 @@ void MainWindow::installWindowAgent() {
         micaAltAction->setCheckable(true);
 
         auto winStyleGroup = new QActionGroup(menuBar);
-        // At most one action can be checked at any one time. The actions can also be all unchecked.
-        winStyleGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+        winStyleGroup->addAction(noneAction);
         winStyleGroup->addAction(dwmBlurAction);
         winStyleGroup->addAction(acrylicAction);
         winStyleGroup->addAction(micaAction);
         winStyleGroup->addAction(micaAltAction);
         connect(winStyleGroup, &QActionGroup::triggered, this, [this, winStyleGroup](QAction *action) {
             // Unset all custom style attributes first, otherwise the style will not display correctly
-            for (auto _act : winStyleGroup->actions()) {
-                windowAgent->setWindowAttribute(_act->data().toString(), false);
+            for (const QAction* _act : winStyleGroup->actions()) {
+                const QString data = _act->data().toString();
+                if (data.isEmpty() || data == QStringLiteral("none")) {
+                    continue;
+                }
+                windowAgent->setWindowAttribute(data, false);
             }
-            windowAgent->setWindowAttribute(action->data().toString(), action->isChecked());
-            setProperty("custom-style", action->isChecked());
+            const QString data = action->data().toString();
+            if (data == QStringLiteral("none")) {
+                setProperty("custom-style", false);
+            } else if (!data.isEmpty()) {
+                windowAgent->setWindowAttribute(data, true);
+                setProperty("custom-style", true);
+            }
             style()->polish(this);
         });
 
@@ -248,6 +256,7 @@ void MainWindow::installWindowAgent() {
 
 #ifdef Q_OS_WIN
         settings->addSeparator();
+        settings->addAction(noneAction);
         settings->addAction(dwmBlurAction);
         settings->addAction(acrylicAction);
         settings->addAction(micaAction);
