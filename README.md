@@ -43,6 +43,22 @@ You can share your findings, thoughts and ideas on improving / implementing QWin
 |:-------------------------------:|:---------------------------------:|
 | ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
 
+## Products who use QWK
+
+### Jami
+
+![jami](https://jami.net/content/images/2024/02/Screenshot-2024-01-22-160459-1.jpg)
+
+[Jami](https://jami.net/) is a free/libre, end-to-end encrypted, and private communication software.
+
+Please refer to [this blog](https://jami.net/whats-new-on-desktop/) which officially announced that Jami uses QWK.
+
+### Tietie
+
+![tietie](https://tietieapp.com/tietie.png)
+
+[Tietie](https://tietieapp.com) is a simple and easy to use clipboard management software. Multi-format support, powerful search ability.
+
 ## Requirements
 
 | Component | Requirement |          Details          |
