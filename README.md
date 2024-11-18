@@ -12,7 +12,9 @@ Feature requests are welcome.
 You can share your findings, thoughts and ideas on improving / implementing QWindowKit functionalities on more platforms and apps!
 
 - Chat with us on [Discord](https://discord.gg/grrM4Tmesy)
+  - Please inform us if your product uses QWK, we would like to show it on this README!
 - 中文用户可加入 QQ 群 876419693
+  - 如果您的产品使用了QWK，请告知我们。我们希望在这个自述文件上展示它！
 
 ## Supported Platforms
 
@@ -50,8 +52,6 @@ You can share your findings, thoughts and ideas on improving / implementing QWin
 ![jami](https://jami.net/content/images/2024/02/Screenshot-2024-01-22-160459-1.jpg)
 
 [Jami](https://jami.net/) is a free/libre, end-to-end encrypted, and private communication software.
-
-Please refer to [this blog](https://jami.net/whats-new-on-desktop/) which officially announced that Jami uses QWK.
 
 ### Tietie
 
