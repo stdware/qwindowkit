@@ -12,7 +12,7 @@
         $$QMAKE_QWK_INSTALL_PREFIX/$$QMAKE_QWK_INSTALL_INCDIR/QWindowKit
 
     # Shared link directory
-    LIBS += \
+    QMAKE_QWK_LIB_PATHS += \
         "-L$$QMAKE_QWK_INSTALL_PREFIX/$$QMAKE_QWK_INSTALL_LIBDIR"
     
     CONFIG(debug, debug|release) {
@@ -20,6 +20,8 @@
     } else {
         LIBS += -l@QMAKE_QWK_CORE_NAME_RELEASE@
     }
+
+    LIBS = $$QMAKE_QWK_LIB_PATHS $$LIBS
 
     @QMAKE_QWK_CORE_STATIC_MACRO@
 }

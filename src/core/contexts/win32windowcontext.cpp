@@ -827,6 +827,10 @@ namespace QWK {
             return isSystemBorderEnabled() && !isWin11OrGreater();
         }
 
+        if (key == QStringLiteral("windows-system-border-enabled")) {
+            return isSystemBorderEnabled();
+        }
+
         if (key == QStringLiteral("border-thickness")) {
             return m_windowId
                        ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
@@ -845,16 +849,10 @@ namespace QWK {
         lastHitTestResult = WindowPart::Outside;
         lastHitTestResultRaw = HTNOWHERE;
 
-        if (!isSystemBorderEnabled()) {
-            m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) |
-                                                   Qt::FramelessWindowHint);
-        }
-
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
             removeManagedWindow(reinterpret_cast<HWND>(oldWinId));
         }
-
         if (!winId) {
             return;
         }

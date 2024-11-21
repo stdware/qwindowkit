@@ -64,6 +64,12 @@ namespace QWK {
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
 #endif
+
+#ifdef Q_OS_WINDOWS
+        if (!windowAttribute(QStringLiteral("windows-system-border-enabled")).toBool()) {
+            w->setWindowFlag(Qt::FramelessWindowHint);
+        }
+#endif
         return true;
     }
 
