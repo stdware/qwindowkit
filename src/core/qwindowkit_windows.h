@@ -134,8 +134,16 @@ namespace QWK {
     inline bool WindowsRegistryKey::isValid() const {
         return m_key != nullptr;
     }
-#else
+#elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
     using WindowsRegistryKey = QWinRegistryKey;
+#else
+    class WindowsRegistryKey : public QWinRegistryKey {
+    public:
+
+        explicit WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ, REGSAM access = 0);
+
+        std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
+    };
 #endif
 
     //

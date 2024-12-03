@@ -85,6 +85,18 @@ namespace QWK {
                                reinterpret_cast<unsigned char *>(&value), &size) == ERROR_SUCCESS;
         return qMakePair(value, ok);
     }
+#elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
+
+#else
+    WindowsRegistryKey::WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions, REGSAM access)
+        : QWinRegistryKey(parentHandle, subKey, permissions, access)
+    {
+    }
+
+    std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
+        auto v = value<DWORD>(subKey);
+        return { v.value_or(0), v.has_value() };
+    }
 #endif
 
 }
