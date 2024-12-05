@@ -126,7 +126,7 @@ namespace QWK {
         QPair<DWORD, bool> dwordValue(QStringView subKey) const;
 
         template<typename T>
-        std::optional<T> value(QStringView subKey) const { return {}; }
+        const std::optional<T> value(QStringView subKey) const;
 
     private:
         HKEY m_key;
@@ -134,11 +134,17 @@ namespace QWK {
         Q_DISABLE_COPY(WindowsRegistryKey)
     };
 
-    template<>
-    std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const;
-
     inline bool WindowsRegistryKey::isValid() const {
         return m_key != nullptr;
+    }
+
+    template<>
+    inline const std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
+        auto dv = dwordValue(subKey);
+        if (!dv.second) {
+            return {};
+        }
+        return dv.first;
     }
 #elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
     class WindowsRegistryKey : public QWinRegistryKey {
@@ -147,11 +153,17 @@ namespace QWK {
         explicit WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ, REGSAM access = 0);
 
         template<typename T>
-        std::optional<T> value(QStringView subKey) const { return {}; }
+        inline const std::optional<T> value(QStringView subKey) const;
     };
 
     template<>
-    std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const;
+    inline const std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
+        auto dv = dwordValue(subKey);
+        if (!dv.second) {
+            return {};
+        }
+        return dv.first;
+    }
 #else
     using WindowsRegistryKey = QWinRegistryKey;
 #endif
