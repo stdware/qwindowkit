@@ -125,25 +125,35 @@ namespace QWK {
         QString stringValue(QStringView subKey) const;
         QPair<DWORD, bool> dwordValue(QStringView subKey) const;
 
+        template<typename T>
+        std::optional<T> value(QStringView subKey) const { return {}; }
+
     private:
         HKEY m_key;
 
         Q_DISABLE_COPY(WindowsRegistryKey)
     };
 
+    template<>
+    std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const;
+
     inline bool WindowsRegistryKey::isValid() const {
         return m_key != nullptr;
     }
 #elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
-    using WindowsRegistryKey = QWinRegistryKey;
-#else
     class WindowsRegistryKey : public QWinRegistryKey {
     public:
 
         explicit WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ, REGSAM access = 0);
 
-        std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
+        template<typename T>
+        std::optional<T> value(QStringView subKey) const { return {}; }
     };
+
+    template<>
+    std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const;
+#else
+    using WindowsRegistryKey = QWinRegistryKey;
 #endif
 
     //
