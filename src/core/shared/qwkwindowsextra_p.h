@@ -345,11 +345,8 @@ namespace QWK {
         if (!registry.isValid()) {
             return false;
         }
-        auto value = registry.dwordValue(L"ColorPrevalence");
-        if (!value.second) {
-            return false;
-        }
-        return value.first;
+        auto value = registry.value<DWORD>(L"ColorPrevalence");
+        return value.value_or(false);
     }
 
     static inline bool isHighContrastModeEnabled() {
@@ -368,11 +365,8 @@ namespace QWK {
         if (!registry.isValid()) {
             return false;
         }
-        auto value = registry.dwordValue(L"AppsUseLightTheme");
-        if (!value.second) {
-            return false;
-        }
-        return !value.first;
+        auto value = registry.value<DWORD>(L"AppsUseLightTheme");
+        return value.value_or(false);
 #endif
     }
 
@@ -398,13 +392,13 @@ namespace QWK {
         if (!registry.isValid()) {
             return {};
         }
-        auto value = registry.dwordValue(L"AccentColor");
-        if (!value.second) {
+        auto value = registry.value<DWORD>(L"AccentColor");
+        if (!value) {
             return {};
         }
         // The retrieved value is in the #AABBGGRR format, we need to
         // convert it to the #AARRGGBB format which Qt expects.
-        QColor color = QColor::fromRgba(value.first);
+        QColor color = QColor::fromRgba(*value);
         if (!color.isValid()) {
             return {};
         }
