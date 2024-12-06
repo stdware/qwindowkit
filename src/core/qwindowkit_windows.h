@@ -126,7 +126,7 @@ namespace QWK {
         QPair<DWORD, bool> dwordValue(QStringView subKey) const;
 
         template<typename T>
-        const std::optional<T> value(QStringView subKey) const;
+        std::optional<T> value(QStringView subKey) const;
 
     private:
         HKEY m_key;
@@ -139,8 +139,8 @@ namespace QWK {
     }
 
     template<>
-    inline const std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
-        auto dv = dwordValue(subKey);
+    inline std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
+        const auto dv = dwordValue(subKey);
         if (!dv.second) {
             return {};
         }
@@ -153,12 +153,12 @@ namespace QWK {
         explicit WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ, REGSAM access = 0);
 
         template<typename T>
-        inline const std::optional<T> value(QStringView subKey) const;
+        inline std::optional<T> value(QStringView subKey) const;
     };
 
     template<>
-    inline const std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
-        auto dv = dwordValue(subKey);
+    inline std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
+        const auto dv = dwordValue(subKey);
         if (!dv.second) {
             return {};
         }
