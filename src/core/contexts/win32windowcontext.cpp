@@ -948,7 +948,7 @@ namespace QWK {
 
         if (key == QStringLiteral("extra-margins")) {
             auto margins = qmargins2margins(attribute.value<QMargins>());
-            return apis.pDwmExtendFrameIntoClientArea(hwnd, &margins) == S_OK;
+            return SUCCEEDED(apis.pDwmExtendFrameIntoClientArea(hwnd, &margins));
         }
 
         if (key == QStringLiteral("dark-mode")) {
@@ -962,12 +962,8 @@ namespace QWK {
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
-            for (const auto attr : {
-                     _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
-                     _DWMWA_USE_IMMERSIVE_DARK_MODE,
-                 }) {
-                apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
-            }
+            const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+            apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
 
             apis.pFlushMenuThemes();
             return true;

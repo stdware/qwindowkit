@@ -239,96 +239,96 @@ namespace QWK {
 
     }
 
-    static inline constexpr bool operator==(const POINT &lhs, const POINT &rhs) noexcept {
+    inline constexpr bool operator==(const POINT &lhs, const POINT &rhs) noexcept {
         return ((lhs.x == rhs.x) && (lhs.y == rhs.y));
     }
 
-    static inline constexpr bool operator!=(const POINT &lhs, const POINT &rhs) noexcept {
+    inline constexpr bool operator!=(const POINT &lhs, const POINT &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr bool operator==(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator==(const SIZE &lhs, const SIZE &rhs) noexcept {
         return ((lhs.cx == rhs.cx) && (lhs.cy == rhs.cy));
     }
 
-    static inline constexpr bool operator!=(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator!=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr bool operator>(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator>(const SIZE &lhs, const SIZE &rhs) noexcept {
         return ((lhs.cx * lhs.cy) > (rhs.cx * rhs.cy));
     }
 
-    static inline constexpr bool operator>=(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator>=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator>(lhs, rhs) || operator==(lhs, rhs));
     }
 
-    static inline constexpr bool operator<(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator<(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator!=(lhs, rhs) && !operator>(lhs, rhs));
     }
 
-    static inline constexpr bool operator<=(const SIZE &lhs, const SIZE &rhs) noexcept {
+    inline constexpr bool operator<=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return (operator<(lhs, rhs) || operator==(lhs, rhs));
     }
 
-    static inline constexpr bool operator==(const RECT &lhs, const RECT &rhs) noexcept {
+    inline constexpr bool operator==(const RECT &lhs, const RECT &rhs) noexcept {
         return ((lhs.left == rhs.left) && (lhs.top == rhs.top) && (lhs.right == rhs.right) &&
                 (lhs.bottom == rhs.bottom));
     }
 
-    static inline constexpr bool operator!=(const RECT &lhs, const RECT &rhs) noexcept {
+    inline constexpr bool operator!=(const RECT &lhs, const RECT &rhs) noexcept {
         return !operator==(lhs, rhs);
     }
 
-    static inline constexpr QPoint point2qpoint(const POINT &point) {
+    inline constexpr QPoint point2qpoint(const POINT &point) {
         return QPoint{int(point.x), int(point.y)};
     }
 
-    static inline constexpr POINT qpoint2point(const QPoint &point) {
+    inline constexpr POINT qpoint2point(const QPoint &point) {
         return POINT{LONG(point.x()), LONG(point.y())};
     }
 
-    static inline constexpr QSize size2qsize(const SIZE &size) {
+    inline constexpr QSize size2qsize(const SIZE &size) {
         return QSize{int(size.cx), int(size.cy)};
     }
 
-    static inline constexpr SIZE qsize2size(const QSize &size) {
+    inline constexpr SIZE qsize2size(const QSize &size) {
         return SIZE{LONG(size.width()), LONG(size.height())};
     }
 
-    static inline constexpr QRect rect2qrect(const RECT &rect) {
+    inline constexpr QRect rect2qrect(const RECT &rect) {
         return QRect{
             QPoint{int(rect.left),        int(rect.top)         },
             QSize{int(RECT_WIDTH(rect)), int(RECT_HEIGHT(rect))}
         };
     }
 
-    static inline constexpr RECT qrect2rect(const QRect &qrect) {
+    inline constexpr RECT qrect2rect(const QRect &qrect) {
         return RECT{LONG(qrect.left()), LONG(qrect.top()), LONG(qrect.right()),
                     LONG(qrect.bottom())};
     }
 
-    static inline constexpr QMargins margins2qmargins(const MARGINS &margins) {
+    inline constexpr QMargins margins2qmargins(const MARGINS &margins) {
         return {margins.cxLeftWidth, margins.cyTopHeight, margins.cxRightWidth,
                 margins.cyBottomHeight};
     }
 
-    static inline constexpr MARGINS qmargins2margins(const QMargins &qmargins) {
+    inline constexpr MARGINS qmargins2margins(const QMargins &qmargins) {
         return {qmargins.left(), qmargins.right(), qmargins.top(), qmargins.bottom()};
     }
 
-    static inline /*constexpr*/ QString hwnd2str(const WId windowId) {
+    inline /*constexpr*/ QString hwnd2str(const WId windowId) {
         // NULL handle is allowed here.
         return QLatin1String("0x") +
                QString::number(windowId, 16).toUpper().rightJustified(8, u'0');
     }
 
-    static inline /*constexpr*/ QString hwnd2str(HWND hwnd) {
+    inline /*constexpr*/ QString hwnd2str(HWND hwnd) {
         // NULL handle is allowed here.
         return hwnd2str(reinterpret_cast<WId>(hwnd));
     }
 
-    static inline bool isDwmCompositionEnabled() {
+    inline bool isDwmCompositionEnabled() {
         if (isWin8OrGreater()) {
             return true;
         }
@@ -340,7 +340,7 @@ namespace QWK {
         return SUCCEEDED(apis.pDwmIsCompositionEnabled(&enabled)) && enabled;
     }
 
-    static inline bool isWindowFrameBorderColorized() {
+    inline bool isWindowFrameBorderColorized() {
         WindowsRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
         if (!registry.isValid()) {
             return false;
@@ -349,14 +349,17 @@ namespace QWK {
         return value.value_or(false);
     }
 
-    static inline bool isHighContrastModeEnabled() {
+    inline bool isHighContrastModeEnabled() {
         HIGHCONTRASTW hc{};
         hc.cbSize = sizeof(hc);
         ::SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(hc), &hc, FALSE);
         return (hc.dwFlags & HCF_HIGHCONTRASTON);
     }
 
-    static inline bool isDarkThemeActive() {
+    inline bool isDarkThemeActive() {
+        if (!isWin101809OrGreater()) {
+            return false;
+        }
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 #else
@@ -370,21 +373,17 @@ namespace QWK {
 #endif
     }
 
-    static inline bool isDarkWindowFrameEnabled(HWND hwnd) {
+    inline bool isDarkWindowFrameEnabled(HWND hwnd) {
+        if (!isWin101809OrGreater()) {
+            return false;
+        }
         BOOL enabled = FALSE;
         const DynamicApis &apis = DynamicApis::instance();
-        if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_USE_IMMERSIVE_DARK_MODE, &enabled,
-                                                  sizeof(enabled)))) {
-            return enabled;
-        } else if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd,
-                                                         _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
-                                                         &enabled, sizeof(enabled)))) {
-            return enabled;
-        }
-        return false;
+        const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+        return SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, attr, &enabled, sizeof(enabled))) && enabled;
     }
 
-    static inline QColor getAccentColor() {
+    inline QColor getAccentColor() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         return QGuiApplication::palette().color(QPalette::Accent);
 #else
@@ -406,7 +405,7 @@ namespace QWK {
 #endif
     }
 
-    static inline quint32 getDpiForWindow(HWND hwnd) {
+    inline quint32 getDpiForWindow(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetDpiForWindow) {         // Win10
             return apis.pGetDpiForWindow(hwnd);
@@ -425,7 +424,7 @@ namespace QWK {
         }
     }
 
-    static inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
+    inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetSystemMetricsForDpi) {
             return apis.pGetSystemMetricsForDpi(index, dpi);
@@ -433,25 +432,31 @@ namespace QWK {
         return ::GetSystemMetrics(index);
     }
 
-    static inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+    inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (UINT result = 0; SUCCEEDED(apis.pDwmGetWindowAttribute(
-                hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &result, sizeof(result)))) {
-            return result;
+        if (isWin11OrGreater()) {
+            UINT result = 0;
+            if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
+                                                      &result, sizeof(result)))) {
+                return result;
+            }
         }
-        return getSystemMetricsForDpi(SM_CXBORDER, getDpiForWindow(hwnd));
+        if (isWin10OrGreater()) {
+            return static_cast<quint32>(qreal(1) * qreal(getDpiForWindow(hwnd)) / qreal(USER_DEFAULT_SCREEN_DPI));
+        }
+        return 0;
     }
 
-    static inline quint32 getResizeBorderThickness(HWND hwnd) {
+    inline quint32 getResizeBorderThickness(HWND hwnd) {
         const quint32 dpi = getDpiForWindow(hwnd);
         return getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
-    static inline quint32 getTitleBarHeight(HWND hwnd) {
+    inline quint32 getTitleBarHeight(HWND hwnd) {
         const quint32 dpi = getDpiForWindow(hwnd);
         return getSystemMetricsForDpi(SM_CYCAPTION, dpi) +
-               getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+               getSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) +
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
