@@ -436,7 +436,7 @@ namespace QWK {
         }
         const qreal dpr = qreal(dpi) / qreal(USER_DEFAULT_SCREEN_DPI);
         // ### Not sure how Windows itself rounds non-integer value.
-        return qFloor(qreal(result) * dpr);
+        return qFloor(qreal(result) / dpr);
     }
 
     inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
