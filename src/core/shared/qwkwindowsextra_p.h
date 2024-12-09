@@ -429,7 +429,14 @@ namespace QWK {
         if (apis.pGetSystemMetricsForDpi) {
             return apis.pGetSystemMetricsForDpi(index, dpi);
         }
-        return ::GetSystemMetrics(index);
+        const int result = ::GetSystemMetrics(index);
+        // GetSystemMetrics() always give you scaled value.
+        if (dpi != USER_DEFAULT_SCREEN_DPI) {
+            return result;
+        }
+        const qreal dpr = qreal(dpi) / qreal(USER_DEFAULT_SCREEN_DPI);
+        // ### Not sure how Windows itself rounds non-integer value.
+        return qFloor(qreal(result) * dpr);
     }
 
     inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
@@ -442,19 +449,28 @@ namespace QWK {
             }
         }
         if (isWin10OrGreater()) {
-            return static_cast<quint32>(qreal(1) * qreal(getDpiForWindow(hwnd)) / qreal(USER_DEFAULT_SCREEN_DPI));
+            const quint32 dpi = getDpiForWindow(hwnd);
+            // When DPI is 96, it should be 1px.
+            return getSystemMetricsForDpi(SM_CXBORDER, dpi);
         }
+        // There's no such thing (a visible frame border line) before Win10.
         return 0;
     }
 
     inline quint32 getResizeBorderThickness(HWND hwnd) {
         const quint32 dpi = getDpiForWindow(hwnd);
+        // When DPI is 96, SM_CXSIZEFRAME is 4px, SM_CXPADDEDBORDER is also 4px,
+        // so the result should be 8px. This result won't be affected by OS version,
+        // it's 8px in Win7, and so in Win11.
         return getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
     inline quint32 getTitleBarHeight(HWND hwnd) {
         const quint32 dpi = getDpiForWindow(hwnd);
+        // When DPI is 96, SM_CYCAPTION is 23px, so the result should be 31px.
+        // However, according to latest MS design manual, the title bar height
+        // should be 32px, maybe there's some rounding issue.
         return getSystemMetricsForDpi(SM_CYCAPTION, dpi) +
                getSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) +
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
