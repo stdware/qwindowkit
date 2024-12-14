@@ -87,10 +87,5 @@ namespace QWK {
                                reinterpret_cast<unsigned char *>(&value), &size) == ERROR_SUCCESS;
         return qMakePair(value, ok);
     }
-#elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
-    WindowsRegistryKey::WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions, REGSAM access)
-        : QWinRegistryKey(parentHandle, subKey, permissions, access)
-    {
-    }
 #endif
 }

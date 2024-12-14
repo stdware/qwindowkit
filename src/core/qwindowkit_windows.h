@@ -62,22 +62,22 @@ namespace QWK {
         inline bool IsWindows1122H2OrGreater_Real() {
             RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
-                   (rovi.dwMajorVersion == 10 && (rovi.dwMinorVersion > 0 ||
-                    rovi.dwBuildNumber >= 22621));
+                   (rovi.dwMajorVersion == 10 &&
+                    (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 22621));
         }
 
         inline bool IsWindows11OrGreater_Real() {
             RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
-                   (rovi.dwMajorVersion == 10 && (rovi.dwMinorVersion > 0 ||
-                    rovi.dwBuildNumber >= 22000));
+                   (rovi.dwMajorVersion == 10 &&
+                    (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 22000));
         }
 
         inline bool IsWindows1020H1OrGreater_Real() {
             RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
-                   (rovi.dwMajorVersion == 10 && (rovi.dwMinorVersion > 0 ||
-                    rovi.dwBuildNumber >= 19041));
+                   (rovi.dwMajorVersion == 10 &&
+                    (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19041));
         }
 
         inline bool IsWindows102004OrGreater_Real() {
@@ -87,8 +87,8 @@ namespace QWK {
         inline bool IsWindows101903OrGreater_Real() {
             RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
-                   (rovi.dwMajorVersion == 10 && (rovi.dwMinorVersion > 0 ||
-                    rovi.dwBuildNumber >= 18362));
+                   (rovi.dwMajorVersion == 10 &&
+                    (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 18362));
         }
 
         inline bool IsWindows1019H1OrGreater_Real() {
@@ -98,8 +98,8 @@ namespace QWK {
         inline bool IsWindows101809OrGreater_Real() {
             RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
-                   (rovi.dwMajorVersion == 10 && (rovi.dwMinorVersion > 0 ||
-                    rovi.dwBuildNumber >= 17763));
+                   (rovi.dwMajorVersion == 10 &&
+                    (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 17763));
         }
 
         inline bool IsWindows10RS5OrGreater_Real() {
@@ -147,9 +147,6 @@ namespace QWK {
         QString stringValue(QStringView subKey) const;
         QPair<DWORD, bool> dwordValue(QStringView subKey) const;
 
-        template<typename T>
-        std::optional<T> value(QStringView subKey) const;
-
     private:
         HKEY m_key;
 
@@ -159,34 +156,26 @@ namespace QWK {
     inline bool WindowsRegistryKey::isValid() const {
         return m_key != nullptr;
     }
-
-    template<>
-    inline std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
-        const auto dv = dwordValue(subKey);
-        if (!dv.second) {
-            return {};
-        }
-        return dv.first;
-    }
 #elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
+    using WindowsRegistryKey = QWinRegistryKey;
+#else
     class WindowsRegistryKey : public QWinRegistryKey {
     public:
-        WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ, REGSAM access = 0);
+        WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ,
+                           REGSAM access = 0)
+            : QWinRegistryKey(parentHandle, subKey, permissions, access) {
+        }
 
-        template<typename T>
-        std::optional<T> value(QStringView subKey) const;
+        inline QPair<DWORD, bool> dwordValue(QStringView subKey) const;
     };
 
-    template<>
-    inline std::optional<DWORD> WindowsRegistryKey::value(QStringView subKey) const {
-        const auto dv = dwordValue(subKey);
-        if (!dv.second) {
-            return {};
+    inline QPair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
+        const auto val = value<DWORD>(subKey);
+        if (!val) {
+            return {0, false};
         }
-        return dv.first;
+        return {val.value(), true};
     }
-#else
-    using WindowsRegistryKey = QWinRegistryKey;
 #endif
 
     //

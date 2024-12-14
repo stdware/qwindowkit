@@ -19,11 +19,14 @@
 #include <timeapi.h>
 
 #include <QWKCore/qwindowkit_windows.h>
-#include <QtCore/private/qsystemlibrary_p.h>
 
+#include <QtCore/QtMath>
+#include <QtCore/QPair>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 #include <QtGui/QPalette>
+
+#include <QtCore/private/qsystemlibrary_p.h>
 
 // Don't include this header in any header files.
 
@@ -345,8 +348,11 @@ namespace QWK {
         if (!registry.isValid()) {
             return false;
         }
-        auto value = registry.value<DWORD>(L"ColorPrevalence");
-        return value.value_or(false);
+        auto value = registry.dwordValue(L"ColorPrevalence");
+        if (!value.second) {
+            return false;
+        }
+        return value.first;
     }
 
     inline bool isHighContrastModeEnabled() {
@@ -368,8 +374,11 @@ namespace QWK {
         if (!registry.isValid()) {
             return false;
         }
-        auto value = registry.value<DWORD>(L"AppsUseLightTheme");
-        return value.value_or(false);
+        auto value = registry.dwordValue(L"AppsUseLightTheme");
+        if (!value.second) {
+            return false;
+        }
+        return !value.first;
 #endif
     }
 
@@ -379,8 +388,10 @@ namespace QWK {
         }
         BOOL enabled = FALSE;
         const DynamicApis &apis = DynamicApis::instance();
-        const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
-        return SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, attr, &enabled, sizeof(enabled))) && enabled;
+        const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
+                                                 : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+        return SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, attr, &enabled, sizeof(enabled))) &&
+               enabled;
     }
 
     inline QColor getAccentColor() {
@@ -391,13 +402,13 @@ namespace QWK {
         if (!registry.isValid()) {
             return {};
         }
-        auto value = registry.value<DWORD>(L"AccentColor");
-        if (!value) {
+        auto value = registry.dwordValue(L"AccentColor");
+        if (!value.second) {
             return {};
         }
         // The retrieved value is in the #AABBGGRR format, we need to
         // convert it to the #AARRGGBB format which Qt expects.
-        QColor color = QColor::fromRgba(*value);
+        QColor color = QColor::fromRgba(value.first);
         if (!color.isValid()) {
             return {};
         }
@@ -407,7 +418,7 @@ namespace QWK {
 
     inline quint32 getDpiForWindow(HWND hwnd) {
         const DynamicApis &apis = DynamicApis::instance();
-        if (apis.pGetDpiForWindow) {         // Win10
+        if (apis.pGetDpiForWindow) { // Win10
             return apis.pGetDpiForWindow(hwnd);
         } else if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
