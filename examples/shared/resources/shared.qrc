@@ -6,6 +6,8 @@
         <file>window-bar/minimize.svg</file>
         <file>window-bar/restore.svg</file>
         <file>window-bar/more-line.svg</file>
+        <file>window-bar/pin.svg</file>
+        <file>window-bar/pin-fill.svg</file>
         <file>app/example.png</file>
     </qresource>
 </RCC>

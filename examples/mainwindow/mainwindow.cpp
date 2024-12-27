@@ -291,6 +291,12 @@ void MainWindow::installWindowAgent() {
     iconButton->setObjectName(QStringLiteral("icon-button"));
     iconButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
+    auto pinButton = new QWK::WindowButton();
+    pinButton->setCheckable(true);
+    pinButton->setObjectName(QStringLiteral("pin-button"));
+    pinButton->setProperty("system-button", true);
+    pinButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+
     auto minButton = new QWK::WindowButton();
     minButton->setObjectName(QStringLiteral("min-button"));
     minButton->setProperty("system-button", true);
@@ -311,6 +317,7 @@ void MainWindow::installWindowAgent() {
     auto windowBar = new QWK::WindowBar();
 #ifndef Q_OS_MAC
     windowBar->setIconButton(iconButton);
+    windowBar->setPinButton(pinButton);
     windowBar->setMinButton(minButton);
     windowBar->setMaxButton(maxButton);
     windowBar->setCloseButton(closeButton);
@@ -321,6 +328,7 @@ void MainWindow::installWindowAgent() {
 
     windowAgent->setTitleBar(windowBar);
 #ifndef Q_OS_MAC
+    windowAgent->setHitTestVisible(pinButton, true);
     windowAgent->setSystemButton(QWK::WindowAgentBase::WindowIcon, iconButton);
     windowAgent->setSystemButton(QWK::WindowAgentBase::Minimize, minButton);
     windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
@@ -339,6 +347,14 @@ void MainWindow::installWindowAgent() {
 
 
 #ifndef Q_OS_MAC
+    connect(windowBar, &QWK::WindowBar::pinRequested, this, [this, pinButton](bool pin){
+        if (isHidden() || isMinimized() || isMaximized() || isFullScreen()) {
+            return;
+        }
+        setWindowFlag(Qt::WindowStaysOnTopHint, pin);
+        show();
+        pinButton->setChecked(pin);
+    });
     connect(windowBar, &QWK::WindowBar::minimizeRequested, this, &QWidget::showMinimized);
     connect(windowBar, &QWK::WindowBar::maximizeRequested, this, [this, maxButton](bool max) {
         if (max) {

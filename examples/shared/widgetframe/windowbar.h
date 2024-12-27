@@ -25,6 +25,7 @@ namespace QWK {
         QMenuBar *menuBar() const;
         QLabel *titleLabel() const;
         QAbstractButton *iconButton() const;
+        QAbstractButton *pinButton() const;
         QAbstractButton *minButton() const;
         QAbstractButton *maxButton() const;
         QAbstractButton *closeButton() const;
@@ -32,6 +33,7 @@ namespace QWK {
         void setMenuBar(QMenuBar *menuBar);
         void setTitleLabel(QLabel *label);
         void setIconButton(QAbstractButton *btn);
+        void setPinButton(QAbstractButton *btn);
         void setMinButton(QAbstractButton *btn);
         void setMaxButton(QAbstractButton *btn);
         void setCloseButton(QAbstractButton *btn);
@@ -39,6 +41,7 @@ namespace QWK {
         QMenuBar *takeMenuBar();
         QLabel *takeTitleLabel();
         QAbstractButton *takeIconButton();
+        QAbstractButton *takePinButton();
         QAbstractButton *takeMinButton();
         QAbstractButton *takeMaxButton();
         QAbstractButton *takeCloseButton();
@@ -53,6 +56,7 @@ namespace QWK {
         void setIconFollowWindow(bool value);
 
     Q_SIGNALS:
+        void pinRequested(bool pin = false);
         void minimizeRequested();
         void maximizeRequested(bool max = false);
         void closeRequested();

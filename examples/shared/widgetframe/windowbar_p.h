@@ -29,8 +29,9 @@ namespace QWK {
             IconButton,
             MenuWidget,
             TitleLabel,
-            MinimumButton,
-            MaximumButton,
+            PinButton,
+            MinimizeButton,
+            MaximizeButton,
             CloseButton,
         };
 

@@ -32,9 +32,19 @@ QWK--WindowBar>QAbstractButton[system-button=true] {
     background-color: transparent;
 }
 
+QWK--WindowBar>QAbstractButton#pin-button {
+    qproperty-iconNormal: url(":/window-bar/pin.svg");
+    qproperty-iconChecked: url(":/window-bar/pin-fill.svg");
+    qproperty-iconSize: 15px 15px;
+}
+
+QWK--WindowBar>QAbstractButton#pin-button:hover,
+QWK--WindowBar>QAbstractButton#pin-button:pressed {
+    background-color: rgba(255, 255, 255, 15%);
+}
+
 QWK--WindowBar>QAbstractButton#min-button {
     qproperty-iconNormal: url(":/window-bar/minimize.svg");
-    qproperty-iconSize: 12px 12px;
 }
 
 QWK--WindowBar>QAbstractButton#min-button:hover,
