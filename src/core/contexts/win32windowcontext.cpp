@@ -204,51 +204,6 @@ namespace QWK {
         moveWindowToMonitor(hwnd, activeMonitor);
     }
 
-    static void syncPaintEventWithDwm() {
-        // No need to sync with DWM if DWM composition is disabled.
-        if (!isDwmCompositionEnabled()) {
-            return;
-        }
-        const DynamicApis &apis = DynamicApis::instance();
-        // Dirty hack to workaround the resize flicker caused by DWM.
-        LARGE_INTEGER freq{};
-        ::QueryPerformanceFrequency(&freq);
-        TIMECAPS tc{};
-        apis.ptimeGetDevCaps(&tc, sizeof(tc));
-        const UINT ms_granularity = tc.wPeriodMin;
-        apis.ptimeBeginPeriod(ms_granularity);
-        LARGE_INTEGER now0{};
-        ::QueryPerformanceCounter(&now0);
-        // ask DWM where the vertical blank falls
-        DWM_TIMING_INFO dti{};
-        dti.cbSize = sizeof(dti);
-        apis.pDwmGetCompositionTimingInfo(nullptr, &dti);
-        LARGE_INTEGER now1{};
-        ::QueryPerformanceCounter(&now1);
-        // - DWM told us about SOME vertical blank
-        //   - past or future, possibly many frames away
-        // - convert that into the NEXT vertical blank
-        const auto period = qreal(dti.qpcRefreshPeriod);
-        const auto dt = qreal(dti.qpcVBlank - now1.QuadPart);
-        const qreal ratio = (dt / period);
-        auto w = qreal(0);
-        auto m = qreal(0);
-        if ((dt > qreal(0)) || qFuzzyIsNull(dt)) {
-            w = ratio;
-        } else {
-            // reach back to previous period
-            // - so m represents consistent position within phase
-            w = (ratio - qreal(1));
-        }
-        m = (dt - (period * w));
-        if ((m < qreal(0)) || qFuzzyCompare(m, period) || (m > period)) {
-            return;
-        }
-        const qreal m_ms = (qreal(1000) * m / qreal(freq.QuadPart));
-        ::Sleep(static_cast<DWORD>(std::round(m_ms)));
-        apis.ptimeEndPeriod(ms_granularity);
-    }
-
     // Returns false if the menu is canceled
     static bool showSystemMenu_sys(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
                                    const bool fixedSize) {
@@ -2157,8 +2112,42 @@ namespace QWK {
                 }
             }
         }
-        // We should call this function only before the function returns.
-        syncPaintEventWithDwm();
+        // When we receive this message, it means the window size has changed
+        // already, and it seems this message always come before any client
+        // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE), but
+        // Qt (and also includes other UI frameworks) will only repaint the
+        // window when it receives window size change message and explicit
+        // paint message (WM_PAINT), I know it's an important optimization
+        // to avoid too many window repaints to increase application performance,
+        // however, this optimization will apparently cause the window rendering
+        // always be delayed by some frames, and this indeed is the root reason
+        // of the strange jittering and shaking during window resizing on Windows.
+        // But to fix this issue, you may take different actions depend on your
+        // UI framwork.
+        // First we need to trigger a window size change message manually to let
+        // Qt refresh it's cached and now oudated window size, to the most updated
+        // value, because we need to force a window repaint here immediately and
+        // so we need to ensure the paint area (window size) must not be wrong.
+        // For GDI this is enough, because according to Qt source code, Qt will
+        // indeed repaint the window immediately when it received WM_SIZE message.
+        ::SendMessageW(hWnd, WM_SIZE, [hWnd]() {
+           if (::IsIconic(hWnd)) {
+               return SIZE_MINIMIZED;
+           }
+           if (::IsZoomed(hWnd)) {
+               return SIZE_MAXIMIZED;
+           }
+           return SIZE_RESTORED;
+        }(), MAKELPARAM(RECT_WIDTH(*clientRect), RECT_HEIGHT(*clientRect)));
+        // But for 3D accelerated APIs (D3D, Vulkan and OpenGL), we need this
+        // extra step, let DWM flush it's content immediately, otherwise we won't
+        // see the actual image in time (similar to the GDI double-buffering
+        // technology).
+        if (m_windowHandle && m_windowHandle->surfaceType() != QSurface::RasterSurface
+            && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
+            // We can't do anything even if it fails, so just don't check the result.
+            DynamicApis::instance().pDwmFlush();
+        }
         // By returning WVR_REDRAW we can make the window resizing look
         // less broken. But we must return 0 if wParam is FALSE, according to Microsoft
         // Docs.
