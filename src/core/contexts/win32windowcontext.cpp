@@ -2123,13 +2123,13 @@ namespace QWK {
         // always be delayed by some frames, and this indeed is the root reason
         // of the strange and annoying jittering and flickering during window
         // resizing on Windows. But to fix this issue, you may take different
-        // actions depend on your own UI framwork.
+        // actions depend on your own UI framework.
         // Here is how we fix this issue totally for Qt:
         // First we need to trigger a window size change message manually to let
         // Qt refresh it's cached and now oudated window size, to the most updated
         // value, because we need to force a window repaint here immediately and
         // so we need to ensure the paint area (window size) is correct.
-        // For GDI this is enough, because according to Qt source code, Qt will
+        // For GDI this would be enough, because according to Qt source code, Qt will
         // indeed repaint the window immediately when it received WM_SIZE message.
         // We want Qt to process this message immediately so we have to use
         // SendMessage() instead of PostMessage().
