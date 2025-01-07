@@ -2115,29 +2115,30 @@ namespace QWK {
         // When we receive this message, it means the window size has changed
         // already, and it seems this message always come before any client
         // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE), but
-        // Qt (and also includes other UI frameworks) will only repaint the
-        // window when it receives window size change message and explicit
+        // Qt (and also include other UI frameworks) will only repaint the
+        // window when it receives client area size change messages and explicit
         // paint message (WM_PAINT), I know it's an important optimization
         // to avoid too many window repaints to increase application performance,
         // however, this optimization will apparently cause the window rendering
         // always be delayed by some frames, and this indeed is the root reason
-        // of the strange jittering and shaking during window resizing on Windows.
-        // But to fix this issue, you may take different actions depend on your
-        // UI framwork.
+        // of the strange and annoying jittering and flickering during window
+        // resizing on Windows. But to fix this issue, you may take different
+        // actions depend on your own UI framwork.
+        // Here is how we fix this issue totally for Qt:
         // First we need to trigger a window size change message manually to let
         // Qt refresh it's cached and now oudated window size, to the most updated
         // value, because we need to force a window repaint here immediately and
-        // so we need to ensure the paint area (window size) must not be wrong.
+        // so we need to ensure the paint area (window size) is correct.
         // For GDI this is enough, because according to Qt source code, Qt will
         // indeed repaint the window immediately when it received WM_SIZE message.
         ::SendMessageW(hWnd, WM_SIZE, [hWnd]() {
-           if (::IsIconic(hWnd)) {
-               return SIZE_MINIMIZED;
-           }
-           if (::IsZoomed(hWnd)) {
-               return SIZE_MAXIMIZED;
-           }
-           return SIZE_RESTORED;
+            if (::IsIconic(hWnd)) {
+                return SIZE_MINIMIZED;
+            }
+            if (::IsZoomed(hWnd)) {
+                return SIZE_MAXIMIZED;
+            }
+            return SIZE_RESTORED;
         }(), MAKELPARAM(RECT_WIDTH(*clientRect), RECT_HEIGHT(*clientRect)));
         // But for 3D accelerated APIs (D3D, Vulkan and OpenGL), we need this
         // extra step, let DWM flush it's content immediately, otherwise we won't
