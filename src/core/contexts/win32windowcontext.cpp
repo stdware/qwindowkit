@@ -2131,7 +2131,9 @@ namespace QWK {
         // so we need to ensure the paint area (window size) is correct.
         // For GDI this is enough, because according to Qt source code, Qt will
         // indeed repaint the window immediately when it received WM_SIZE message.
-        ::SendMessageW(hWnd, WM_SIZE, [hWnd]() {
+        // We want Qt to process this message immediately so we have to use
+        // SendMessage() instead of PostMessage().
+        ::SendMessageW(hWnd, WM_SIZE, [hWnd](){
             if (::IsIconic(hWnd)) {
                 return SIZE_MINIMIZED;
             }
