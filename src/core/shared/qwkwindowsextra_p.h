@@ -170,7 +170,6 @@ namespace QWK {
 
             DYNAMIC_API_DECLARE(DwmFlush);
             DYNAMIC_API_DECLARE(DwmIsCompositionEnabled);
-            DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
             DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmSetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmExtendFrameIntoClientArea);
@@ -179,9 +178,6 @@ namespace QWK {
             DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
             DYNAMIC_API_DECLARE(AdjustWindowRectExForDpi);
             DYNAMIC_API_DECLARE(GetDpiForMonitor);
-            DYNAMIC_API_DECLARE(timeGetDevCaps);
-            DYNAMIC_API_DECLARE(timeBeginPeriod);
-            DYNAMIC_API_DECLARE(timeEndPeriod);
 
 #undef DYNAMIC_API_DECLARE
 
@@ -209,16 +205,10 @@ namespace QWK {
                 QSystemLibrary dwmapi(QStringLiteral("dwmapi"));
                 DYNAMIC_API_RESOLVE(dwmapi, DwmFlush);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmIsCompositionEnabled);
-                DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmSetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmExtendFrameIntoClientArea);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmEnableBlurBehindWindow);
-
-                QSystemLibrary winmm(QStringLiteral("winmm"));
-                DYNAMIC_API_RESOLVE(winmm, timeGetDevCaps);
-                DYNAMIC_API_RESOLVE(winmm, timeBeginPeriod);
-                DYNAMIC_API_RESOLVE(winmm, timeEndPeriod);
 
 #undef DYNAMIC_API_RESOLVE
 
