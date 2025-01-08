@@ -1991,62 +1991,49 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
-        [[maybe_unused]] const auto& flickerRemover = qScopeGuard([hWnd, clientRect, this]() {
+        [[maybe_unused]] const auto& flickerRemover = qScopeGuard([this]() {
             // When we receive this message, it means the window size has changed
             // already, and it seems this message always come before any client
             // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE), but
             // Qt (and also include other UI frameworks) will only repaint the
             // window when it receives client area size change messages and explicit
-            // paint message (WM_PAINT), I know it's an important optimization
+            // paint message (WM_PAINT), I know this is an important optimization
             // to avoid too many window repaints to increase application performance,
             // however, this optimization will apparently cause the window rendering
             // always be delayed by some frames, and this indeed is the root reason
             // of the strange and annoying jittering and flickering during window
-            // resizing on Windows. But to fix this issue, you may take different
-            // actions depend on your own UI framework.
-            // Here is how we fix this issue totally for Qt:
-            // First we need to trigger a window size change message manually to let
-            // Qt refresh it's cached and now oudated window size, to the most updated
-            // value, because we need to force a window repaint here immediately and
-            // so we need to ensure the paint area (window size) is correct.
-            // For GDI this would be enough, because according to Qt source code, Qt will
-            // indeed repaint the window immediately when it received WM_SIZE message.
-            // We want Qt to process this message immediately so we have to use
-            // SendMessage() instead of PostMessage().
-            qreal refreshRate = qreal(60);
-            {
-                DWM_TIMING_INFO dti{};
-                dti.cbSize = sizeof(dti);
-                if (isDwmCompositionEnabled() && DynamicApis::instance().pDwmGetCompositionTimingInfo &&
-                        SUCCEEDED(DynamicApis::instance().pDwmGetCompositionTimingInfo(nullptr, &dti))) {
-                    refreshRate = qreal(dti.rateRefresh.uiNumerator) / qreal(dti.rateRefresh.uiDenominator);
-                }
-            }
-            const qreal waitTime = qreal(1000) / refreshRate;
-            //::Sleep(static_cast<DWORD>(qRound64(waitTime)));
-            //::Sleep(300);
-            // ::SendMessageW(hWnd, WM_SIZE, [hWnd](){
-            //     if (::IsIconic(hWnd)) {
-            //         return SIZE_MINIMIZED;
-            //     }
-            //     if (::IsZoomed(hWnd)) {
-            //         return SIZE_MAXIMIZED;
-            //     }
-            //     return SIZE_RESTORED;
-            // }(), MAKELPARAM(RECT_WIDTH(*clientRect), RECT_HEIGHT(*clientRect)));
-            //::RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW);
-
-            // But for 3D accelerated APIs (D3D, Vulkan and OpenGL), we need this
-            // extra step, let DWM flush it's content immediately, otherwise we won't
-            // see the actual image in time (similar to the GDI double-buffering
-            // technology).
-            if (m_windowHandle && m_windowHandle->surfaceType() != QSurface::RasterSurface
+            // resizing on Windows. But to fix this issue, you may need to take
+            // different actions depending on your own UI framework.
+            // Don't worry about GDI because adding SWP_NOCOPYBITS when processing
+            // the WM_WINDOWPOSCHANGING message would be enough.
+            // But for Direct3D 11, we need this extra step: let DWM flush it's content
+            // immediately by calling DwmFlush().
+            // For some unknown reason, this small technique doesn't help much when
+            // we are using Direct3D 12.
+            // OpenGL doesn't have this strange flicker issue at all from the beginning,
+            // so we don't need to do anything when we are using OpenGL.
+            // Vulkan behaves differently on different environment, some will flicker
+            // a lot while others almost don't flicker, and this small technique won't
+            // help much either.
+            if (m_windowHandle && m_windowHandle->surfaceType() == QSurface::Direct3DSurface
                 && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
-                //QExposeEvent e{ QRegion{} };
-                //QCoreApplication::sendEvent(m_windowHandle, &e);
-                //::Sleep(50);
-                // We can't do anything even if it fails, so just don't check the result.
-                //DynamicApis::instance().pDwmFlush();
+                DynamicApis::instance().pDwmFlush();
+                static const auto magicWaitTime = []() {
+                    qreal refreshRate = qreal(60);
+                    {
+                        DWM_TIMING_INFO dti{};
+                        dti.cbSize = sizeof(dti);
+                        if (DynamicApis::instance().pDwmGetCompositionTimingInfo &&
+                                SUCCEEDED(DynamicApis::instance().pDwmGetCompositionTimingInfo(nullptr, &dti))) {
+                            refreshRate = qreal(dti.rateRefresh.uiNumerator) / qreal(dti.rateRefresh.uiDenominator);
+                        }
+                    }
+                    // Magic calculation, discovered by many times of debugging. Principle is totally unknown.
+                    static constexpr const auto kMagicFactor = qreal(1000) / qreal(60);
+                    return qCeil(refreshRate / kMagicFactor);
+                }();
+                // We need some time to wait for the presentation really done.
+                ::Sleep(magicWaitTime);
             }
         });
         if (isSystemBorderEnabled()) {
