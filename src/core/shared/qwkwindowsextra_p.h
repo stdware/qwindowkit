@@ -170,6 +170,7 @@ namespace QWK {
 
             DYNAMIC_API_DECLARE(DwmFlush);
             DYNAMIC_API_DECLARE(DwmIsCompositionEnabled);
+            DYNAMIC_API_DECLARE(DwmGetCompositionTimingInfo);
             DYNAMIC_API_DECLARE(DwmGetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmSetWindowAttribute);
             DYNAMIC_API_DECLARE(DwmExtendFrameIntoClientArea);
@@ -205,6 +206,7 @@ namespace QWK {
                 QSystemLibrary dwmapi(QStringLiteral("dwmapi"));
                 DYNAMIC_API_RESOLVE(dwmapi, DwmFlush);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmIsCompositionEnabled);
+                DYNAMIC_API_RESOLVE(dwmapi, DwmGetCompositionTimingInfo);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmGetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmSetWindowAttribute);
                 DYNAMIC_API_RESOLVE(dwmapi, DwmExtendFrameIntoClientArea);

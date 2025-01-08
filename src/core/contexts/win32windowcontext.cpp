@@ -2013,15 +2013,27 @@ namespace QWK {
             // indeed repaint the window immediately when it received WM_SIZE message.
             // We want Qt to process this message immediately so we have to use
             // SendMessage() instead of PostMessage().
-            ::SendMessageW(hWnd, WM_SIZE, [hWnd](){
-                if (::IsIconic(hWnd)) {
-                    return SIZE_MINIMIZED;
+            qreal refreshRate = qreal(60);
+            {
+                DWM_TIMING_INFO dti{};
+                dti.cbSize = sizeof(dti);
+                if (isDwmCompositionEnabled() && DynamicApis::instance().pDwmGetCompositionTimingInfo &&
+                        SUCCEEDED(DynamicApis::instance().pDwmGetCompositionTimingInfo(nullptr, &dti))) {
+                    refreshRate = qreal(dti.rateRefresh.uiNumerator) / qreal(dti.rateRefresh.uiDenominator);
                 }
-                if (::IsZoomed(hWnd)) {
-                    return SIZE_MAXIMIZED;
-                }
-                return SIZE_RESTORED;
-            }(), MAKELPARAM(RECT_WIDTH(*clientRect), RECT_HEIGHT(*clientRect)));
+            }
+            const qreal waitTime = qreal(1000) / refreshRate;
+            //::Sleep(static_cast<DWORD>(qRound64(waitTime)));
+            //::Sleep(300);
+            // ::SendMessageW(hWnd, WM_SIZE, [hWnd](){
+            //     if (::IsIconic(hWnd)) {
+            //         return SIZE_MINIMIZED;
+            //     }
+            //     if (::IsZoomed(hWnd)) {
+            //         return SIZE_MAXIMIZED;
+            //     }
+            //     return SIZE_RESTORED;
+            // }(), MAKELPARAM(RECT_WIDTH(*clientRect), RECT_HEIGHT(*clientRect)));
             //::RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW);
 
             // But for 3D accelerated APIs (D3D, Vulkan and OpenGL), we need this
@@ -2032,8 +2044,9 @@ namespace QWK {
                 && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
                 //QExposeEvent e{ QRegion{} };
                 //QCoreApplication::sendEvent(m_windowHandle, &e);
+                //::Sleep(50);
                 // We can't do anything even if it fails, so just don't check the result.
-                DynamicApis::instance().pDwmFlush();
+                //DynamicApis::instance().pDwmFlush();
             }
         });
         if (isSystemBorderEnabled()) {

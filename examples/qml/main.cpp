@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     qputenv("QT_WIN_DEBUG_CONSOLE", "attach"); // or "new": create a separate console window
     qputenv("QSG_INFO", "1");
     qputenv("QSG_NO_VSYNC", "1");
+    //qputenv("QSG_RENDER_LOOP", "basic");
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
 #else
@@ -34,6 +35,7 @@ int main(int argc, char *argv[]) {
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
     QGuiApplication application(argc, argv);
+    //QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
     // Make sure alpha channel is requested, our special effects on Windows depends on it.
     QQuickWindow::setDefaultAlphaBuffer(true);
     QQmlApplicationEngine engine;
