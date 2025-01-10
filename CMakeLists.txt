@@ -63,6 +63,25 @@ if(QWINDOWKIT_INSTALL)
     include(CMakePackageConfigHelpers)
 endif()
 
+option(QWINDOWKIT_ENABLE_VCLTL "Enable VC-LTL." OFF)
+option(QWINDOWKIT_ENABLE_YYTHUNKS "Enable YY-Thunks." OFF)
+if(QWINDOWKIT_ENABLE_VCLTL)
+    include(qmsetup/cmake/find-modules/VC-LTL.cmake)
+    if("x${SupportLTL}" STREQUAL "xtrue")
+        unset(CMAKE_MSVC_RUNTIME_LIBRARY)
+        unset(CMAKE_MSVC_RUNTIME_LIBRARY CACHE)
+        #unset(CMAKE_MSVC_RUNTIME_LIBRARY PARENT_SCOPE)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+    endif()
+endif()
+if(QWINDOWKIT_ENABLE_YYTHUNKS)
+    unset(YYTHUNKS_TARGET_OS)
+    unset(YYTHUNKS_TARGET_OS CACHE)
+    #unset(YYTHUNKS_TARGET_OS PARENT_SCOPE)
+    set(YYTHUNKS_TARGET_OS "WinXP" CACHE STRING "" FORCE)
+    include(qmsetup/cmake/find-modules/YY-Thunks.cmake)
+endif()
+
 # ----------------------------------
 # Project Variables
 # ----------------------------------

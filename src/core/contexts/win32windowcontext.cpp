@@ -2017,6 +2017,7 @@ namespace QWK {
             // help much either.
             if (m_windowHandle && m_windowHandle->surfaceType() == QSurface::Direct3DSurface
                 && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
+#if 0
                 DynamicApis::instance().pDwmFlush();
                 static const auto magicWaitTime = []() {
                     qreal refreshRate = qreal(60);
@@ -2034,6 +2035,7 @@ namespace QWK {
                 }();
                 // We need some time to wait for the presentation really done.
                 ::Sleep(magicWaitTime);
+#endif
             }
         });
         if (isSystemBorderEnabled()) {

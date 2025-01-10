@@ -6,6 +6,11 @@ macro(qwk_add_example _target)
     set(CMAKE_AUTORCC ON)
 
     add_executable(${_target})
+    set_target_properties(${_target} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED TRUE
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+    )
     qm_configure_target(${_target} ${ARGN})
     qm_add_win_rc(${_target} ICON ${QWK_EXAMPLES_DIR}/shared/resources/app/example.ico)
     qm_add_win_manifest(${_target})
