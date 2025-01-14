@@ -105,9 +105,13 @@ namespace QWK {
 
                     // Since a QExposeEvent will be sent immediately after the QResizeEvent, we can
                     // simply ignore it.
-                    auto ee = static_cast<QExposeEvent *>(event);
+                    struct ExposeEvent : public QExposeEvent {
+                        // QExposeEvent::region() was marked as deprecated in Qt 6.0
+                        const QRegion& getRegion() const { return m_region; }
+                    };
+                    auto ee = static_cast<ExposeEvent *>(event);
                     auto window = widget->windowHandle();
-                    if (window->isExposed() && isNormalWindow() && !ee->region().isNull()) {
+                    if (window->isExposed() && isNormalWindow() && !ee->getRegion().isNull()) {
                         forwardEventToWindowAndDraw(window, event);
                         return true;
                     }

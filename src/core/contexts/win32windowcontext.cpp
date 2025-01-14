@@ -2005,37 +2005,21 @@ namespace QWK {
             // resizing on Windows. But to fix this issue, you may need to take
             // different actions depending on your own UI framework.
             // Don't worry about GDI because adding SWP_NOCOPYBITS when processing
-            // the WM_WINDOWPOSCHANGING message would be enough.
-            // But for Direct3D 11, we need this extra step: let DWM flush it's content
+            // the WM_WINDOWPOSCHANGING message seems to be enough.
+            // But for Direct3D, we need this extra step: let DWM flush it's content
             // immediately by calling DwmFlush().
-            // For some unknown reason, this small technique doesn't help much when
-            // we are using Direct3D 12.
             // OpenGL doesn't have this strange flicker issue at all from the beginning,
             // so we don't need to do anything when we are using OpenGL.
-            // Vulkan behaves differently on different environment, some will flicker
-            // a lot while others almost don't flicker, and this small technique won't
-            // help much either.
+            // Vulkan behaves differently on different environments, some will flicker
+            // a lot while others almost don't flicker (with and without this hack).
+            // IMPORTANT NOTE: This small hack seems to behave very differently on different
+            // environments:
+            // - [Laptop] NVIDIA 3060 + 1080p + 60Hz: flicker totally gone (perfect),
+            // - [Laptop] NVIDIA 2070 + 1080p + 240Hz: doesn't seem to have any visual difference (not good),
+            // - [Desktop] NVIDIA 4090 + 4K + 240Hz: flicker reduced, but still quite visible (better, but not perfect).
             if (m_windowHandle && m_windowHandle->surfaceType() == QSurface::Direct3DSurface
                 && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
-#if 0
                 DynamicApis::instance().pDwmFlush();
-                static const auto magicWaitTime = []() {
-                    qreal refreshRate = qreal(60);
-                    {
-                        DWM_TIMING_INFO dti{};
-                        dti.cbSize = sizeof(dti);
-                        if (DynamicApis::instance().pDwmGetCompositionTimingInfo &&
-                                SUCCEEDED(DynamicApis::instance().pDwmGetCompositionTimingInfo(nullptr, &dti))) {
-                            refreshRate = qreal(dti.rateRefresh.uiNumerator) / qreal(dti.rateRefresh.uiDenominator);
-                        }
-                    }
-                    // Magic calculation, discovered by many times of debugging. Principle is totally unknown.
-                    static constexpr const auto kMagicFactor = qreal(1000) / qreal(60);
-                    return qCeil(refreshRate / kMagicFactor);
-                }();
-                // We need some time to wait for the presentation really done.
-                ::Sleep(magicWaitTime);
-#endif
             }
         });
         if (isSystemBorderEnabled()) {

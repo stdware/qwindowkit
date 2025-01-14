@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     qputenv("QT_WIN_DEBUG_CONSOLE", "attach"); // or "new": create a separate console window
     qputenv("QSG_INFO", "1");
     qputenv("QSG_NO_VSYNC", "1");
-    //qputenv("QSG_RENDER_LOOP", "basic");
+    //qputenv("QSG_RENDER_LOOP", "basic"); // "basic": single-threaded rendering, "threaded": multi-threaded rendering.
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
 #else
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 #endif
     //qputenv("QSG_RHI_BACKEND", "opengl"); // other options: d3d11, d3d12, vulkan
     //qputenv("QSG_RHI_HDR", "scrgb"); // other options: hdr10, p3
-    //qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
+    qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
