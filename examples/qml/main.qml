@@ -49,7 +49,8 @@ Window {
             right: parent.right
         }
         height: 32
-        color: window.active ? "#3C3C3C" : "#505050"
+        //color: window.active ? "#3C3C3C" : "#505050"
+        color: "transparent"
         Component.onCompleted: windowAgent.setTitleBar(titleBar)
 
         Image {

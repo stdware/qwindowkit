@@ -1,11 +1,13 @@
 /* Window bar */
 
 QWK--WindowBar[bar-active=true] {
-    background-color: #3C3C3C;
+    /*background-color: #3C3C3C;*/
+    background-color: transparent;
 }
 
 QWK--WindowBar[bar-active=false] {
-    background-color: #505050;
+    /*background-color: #505050;*/
+    background-color: transparent;
 }
 
 

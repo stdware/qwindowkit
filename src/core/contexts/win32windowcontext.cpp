@@ -204,51 +204,6 @@ namespace QWK {
         moveWindowToMonitor(hwnd, activeMonitor);
     }
 
-    static void syncPaintEventWithDwm() {
-        // No need to sync with DWM if DWM composition is disabled.
-        if (!isDwmCompositionEnabled()) {
-            return;
-        }
-        const DynamicApis &apis = DynamicApis::instance();
-        // Dirty hack to workaround the resize flicker caused by DWM.
-        LARGE_INTEGER freq{};
-        ::QueryPerformanceFrequency(&freq);
-        TIMECAPS tc{};
-        apis.ptimeGetDevCaps(&tc, sizeof(tc));
-        const UINT ms_granularity = tc.wPeriodMin;
-        apis.ptimeBeginPeriod(ms_granularity);
-        LARGE_INTEGER now0{};
-        ::QueryPerformanceCounter(&now0);
-        // ask DWM where the vertical blank falls
-        DWM_TIMING_INFO dti{};
-        dti.cbSize = sizeof(dti);
-        apis.pDwmGetCompositionTimingInfo(nullptr, &dti);
-        LARGE_INTEGER now1{};
-        ::QueryPerformanceCounter(&now1);
-        // - DWM told us about SOME vertical blank
-        //   - past or future, possibly many frames away
-        // - convert that into the NEXT vertical blank
-        const auto period = qreal(dti.qpcRefreshPeriod);
-        const auto dt = qreal(dti.qpcVBlank - now1.QuadPart);
-        const qreal ratio = (dt / period);
-        auto w = qreal(0);
-        auto m = qreal(0);
-        if ((dt > qreal(0)) || qFuzzyIsNull(dt)) {
-            w = ratio;
-        } else {
-            // reach back to previous period
-            // - so m represents consistent position within phase
-            w = (ratio - qreal(1));
-        }
-        m = (dt - (period * w));
-        if ((m < qreal(0)) || qFuzzyCompare(m, period) || (m > period)) {
-            return;
-        }
-        const qreal m_ms = (qreal(1000) * m / qreal(freq.QuadPart));
-        ::Sleep(static_cast<DWORD>(std::round(m_ms)));
-        apis.ptimeEndPeriod(ms_granularity);
-    }
-
     // Returns false if the menu is canceled
     static bool showSystemMenu_sys(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
                                    const bool fixedSize) {
@@ -938,8 +893,39 @@ namespace QWK {
         Q_UNUSED(oldAttribute)
 
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
+        Q_ASSERT(hwnd);
+        if (!hwnd) {
+            return false;
+        }
+
         const DynamicApis &apis = DynamicApis::instance();
-        static constexpr const MARGINS extendedMargins = {-1, -1, -1, -1};
+        const auto &extendMargins = [this, &apis, hwnd]() {
+            // For some unknown reason, the window background is totally black when the host object
+            // is a QWidget. And extending the window frame into the client area seems to fix it
+            // magically.
+            // We don't need the following *HACK* for QtQuick windows.
+            if (!m_host->isWidgetType()) {
+                return;
+            }
+            // After many times of trying, we found that the Acrylic/Mica/Mica Alt background
+            // only appears on the native Win32 window's background, so naturally we want to
+            // extend the window frame into the whole client area to be able to let the special
+            // material fill the whole window. Previously we are using negative margins because
+            // it's widely known that using negative margins will let the window frame fill
+            // the whole window and that's indeed what we wanted to do, however, later we found
+            // that doing so is causing issues. When the user enabled the "show accent color on
+            // window title bar and borders" option on system personalize settings, a 30px bar
+            // would appear on window top. It has the same color with the system accent color.
+            // Actually it's the original title bar we've already hidden, and it magically
+            // appears again when we use negative margins to extend the window frame. And again
+            // after some experiments, I found that the title bar won't appear if we don't extend
+            // from the top side. In the end I found that we only need to extend from the left
+            // side if we extend long enough. In this way we can see the special material even
+            // when the host object is a QWidget and the title bar still remain hidden. But even
+            // though this solution seems perfect, I really don't know why it works.
+            static constexpr const MARGINS margins = {65536, 0, 0, 0};
+            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+        };
         const auto &restoreMargins = [this, &apis, hwnd]() {
             auto margins = qmargins2margins(
                 m_windowAttributes.value(QStringLiteral("extra-margins")).value<QMargins>());
@@ -975,9 +961,7 @@ namespace QWK {
                 return false;
             }
             if (attribute.toBool()) {
-                // We need to extend the window frame into the whole client area to be able
-                // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
+                extendMargins();
                 if (isWin1122H2OrGreater()) {
                     // Use official DWM API to enable Mica, available since Windows 11 22H2
                     // (10.0.22621).
@@ -1009,9 +993,7 @@ namespace QWK {
                 return false;
             }
             if (attribute.toBool()) {
-                // We need to extend the window frame into the whole client area to be able
-                // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
+                extendMargins();
                 // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
                 // (10.0.22621).
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
@@ -1031,9 +1013,7 @@ namespace QWK {
                 return false;
             }
             if (attribute.toBool()) {
-                // We need to extend the window frame into the whole client area to be able
-                // to see the blurred window background.
-                apis.pDwmExtendFrameIntoClientArea(hwnd, &extendedMargins);
+                extendMargins();
 
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
@@ -1074,9 +1054,9 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("dwm-blur")) {
+            // Extending window frame would break this effect for some unknown reason.
+            restoreMargins();
             if (attribute.toBool()) {
-                // We can't extend the window frame for this effect.
-                restoreMargins();
                 if (isWin8OrGreater()) {
                     ACCENT_POLICY policy{};
                     policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
@@ -2157,8 +2137,6 @@ namespace QWK {
                 }
             }
         }
-        // We should call this function only before the function returns.
-        syncPaintEventWithDwm();
         // By returning WVR_REDRAW we can make the window resizing look
         // less broken. But we must return 0 if wParam is FALSE, according to Microsoft
         // Docs.
