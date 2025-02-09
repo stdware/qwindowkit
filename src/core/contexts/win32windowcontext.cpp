@@ -2021,13 +2021,17 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
-        [[maybe_unused]] const auto& d3dFlickerReducer = qScopeGuard([this]() {
+        [[maybe_unused]] const auto& flickerReducer = qScopeGuard([this]() {
             // When we receive this message, it means the window size has changed
             // already, and it seems this message always come before any client
             // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE). Let
-            // D3D paint immediately to let user see the latest result as soon as
-            // possible.
-            if (m_windowHandle && m_windowHandle->surfaceType() == QSurface::Direct3DSurface
+            // D3D/VK paint immediately to let user see the latest result as soon
+            // as possible.
+            const auto& isTargetSurface = [](const QSurface::SurfaceType st){
+                return st != QSurface::RasterSurface && st != QSurface::OpenGLSurface
+                       && st != QSurface::RasterGLSurface && st != QSurface::OpenVGSurface;
+            };
+            if (m_windowHandle && isTargetSurface(m_windowHandle->surfaceType())
                 && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
                 DynamicApis::instance().pDwmFlush();
             }
