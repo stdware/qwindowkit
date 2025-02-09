@@ -55,8 +55,16 @@ namespace QWK {
         }
 
         void updateGeometry() override {
-            widget->setContentsMargins(isNormalWindow() ? QMargins(0, borderThickness(), 0, 0)
-                                                        : QMargins());
+            // The window top border is manually painted by QWK so we want to give
+            // some margins to avoid it covering real window contents, however, we
+            // found that there are some rounding issues for the thin border and
+            // thus this small trick doesn't work very well when the DPR is not
+            // integer. So far we haven't found a perfect solution, so just don't
+            // set any margins. In theory the window content will only be covered
+            // by 1px or so, it should not be a serious issue in the real world.
+            //
+            // widget->setContentsMargins(isNormalWindow() ? QMargins(0, borderThickness(), 0, 0)
+            //                                             : QMargins());
         }
 
         bool isWindowActive() const override {

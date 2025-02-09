@@ -33,6 +33,10 @@
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)) && (QT_VERSION <= QT_VERSION_CHECK(6, 6, 1))
+#  error Current Qt version has a critical bug which will break QWK functionality. Please upgrade to > 6.6.1 or downgrade to < 6.6.0
+#endif
+
 namespace QWK {
 
     enum IconButtonClickLevelFlag {
@@ -922,7 +926,8 @@ namespace QWK {
             // from the top side. In the end I found that we only need to extend from the left
             // side if we extend long enough. In this way we can see the special material even
             // when the host object is a QWidget and the title bar still remain hidden. But even
-            // though this solution seems perfect, I really don't know why it works.
+            // though this solution seems perfect, I really don't know why it works. The following
+            // hack is totally based on experiments.
             static constexpr const MARGINS margins = {65536, 0, 0, 0};
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
@@ -2016,6 +2021,17 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
+        [[maybe_unused]] const auto& d3dFlickerReducer = qScopeGuard([this]() {
+            // When we receive this message, it means the window size has changed
+            // already, and it seems this message always come before any client
+            // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE). Let
+            // D3D paint immediately to let user see the latest result as soon as
+            // possible.
+            if (m_windowHandle && m_windowHandle->surfaceType() == QSurface::Direct3DSurface
+                && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
+                DynamicApis::instance().pDwmFlush();
+            }
+        });
         if (isSystemBorderEnabled()) {
             // Store the original top margin before the default window procedure applies the
             // default frame.
