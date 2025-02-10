@@ -7,3 +7,10 @@ qwk_add_example(${PROJECT_NAME}
     QT_LINKS Core Gui Widgets # MultimediaWidgets
     LINKS QWKWidgets WidgetFrame
 )
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
+)
