@@ -12,6 +12,13 @@
 
 namespace QWK {
 
+    inline bool isWindows1022H2OrGreater() {
+        RTL_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 &&
+                (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19045));
+    }
+
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
 
     class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
@@ -43,6 +50,10 @@ namespace QWK {
         auto api = window()->rendererInterface()->graphicsApi();
         switch (api) {
             case QSGRendererInterface::OpenGL:
+                // FIXME: experimental
+                if (!isWindows1022H2OrGreater()) {
+                    break;
+                }
             case QSGRendererInterface::Direct3D11:
 #    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
             case QSGRendererInterface::Direct3D12:
@@ -90,7 +101,6 @@ namespace QWK {
     void BorderItem::updateGeometry() {
         setHeight(borderThickness());
         setVisible(isNormalWindow());
-        qDebug() << __func__;
     }
 
     void BorderItem::paint(QPainter *painter) {

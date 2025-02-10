@@ -691,7 +691,6 @@ namespace QWK {
             case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
                     return;
-                qDebug() << "m_windowId exists";
 
                 auto args = static_cast<void **>(data);
                 auto &painter = *static_cast<QPainter *>(args[0]);

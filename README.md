@@ -12,9 +12,7 @@ Feature requests are welcome.
 You can share your findings, thoughts and ideas on improving / implementing QWindowKit functionalities on more platforms and apps!
 
 - Chat with us on [Discord](https://discord.gg/grrM4Tmesy)
-  - Please inform us if your product uses QWK, we would like to show it on this README!
 - 中文用户可加入 QQ 群 876419693
-  - 如果您的产品使用了QWK，请告知我们。我们希望在这个自述文件上展示它！
 
 ## Supported Platforms
 
