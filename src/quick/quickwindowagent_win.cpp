@@ -90,6 +90,7 @@ namespace QWK {
     void BorderItem::updateGeometry() {
         setHeight(borderThickness());
         setVisible(isNormalWindow());
+        qDebug() << __func__;
     }
 
     void BorderItem::paint(QPainter *painter) {

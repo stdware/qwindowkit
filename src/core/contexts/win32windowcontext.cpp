@@ -691,6 +691,7 @@ namespace QWK {
             case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
                     return;
+                qDebug() << "m_windowId exists";
 
                 auto args = static_cast<void **>(data);
                 auto &painter = *static_cast<QPainter *>(args[0]);
@@ -952,7 +953,6 @@ namespace QWK {
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
-
             const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
                                                      : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
             apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
