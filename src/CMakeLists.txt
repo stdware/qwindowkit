@@ -1,7 +1,9 @@
 qm_import(Preprocess)
 
+string(TIMESTAMP _current_year "%Y")
+
 set(QWINDOWKIT_PROJECT_DESCRIPTION "Cross-platform window customization framework")
-set(QWINDOWKIT_PROJECT_COPYRIGHT "Copyright 2023 Stdware Collections")
+set(QWINDOWKIT_PROJECT_COPYRIGHT "Copyright 2023-${_current_year} Stdware Collections")
 set(QWINDOWKIT_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include)
 set(QWINDOWKIT_BUILD_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../etc/include)
 

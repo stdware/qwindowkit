@@ -688,7 +688,7 @@ namespace QWK {
             }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
-            case DrawWindows10BorderHook: {
+            case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
                     return;
 
@@ -731,7 +731,7 @@ namespace QWK {
                 return;
             }
 
-            case DrawWindows10BorderHook2: {
+            case DrawWindows10BorderHook_Native: {
                 if (!m_windowId)
                     return;
 
@@ -952,9 +952,10 @@ namespace QWK {
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
-            const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
-            apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
 
+            const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
+                                                     : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+            apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
             apis.pFlushMenuThemes();
             return true;
         }
@@ -2020,18 +2021,18 @@ namespace QWK {
         // and align it with the upper-left corner of our new client area".
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
-        [[maybe_unused]] const auto& flickerReducer = qScopeGuard([this]() {
+        [[maybe_unused]] const auto &flickerReducer = qScopeGuard([this]() {
             // When we receive this message, it means the window size has changed
             // already, and it seems this message always come before any client
             // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE). Let
             // D3D/VK paint immediately to let user see the latest result as soon
             // as possible.
-            const auto& isTargetSurface = [](const QSurface::SurfaceType st){
-                return st != QSurface::RasterSurface && st != QSurface::OpenGLSurface
-                       && st != QSurface::RasterGLSurface && st != QSurface::OpenVGSurface;
+            const auto &isTargetSurface = [](const QSurface::SurfaceType st) {
+                return st != QSurface::RasterSurface && st != QSurface::OpenGLSurface &&
+                       st != QSurface::RasterGLSurface && st != QSurface::OpenVGSurface;
             };
-            if (m_windowHandle && isTargetSurface(m_windowHandle->surfaceType())
-                && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
+            if (m_windowHandle && isTargetSurface(m_windowHandle->surfaceType()) &&
+                isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
                 DynamicApis::instance().pDwmFlush();
             }
         });

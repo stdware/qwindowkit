@@ -46,7 +46,7 @@ namespace QWK {
         }
 
         inline void drawBorder() {
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native, nullptr);
         }
 
         inline int borderThickness() const {
@@ -91,6 +91,18 @@ namespace QWK {
 
                 case WM_ACTIVATE: {
                     updateExtraMargins(LOWORD(msg->wParam) != WA_INACTIVE);
+                    break;
+                }
+
+                case WM_THEMECHANGED:
+                case WM_SYSCOLORCHANGE:
+                case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                    // If you do not refresh this property, the system border will turn white
+                    // permanently after the user changes the system color
+                    if (ctx->windowAttribute(QStringLiteral("dark-mode")).toBool()) {
+                        ctx->setWindowAttribute(QStringLiteral("dark-mode"), false);
+                        ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+                    }
                     break;
                 }
 
