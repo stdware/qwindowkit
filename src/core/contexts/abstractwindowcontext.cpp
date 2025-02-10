@@ -267,7 +267,7 @@ namespace QWK {
             if (!attribute.isValid()) {
                 return true;
             }
-            if (!m_windowHandle || !windowAttributeChanged(key, attribute, {})) {
+            if (m_windowHandle && !windowAttributeChanged(key, attribute, {})) {
                 return false;
             }
             m_windowAttributes.insert(key, attribute);
@@ -276,7 +276,7 @@ namespace QWK {
 
         if (it.value() == attribute)
             return true;
-        if (!m_windowHandle || !windowAttributeChanged(key, attribute, it.value())) {
+        if (m_windowHandle && !windowAttributeChanged(key, attribute, it.value())) {
             return false;
         }
 

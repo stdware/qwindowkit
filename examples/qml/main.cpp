@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 #else
     qputenv("QT_QUICK_CONTROLS_STYLE", "Default");
 #endif
-    //qputenv("QSG_RHI_BACKEND", "opengl"); // other options: d3d11, d3d12, vulkan
+    qputenv("QSG_RHI_BACKEND", "opengl"); // other options: d3d11, d3d12, vulkan
     //qputenv("QSG_RHI_HDR", "scrgb"); // other options: hdr10, p3
     //qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)

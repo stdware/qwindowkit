@@ -27,6 +27,8 @@ namespace QWK {
 
     protected:
         bool sharedEventFilter(QObject *obj, QEvent *event) override;
+        bool nativeEventFilter(const QByteArray &eventType, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *result) override;
 
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         volatile bool needPaint = false;
@@ -34,6 +36,9 @@ namespace QWK {
     private:
         void _q_afterSynchronizing();
 #  endif
+
+    private:
+        void _q_windowActivityChanged();
     };
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
@@ -56,6 +61,8 @@ namespace QWK {
         connect(window(), &QQuickWindow::afterSynchronizing, this,
                 &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
 #  endif
+        connect(window(), &QQuickWindow::activeChanged, this,
+                &BorderItem::_q_windowActivityChanged);
 
         // First update
         if (context->windowId()) {
@@ -124,6 +131,30 @@ namespace QWK {
         return Windows10BorderHandler::sharedEventFilter(obj, event);
     }
 
+    bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
+                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        const auto msg = static_cast<const MSG *>(message);
+        switch (msg->message) {
+            case WM_THEMECHANGED:
+            case WM_SYSCOLORCHANGE:
+            case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                update();
+                break;
+            }
+
+            case WM_SETTINGCHANGE: {
+                if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
+                    update();
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+        return Windows10BorderHandler::nativeEventFilter(eventType, message, result);
+    }
+
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     void BorderItem::_q_afterSynchronizing() {
         if (needPaint) {
@@ -132,6 +163,10 @@ namespace QWK {
         }
     }
 #  endif
+
+    void BorderItem::_q_windowActivityChanged() {
+        update();
+    }
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
         // Install painting hook

@@ -12,8 +12,8 @@ Window {
     title: qsTr("Hello, world!")
     Component.onCompleted: {
         windowAgent.setup(window)
+        windowAgent.setWindowAttribute("dark-mode", true)
         window.visible = true
-        delayInitTimer.start()
     }
 
     QtObject {
@@ -30,14 +30,6 @@ Window {
         running: true
         repeat: true
         onTriggered: timeLabel.text = Qt.formatTime(new Date(), "hh:mm:ss")
-    }
-
-    Timer {
-        id: delayInitTimer
-        interval: 100
-        running: false
-        repeat: false
-        onTriggered: windowAgent.setWindowAttribute("dark-mode", true)
     }
 
     WindowAgent {

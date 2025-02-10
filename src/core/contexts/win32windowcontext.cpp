@@ -897,7 +897,6 @@ namespace QWK {
         Q_UNUSED(oldAttribute)
 
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-        Q_ASSERT(hwnd);
         if (!hwnd) {
             return false;
         }
