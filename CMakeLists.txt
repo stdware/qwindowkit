@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(QWindowKit VERSION 1.3.2.0 LANGUAGES CXX)
+project(QWindowKit VERSION 1.4.0.0 LANGUAGES CXX)
 
 # ----------------------------------
 # Build Options
