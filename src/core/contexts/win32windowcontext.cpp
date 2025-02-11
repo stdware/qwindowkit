@@ -955,6 +955,7 @@ namespace QWK {
             const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
                                                      : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
             apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
+
             apis.pFlushMenuThemes();
             return true;
         }

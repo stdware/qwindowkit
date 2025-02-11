@@ -97,9 +97,15 @@ namespace QWK {
                 case WM_THEMECHANGED:
                 case WM_SYSCOLORCHANGE:
                 case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                    // If you do not refresh this property, the system border will turn white
-                    // permanently after the user changes the system color
+                    // If we do not refresh this property, the native border will turn white
+                    // permanently (like the dark mode is turned off) after the user changes
+                    // the accent color in system personalization settings.
+                    // So we need this ugly hack to re-apply dark mode to get rid of this
+                    // strange Windows bug.
                     if (ctx->windowAttribute(QStringLiteral("dark-mode")).toBool()) {
+                        // setWindowAttribute() will ignore attribute set request if attribute
+                        // value is the same as previous one, so we need to turn off dark mode
+                        // once.
                         ctx->setWindowAttribute(QStringLiteral("dark-mode"), false);
                         ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
                     }

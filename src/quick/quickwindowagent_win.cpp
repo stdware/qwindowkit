@@ -12,7 +12,7 @@
 
 namespace QWK {
 
-    inline bool isWindows1022H2OrGreater() {
+    static inline bool isWindows1022H2OrGreater() {
         RTL_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
         return (rovi.dwMajorVersion > 10) ||
                (rovi.dwMajorVersion == 10 &&
@@ -50,10 +50,8 @@ namespace QWK {
         auto api = window()->rendererInterface()->graphicsApi();
         switch (api) {
             case QSGRendererInterface::OpenGL:
-                // FIXME: experimental
-                if (!isWindows1022H2OrGreater()) {
-                    break;
-                }
+                // FIXME: experimental, try to find the exact fixed version.
+                return !isWindows1022H2OrGreater();
             case QSGRendererInterface::Direct3D11:
 #    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
             case QSGRendererInterface::Direct3D12:
