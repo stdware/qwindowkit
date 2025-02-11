@@ -40,6 +40,12 @@ protected:
         QLabel::timerEvent(event);
         setText(QTime::currentTime().toString(QStringLiteral("hh:mm:ss")));
     }
+
+    // void mouseReleaseEvent(QMouseEvent *ev) override {
+    //     window()->setWindowFlag(Qt::WindowStaysOnTopHint,
+    //                             !(window()->windowFlags() & Qt::WindowStaysOnTopHint));
+    //     window()->show();
+    // }
 };
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -188,24 +194,26 @@ void MainWindow::installWindowAgent() {
         winStyleGroup->addAction(acrylicAction);
         winStyleGroup->addAction(micaAction);
         winStyleGroup->addAction(micaAltAction);
-        connect(winStyleGroup, &QActionGroup::triggered, this, [this, winStyleGroup](QAction *action) {
-            // Unset all custom style attributes first, otherwise the style will not display correctly
-            for (const QAction* _act : winStyleGroup->actions()) {
-                const QString data = _act->data().toString();
-                if (data.isEmpty() || data == QStringLiteral("none")) {
-                    continue;
-                }
-                windowAgent->setWindowAttribute(data, false);
-            }
-            const QString data = action->data().toString();
-            if (data == QStringLiteral("none")) {
-                setProperty("custom-style", false);
-            } else if (!data.isEmpty()) {
-                windowAgent->setWindowAttribute(data, true);
-                setProperty("custom-style", true);
-            }
-            style()->polish(this);
-        });
+        connect(winStyleGroup, &QActionGroup::triggered, this,
+                [this, winStyleGroup](QAction *action) {
+                    // Unset all custom style attributes first, otherwise the style will not display
+                    // correctly
+                    for (const QAction *_act : winStyleGroup->actions()) {
+                        const QString data = _act->data().toString();
+                        if (data.isEmpty() || data == QStringLiteral("none")) {
+                            continue;
+                        }
+                        windowAgent->setWindowAttribute(data, false);
+                    }
+                    const QString data = action->data().toString();
+                    if (data == QStringLiteral("none")) {
+                        setProperty("custom-style", false);
+                    } else if (!data.isEmpty()) {
+                        windowAgent->setWindowAttribute(data, true);
+                        setProperty("custom-style", true);
+                    }
+                    style()->polish(this);
+                });
 
 #elif defined(Q_OS_MAC)
         auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);

@@ -225,10 +225,14 @@ namespace QWK {
 
         const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
         ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | MFS_ENABLED));
-        ::EnableMenuItem(hMenu, SC_MAXIMIZE,
-                         (MF_BYCOMMAND | ((maxOrFull || fixedSize || !allowMaximize) ? MFS_DISABLED : MFS_ENABLED)));
-        ::EnableMenuItem(hMenu, SC_RESTORE,
-                         (MF_BYCOMMAND | ((maxOrFull && !fixedSize && allowMaximize) ? MFS_ENABLED : MFS_DISABLED)));
+        ::EnableMenuItem(
+            hMenu, SC_MAXIMIZE,
+            (MF_BYCOMMAND |
+             ((maxOrFull || fixedSize || !allowMaximize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(
+            hMenu, SC_RESTORE,
+            (MF_BYCOMMAND |
+             ((maxOrFull && !fixedSize && allowMaximize) ? MFS_ENABLED : MFS_DISABLED)));
         // The first menu item should be selected by default if the menu is brought
         // up by keyboard. I don't know how to pre-select a menu item but it seems
         // highlight can do the job. However, there's an annoying issue if we do
@@ -240,7 +244,8 @@ namespace QWK {
         // the menu look kind of weird. Currently I don't know how to fix this issue.
         ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE,
                          (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
-        ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | (allowMinimize ? MFS_ENABLED : MFS_DISABLED)));
+        ::EnableMenuItem(hMenu, SC_MINIMIZE,
+                         (MF_BYCOMMAND | (allowMinimize ? MFS_ENABLED : MFS_DISABLED)));
         ::EnableMenuItem(hMenu, SC_SIZE,
                          (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
         ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | (maxOrFull ? MFS_DISABLED : MFS_ENABLED)));
@@ -404,7 +409,7 @@ namespace QWK {
     }
 
     // Send to QAbstractEventDispatcher
-    bool filterNativeEvent(MSG *msg, LRESULT *result) {
+    static bool filterNativeEvent(MSG *msg, LRESULT *result) {
         auto dispatcher = QAbstractEventDispatcher::instance();
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (dispatcher && dispatcher->filterNativeEvent(nativeEventType(), msg, &filterResult)) {
@@ -415,7 +420,7 @@ namespace QWK {
     }
 
     // Send to QWindowSystemInterface
-    bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
+    static bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (QWindowSystemInterface::handleNativeEvent(window, nativeEventType(), msg,
                                                       &filterResult)) {
@@ -628,6 +633,9 @@ namespace QWK {
 
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, ctx);
+
+        // TODO: documentation
+        triggerFrameChange(hWnd);
     }
 
     static inline void removeManagedWindow(HWND hWnd) {
@@ -2046,6 +2054,9 @@ namespace QWK {
         // implement an elaborate client-area preservation technique, and
         // simply return 0, which means "preserve the entire old client area
         // and align it with the upper-left corner of our new client area".
+
+        // qDebug() << QDateTime::currentDateTime() << "WM_NCCALCSIZE";
+
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
         [[maybe_unused]] const auto &flickerReducer = qScopeGuard([this]() {
