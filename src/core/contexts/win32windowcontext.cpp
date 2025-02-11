@@ -931,12 +931,13 @@ namespace QWK {
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
         const auto &restoreMargins = [this, &apis, hwnd]() {
-            auto margins = qmargins2margins(
-                m_windowAttributes.value(QStringLiteral("extra-margins")).value<QMargins>());
+            auto margins =
+                qmargins2margins(m_windowAttributes.value(QStringLiteral("extra-margins"))
+                                     ->second.value<QMargins>());
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
 
-        const auto &effectBugWorkaround = [this, hwnd](){
+        const auto &effectBugWorkaround = [this, hwnd]() {
             // We don't need the following *HACK* for QWidget windows.
             if (m_host->isWidgetType()) {
                 return;
@@ -950,7 +951,8 @@ namespace QWK {
             ::GetWindowRect(hwnd, &rect);
             ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, TRUE);
             ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, TRUE);
-            ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+            ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                         TRUE);
         };
 
         if (key == QStringLiteral("extra-margins")) {

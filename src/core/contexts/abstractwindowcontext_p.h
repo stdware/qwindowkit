@@ -15,6 +15,7 @@
 //
 
 #include <array>
+#include <list>
 #include <memory>
 
 #include <QtCore/QSet>
@@ -122,7 +123,9 @@ namespace QWK {
         QObject *m_titleBar{};
         std::array<QObject *, WindowAgentBase::Close + 1> m_systemButtons{};
 
-        QVariantHash m_windowAttributes;
+        std::list<QPair<QString, QVariant>> m_windowAttributesOrder;
+        QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
+
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
 
         void removeSystemButtonsAndHitTestItems();

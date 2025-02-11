@@ -103,10 +103,6 @@ namespace QWK {
                     // So we need this ugly hack to re-apply dark mode to get rid of this
                     // strange Windows bug.
                     if (ctx->windowAttribute(QStringLiteral("dark-mode")).toBool()) {
-                        // setWindowAttribute() will ignore attribute set request if attribute
-                        // value is the same as previous one, so we need to turn off dark mode
-                        // once.
-                        ctx->setWindowAttribute(QStringLiteral("dark-mode"), false);
                         ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
                     }
                     break;
