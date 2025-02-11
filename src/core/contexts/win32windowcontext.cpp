@@ -86,7 +86,10 @@ namespace QWK {
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
         const QVariant marginsVar = QVariant::fromValue(margins);
 
-        // TODO: Add comments
+        // We need to tell Qt we have set a custom margin, because we are hiding
+        // the title bar by pretending the whole window is filled by client area,
+        // this however confuses Qt's internal logic. We need to do the following
+        // hack to let Qt consider the extra margin when changing window geometry.
         window->setProperty("_q_windowsCustomMargins", marginsVar);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
@@ -197,8 +200,8 @@ namespace QWK {
 
         [[maybe_unused]] const auto &cleaner =
             qScopeGuard([windowThreadProcessId, currentThreadId]() {
-                ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE); //
-            }); // TODO: Remove it
+                ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE);
+            });
 
         ::BringWindowToTop(hwnd);
         // Activate the window too. This will force us to the virtual desktop this
@@ -634,7 +637,9 @@ namespace QWK {
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, ctx);
 
-        // TODO: documentation
+        // Force a WM_NCCALCSIZE message manually to avoid the title bar become visible
+        // while Qt is re-creating the window (such as setWindowFlag(s) calls). It has
+        // been observed by our users.
         triggerFrameChange(hWnd);
     }
 
@@ -1605,7 +1610,7 @@ namespace QWK {
                 bool isInTitleBar = isInTitleBarDraggableArea(qtScenePos);
                 WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                 bool isInCaptionButtons = isInSystemButtons(qtScenePos, &sysButtonType);
-                bool dontOverrideCursor = false; // ### TODO
+                static constexpr bool dontOverrideCursor = false; // ### TODO
 
                 if (isInCaptionButtons) {
                     // Firstly, we set the hit test result to a default value to be able to detect
