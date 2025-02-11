@@ -55,8 +55,13 @@ namespace QWK {
             return false;
         }
 
+        // Qt will create invisible native window container for native QWidget
+        // without this attribute, and this behavior will break QWK functionality.
+        // So far enabling this attribute is a must for QWK users.
         w->setAttribute(Qt::WA_DontCreateNativeAncestors);
-        w->setAttribute(Qt::WA_NativeWindow); // Create new window id
+        // Make sure the native window handle is actually created before we apply
+        // various hooks.
+        w->setAttribute(Qt::WA_NativeWindow);
 
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;

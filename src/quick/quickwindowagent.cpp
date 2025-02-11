@@ -44,6 +44,9 @@ namespace QWK {
             return false;
         }
 
+        // Make sure the native window handle is actually created before we apply
+        // various hooks. But we don't need the actual window handle so just ignore it.
+        std::ignore = window->winId();
         d->setup(window, new QuickItemDelegate());
         d->hostWindow = window;
 
