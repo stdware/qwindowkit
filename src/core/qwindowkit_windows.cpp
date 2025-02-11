@@ -71,21 +71,21 @@ namespace QWK {
         return result;
     }
 
-    QPair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
+    std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
         if (!isValid())
-            return qMakePair(0, false);
+            return std::make_pair(0, false);
         DWORD type;
         auto subKeyC = reinterpret_cast<const wchar_t *>(subKey.utf16());
         if (::RegQueryValueExW(m_key, subKeyC, nullptr, &type, nullptr, nullptr) != ERROR_SUCCESS ||
             type != REG_DWORD) {
-            return qMakePair(0, false);
+            return std::make_pair(0, false);
         }
         DWORD value = 0;
         DWORD size = sizeof(value);
         const bool ok =
             ::RegQueryValueExW(m_key, subKeyC, nullptr, nullptr,
                                reinterpret_cast<unsigned char *>(&value), &size) == ERROR_SUCCESS;
-        return qMakePair(value, ok);
+        return std::make_pair(value, ok);
     }
 #endif
 }

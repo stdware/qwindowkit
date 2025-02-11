@@ -86,7 +86,10 @@ namespace QWK {
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
         const QVariant marginsVar = QVariant::fromValue(margins);
 
-        // TODO: Add comments
+        // We need to tell Qt we have set a custom margin, because we are hiding
+        // the title bar by pretending the whole window is filled by client area,
+        // this however confuses Qt's internal logic. We need to do the following
+        // hack to let Qt consider the extra margin when changing window geometry.
         window->setProperty("_q_windowsCustomMargins", marginsVar);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
@@ -197,8 +200,8 @@ namespace QWK {
 
         [[maybe_unused]] const auto &cleaner =
             qScopeGuard([windowThreadProcessId, currentThreadId]() {
-                ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE); //
-            }); // TODO: Remove it
+                ::AttachThreadInput(windowThreadProcessId, currentThreadId, FALSE);
+            });
 
         ::BringWindowToTop(hwnd);
         // Activate the window too. This will force us to the virtual desktop this
@@ -219,12 +222,20 @@ namespace QWK {
             return true;
         }
 
+        const auto windowStyles = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
+        const bool allowMaximize = windowStyles & WS_MAXIMIZEBOX;
+        const bool allowMinimize = windowStyles & WS_MINIMIZEBOX;
+
         const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
         ::EnableMenuItem(hMenu, SC_CLOSE, (MF_BYCOMMAND | MFS_ENABLED));
-        ::EnableMenuItem(hMenu, SC_MAXIMIZE,
-                         (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
-        ::EnableMenuItem(hMenu, SC_RESTORE,
-                         (MF_BYCOMMAND | ((maxOrFull && !fixedSize) ? MFS_ENABLED : MFS_DISABLED)));
+        ::EnableMenuItem(
+            hMenu, SC_MAXIMIZE,
+            (MF_BYCOMMAND |
+             ((maxOrFull || fixedSize || !allowMaximize) ? MFS_DISABLED : MFS_ENABLED)));
+        ::EnableMenuItem(
+            hMenu, SC_RESTORE,
+            (MF_BYCOMMAND |
+             ((maxOrFull && !fixedSize && allowMaximize) ? MFS_ENABLED : MFS_DISABLED)));
         // The first menu item should be selected by default if the menu is brought
         // up by keyboard. I don't know how to pre-select a menu item but it seems
         // highlight can do the job. However, there's an annoying issue if we do
@@ -236,7 +247,8 @@ namespace QWK {
         // the menu look kind of weird. Currently I don't know how to fix this issue.
         ::HiliteMenuItem(hWnd, hMenu, SC_RESTORE,
                          (MF_BYCOMMAND | (selectFirstEntry ? MFS_HILITE : MFS_UNHILITE)));
-        ::EnableMenuItem(hMenu, SC_MINIMIZE, (MF_BYCOMMAND | MFS_ENABLED));
+        ::EnableMenuItem(hMenu, SC_MINIMIZE,
+                         (MF_BYCOMMAND | (allowMinimize ? MFS_ENABLED : MFS_DISABLED)));
         ::EnableMenuItem(hMenu, SC_SIZE,
                          (MF_BYCOMMAND | ((maxOrFull || fixedSize) ? MFS_DISABLED : MFS_ENABLED)));
         ::EnableMenuItem(hMenu, SC_MOVE, (MF_BYCOMMAND | (maxOrFull ? MFS_DISABLED : MFS_ENABLED)));
@@ -355,8 +367,8 @@ namespace QWK {
 
     static MSG createMessageBlock(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
         MSG msg;
-        msg.hwnd = hWnd;       // re-create MSG structure
-        msg.message = message; // time and pt fields ignored
+        msg.hwnd = hWnd;
+        msg.message = message;
         msg.wParam = wParam;
         msg.lParam = lParam;
 
@@ -366,6 +378,8 @@ namespace QWK {
         if (!isNonClientMessage(message)) {
             ::ScreenToClient(hWnd, &msg.pt);
         }
+
+        msg.time = ::GetMessageTime();
         return msg;
     }
 
@@ -400,7 +414,7 @@ namespace QWK {
     }
 
     // Send to QAbstractEventDispatcher
-    bool filterNativeEvent(MSG *msg, LRESULT *result) {
+    static bool filterNativeEvent(MSG *msg, LRESULT *result) {
         auto dispatcher = QAbstractEventDispatcher::instance();
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (dispatcher && dispatcher->filterNativeEvent(nativeEventType(), msg, &filterResult)) {
@@ -411,7 +425,7 @@ namespace QWK {
     }
 
     // Send to QWindowSystemInterface
-    bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
+    static bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (QWindowSystemInterface::handleNativeEvent(window, nativeEventType(), msg,
                                                       &filterResult)) {
@@ -624,6 +638,11 @@ namespace QWK {
 
         // Save window handle mapping
         g_wndProcHash->insert(hWnd, ctx);
+
+        // Force a WM_NCCALCSIZE message manually to avoid the title bar become visible
+        // while Qt is re-creating the window (such as setWindowFlag(s) calls). It has
+        // been observed by our users.
+        triggerFrameChange(hWnd);
     }
 
     static inline void removeManagedWindow(HWND hWnd) {
@@ -688,7 +707,7 @@ namespace QWK {
             }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
-            case DrawWindows10BorderHook: {
+            case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
                     return;
 
@@ -731,7 +750,7 @@ namespace QWK {
                 return;
             }
 
-            case DrawWindows10BorderHook2: {
+            case DrawWindows10BorderHook_Native: {
                 if (!m_windowId)
                     return;
 
@@ -897,7 +916,6 @@ namespace QWK {
         Q_UNUSED(oldAttribute)
 
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-        Q_ASSERT(hwnd);
         if (!hwnd) {
             return false;
         }
@@ -933,8 +951,26 @@ namespace QWK {
         };
         const auto &restoreMargins = [this, &apis, hwnd]() {
             auto margins = qmargins2margins(
-                m_windowAttributes.value(QStringLiteral("extra-margins")).value<QMargins>());
+                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+        };
+
+        const auto &effectBugWorkaround = [this, hwnd]() {
+            // We don't need the following *HACK* for QWidget windows.
+            if (m_host->isWidgetType()) {
+                return;
+            }
+            static QSet<WId> bugWindowSet{};
+            if (bugWindowSet.contains(m_windowId)) {
+                return;
+            }
+            bugWindowSet.insert(m_windowId);
+            RECT rect{};
+            ::GetWindowRect(hwnd, &rect);
+            ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, FALSE);
+            ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, FALSE);
+            ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                         FALSE);
         };
 
         if (key == QStringLiteral("extra-margins")) {
@@ -953,7 +989,8 @@ namespace QWK {
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
-            const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+            const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
+                                                     : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
             apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
 
             apis.pFlushMenuThemes();
@@ -990,6 +1027,7 @@ namespace QWK {
                 }
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1010,6 +1048,7 @@ namespace QWK {
                                             sizeof(backdropType));
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1055,6 +1094,7 @@ namespace QWK {
 
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1094,6 +1134,7 @@ namespace QWK {
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
             }
+            effectBugWorkaround();
             return true;
         }
         return false;
@@ -1571,7 +1612,7 @@ namespace QWK {
                 bool isInTitleBar = isInTitleBarDraggableArea(qtScenePos);
                 WindowAgentBase::SystemButton sysButtonType = WindowAgentBase::Unknown;
                 bool isInCaptionButtons = isInSystemButtons(qtScenePos, &sysButtonType);
-                bool dontOverrideCursor = false; // ### TODO
+                static constexpr bool dontOverrideCursor = false; // ### TODO
 
                 if (isInCaptionButtons) {
                     // Firstly, we set the hit test result to a default value to be able to detect
@@ -2019,20 +2060,21 @@ namespace QWK {
         // implement an elaborate client-area preservation technique, and
         // simply return 0, which means "preserve the entire old client area
         // and align it with the upper-left corner of our new client area".
+
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
-        [[maybe_unused]] const auto& flickerReducer = qScopeGuard([this]() {
+        [[maybe_unused]] const auto &flickerReducer = qScopeGuard([this]() {
             // When we receive this message, it means the window size has changed
             // already, and it seems this message always come before any client
             // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE). Let
             // D3D/VK paint immediately to let user see the latest result as soon
             // as possible.
-            const auto& isTargetSurface = [](const QSurface::SurfaceType st){
-                return st != QSurface::RasterSurface && st != QSurface::OpenGLSurface
-                       && st != QSurface::RasterGLSurface && st != QSurface::OpenVGSurface;
+            const auto &isTargetSurface = [](const QSurface::SurfaceType st) {
+                return st != QSurface::RasterSurface && st != QSurface::OpenGLSurface &&
+                       st != QSurface::RasterGLSurface && st != QSurface::OpenVGSurface;
             };
-            if (m_windowHandle && isTargetSurface(m_windowHandle->surfaceType())
-                && isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
+            if (m_windowHandle && isTargetSurface(m_windowHandle->surfaceType()) &&
+                isDwmCompositionEnabled() && DynamicApis::instance().pDwmFlush) {
                 DynamicApis::instance().pDwmFlush();
             }
         });

@@ -15,7 +15,9 @@
 //
 
 #include <array>
+#include <list>
 #include <memory>
+#include <utility>
 
 #include <QtCore/QSet>
 #include <QtCore/QPointer>
@@ -88,9 +90,9 @@ namespace QWK {
             RaiseWindowHook,
             ShowSystemMenuHook,
             DefaultColorsHook,
-            DrawWindows10BorderHook,     // Only works on Windows 10, emulated workaround
-            DrawWindows10BorderHook2,    // Only works on Windows 10, native workaround
-            SystemButtonAreaChangedHook, // Only works on Mac
+            DrawWindows10BorderHook_Emulated, // Only works on Windows 10, emulated workaround
+            DrawWindows10BorderHook_Native,   // Only works on Windows 10, native workaround
+            SystemButtonAreaChangedHook,      // Only works on Mac
         };
         virtual void virtual_hook(int id, void *data);
 
@@ -122,9 +124,11 @@ namespace QWK {
         QObject *m_titleBar{};
         std::array<QObject *, WindowAgentBase::Close + 1> m_systemButtons{};
 
-        QVariantHash m_windowAttributes;
+        std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
+        QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
+
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
-        
+
         void removeSystemButtonsAndHitTestItems();
 
     private:

@@ -46,7 +46,7 @@ namespace QWK {
         }
 
         inline void drawBorder() {
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook2, nullptr);
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native, nullptr);
         }
 
         inline int borderThickness() const {
@@ -91,6 +91,20 @@ namespace QWK {
 
                 case WM_ACTIVATE: {
                     updateExtraMargins(LOWORD(msg->wParam) != WA_INACTIVE);
+                    break;
+                }
+
+                case WM_THEMECHANGED:
+                case WM_SYSCOLORCHANGE:
+                case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                    // If we do not refresh this property, the native border will turn white
+                    // permanently (like the dark mode is turned off) after the user changes
+                    // the accent color in system personalization settings.
+                    // So we need this ugly hack to re-apply dark mode to get rid of this
+                    // strange Windows bug.
+                    if (ctx->windowAttribute(QStringLiteral("dark-mode")).toBool()) {
+                        ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+                    }
                     break;
                 }
 

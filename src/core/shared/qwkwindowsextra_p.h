@@ -21,7 +21,6 @@
 #include <QWKCore/qwindowkit_windows.h>
 
 #include <QtCore/QtMath>
-#include <QtCore/QPair>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 #include <QtGui/QPalette>

@@ -44,17 +44,14 @@ namespace QWK {
             return false;
         }
 
+        // Make sure the native window handle is actually created before we apply
+        // various hooks. But we don't need the actual window handle so just ignore it.
+        std::ignore = window->winId();
         d->setup(window, new QuickItemDelegate());
         d->hostWindow = window;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
-#endif
-
-#ifdef Q_OS_WINDOWS
-        if (!windowAttribute(QStringLiteral("windows-system-border-enabled")).toBool()) {
-            window->setFlag(Qt::FramelessWindowHint);
-        }
 #endif
         return true;
     }

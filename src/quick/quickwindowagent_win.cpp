@@ -12,6 +12,13 @@
 
 namespace QWK {
 
+    static inline bool isWindows1022H2OrGreater() {
+        RTL_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
+        return (rovi.dwMajorVersion > 10) ||
+               (rovi.dwMajorVersion == 10 &&
+                (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19045));
+    }
+
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
 
     class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
@@ -19,6 +26,7 @@ namespace QWK {
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
 
+        bool shouldEnableEmulatedPainter() const;
         void updateGeometry() override;
 
     public:
@@ -27,14 +35,34 @@ namespace QWK {
 
     protected:
         bool sharedEventFilter(QObject *obj, QEvent *event) override;
-
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        volatile bool needPaint = false;
+        bool nativeEventFilter(const QByteArray &eventType, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *result) override;
 
     private:
+        volatile bool needPaint = false;
+
         void _q_afterSynchronizing();
-#  endif
+        void _q_windowActivityChanged();
     };
+
+    bool BorderItem::shouldEnableEmulatedPainter() const {
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        auto api = window()->rendererInterface()->graphicsApi();
+        switch (api) {
+            case QSGRendererInterface::OpenGL:
+                // FIXME: experimental, try to find the exact fixed version.
+                return !isWindows1022H2OrGreater();
+            case QSGRendererInterface::Direct3D11:
+#    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+            case QSGRendererInterface::Direct3D12:
+#    endif
+                return false;
+            default:
+                break;
+        }
+#  endif
+        return true;
+    }
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
         : QQuickPaintedItem(parent), Windows10BorderHandler(context) {
@@ -56,6 +84,8 @@ namespace QWK {
         connect(window(), &QQuickWindow::afterSynchronizing, this,
                 &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
 #  endif
+        connect(window(), &QQuickWindow::activeChanged, this,
+                &BorderItem::_q_windowActivityChanged);
 
         // First update
         if (context->windowId()) {
@@ -73,16 +103,7 @@ namespace QWK {
 
     void BorderItem::paint(QPainter *painter) {
         Q_UNUSED(painter)
-
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        if (auto api = window()->rendererInterface()->graphicsApi();
-            !(api == QSGRendererInterface::Direct3D11
-
-#    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-              || api == QSGRendererInterface::Direct3D12
-#    endif
-              )) {
-#  endif
+        if (shouldEnableEmulatedPainter()) {
             QRect rect(QPoint(0, 0), size().toSize());
             QRegion region(rect);
             void *args[] = {
@@ -90,12 +111,10 @@ namespace QWK {
                 &rect,
                 &region,
             };
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook, args);
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Emulated, args);
         } else {
             needPaint = true;
         }
-#  endif
     }
 
     void BorderItem::itemChange(ItemChange change, const ItemChangeData &data) {
@@ -124,14 +143,40 @@ namespace QWK {
         return Windows10BorderHandler::sharedEventFilter(obj, event);
     }
 
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
+                                       QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        const auto msg = static_cast<const MSG *>(message);
+        switch (msg->message) {
+            case WM_THEMECHANGED:
+            case WM_SYSCOLORCHANGE:
+            case WM_DWMCOLORIZATIONCOLORCHANGED: {
+                update();
+                break;
+            }
+
+            case WM_SETTINGCHANGE: {
+                if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
+                    update();
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+        return Windows10BorderHandler::nativeEventFilter(eventType, message, result);
+    }
+
     void BorderItem::_q_afterSynchronizing() {
         if (needPaint) {
             needPaint = false;
             drawBorder();
         }
     }
-#  endif
+
+    void BorderItem::_q_windowActivityChanged() {
+        update();
+    }
 
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
         // Install painting hook

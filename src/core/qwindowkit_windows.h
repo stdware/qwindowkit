@@ -145,7 +145,7 @@ namespace QWK {
 
         void close();
         QString stringValue(QStringView subKey) const;
-        QPair<DWORD, bool> dwordValue(QStringView subKey) const;
+        std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
 
     private:
         HKEY m_key;
@@ -166,10 +166,10 @@ namespace QWK {
             : QWinRegistryKey(parentHandle, subKey, permissions, access) {
         }
 
-        inline QPair<DWORD, bool> dwordValue(QStringView subKey) const;
+        inline std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
     };
 
-    inline QPair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
+    inline std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
         const auto val = value<DWORD>(subKey);
         if (!val) {
             return {0, false};

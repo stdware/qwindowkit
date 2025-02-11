@@ -79,14 +79,19 @@ namespace QWK {
         return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::IconButton));
     }
 
+    QAbstractButton *WindowBar::pinButton() const {
+        Q_D(const WindowBar);
+        return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::PinButton));
+    }
+
     QAbstractButton *WindowBar::minButton() const {
         Q_D(const WindowBar);
-        return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::MinimumButton));
+        return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::MinimizeButton));
     }
 
     QAbstractButton *WindowBar::maxButton() const {
         Q_D(const WindowBar);
-        return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::MaximumButton));
+        return static_cast<QAbstractButton *>(d->widgetAt(WindowBarPrivate::MaximizeButton));
     }
 
     QAbstractButton *WindowBar::closeButton() const {
@@ -131,6 +136,17 @@ namespace QWK {
         btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     }
 
+    void WindowBar::setPinButton(QAbstractButton *btn) {
+        Q_D(WindowBar);
+        auto org = takePinButton();
+        if (org)
+            org->deleteLater();
+        if (!btn)
+            return;
+        d->setWidgetAt(WindowBarPrivate::PinButton, btn);
+        connect(btn, &QAbstractButton::clicked, this, &WindowBar::pinRequested);
+    }
+
     void WindowBar::setMinButton(QAbstractButton *btn) {
         Q_D(WindowBar);
         auto org = takeMinButton();
@@ -138,7 +154,7 @@ namespace QWK {
             org->deleteLater();
         if (!btn)
             return;
-        d->setWidgetAt(WindowBarPrivate::MinimumButton, btn);
+        d->setWidgetAt(WindowBarPrivate::MinimizeButton, btn);
         connect(btn, &QAbstractButton::clicked, this, &WindowBar::minimizeRequested);
     }
 
@@ -149,7 +165,7 @@ namespace QWK {
             org->deleteLater();
         if (!btn)
             return;
-        d->setWidgetAt(WindowBarPrivate::MaximumButton, btn);
+        d->setWidgetAt(WindowBarPrivate::MaximizeButton, btn);
         connect(btn, &QAbstractButton::clicked, this, &WindowBar::maximizeRequested);
     }
 
@@ -179,9 +195,19 @@ namespace QWK {
         return static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::IconButton));
     }
 
+    QAbstractButton *WindowBar::takePinButton() {
+        Q_D(WindowBar);
+        auto btn = static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::PinButton));
+        if (!btn) {
+            return nullptr;
+        }
+        disconnect(btn, &QAbstractButton::clicked, this, &WindowBar::pinRequested);
+        return btn;
+    }
+
     QAbstractButton *WindowBar::takeMinButton() {
         Q_D(WindowBar);
-        auto btn = static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::MinimumButton));
+        auto btn = static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::MinimizeButton));
         if (!btn) {
             return nullptr;
         }
@@ -191,7 +217,7 @@ namespace QWK {
 
     QAbstractButton *WindowBar::takeMaxButton() {
         Q_D(WindowBar);
-        auto btn = static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::MaximumButton));
+        auto btn = static_cast<QAbstractButton *>(d->takeWidgetAt(WindowBarPrivate::MaximizeButton));
         if (!btn) {
             return nullptr;
         }

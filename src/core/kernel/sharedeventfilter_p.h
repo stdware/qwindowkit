@@ -33,7 +33,7 @@ namespace QWK {
         void removeSharedEventFilter(SharedEventFilter *filter);
 
     protected:
-        QVector<SharedEventFilter *> m_sharedEventFilters;
+        QList<SharedEventFilter *> m_sharedEventFilters;
 
         friend class SharedEventFilter;
 

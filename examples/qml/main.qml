@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
-import QtQuick.Controls.Basic 2.15
+import QtQuick.Controls 2.15
 import Qt.labs.platform 1.1
 import QWindowKit 1.0
 
@@ -12,8 +12,8 @@ Window {
     title: qsTr("Hello, world!")
     Component.onCompleted: {
         windowAgent.setup(window)
+        windowAgent.setWindowAttribute("dark-mode", true)
         window.visible = true
-        delayInitTimer.start()
     }
 
     QtObject {
@@ -30,14 +30,6 @@ Window {
         running: true
         repeat: true
         onTriggered: timeLabel.text = Qt.formatTime(new Date(), "hh:mm:ss")
-    }
-
-    Timer {
-        id: delayInitTimer
-        interval: 100
-        running: false
-        repeat: false
-        onTriggered: windowAgent.setWindowAttribute("dark-mode", true)
     }
 
     WindowAgent {

@@ -55,20 +55,19 @@ namespace QWK {
             return false;
         }
 
+        // Qt will create invisible native window container for native QWidget
+        // without this attribute, and this behavior will break QWK functionality.
+        // So far enabling this attribute is a must for QWK users.
         w->setAttribute(Qt::WA_DontCreateNativeAncestors);
-        w->setAttribute(Qt::WA_NativeWindow); // Create new window id
+        // Make sure the native window handle is actually created before we apply
+        // various hooks.
+        w->setAttribute(Qt::WA_NativeWindow);
 
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
-#endif
-
-#ifdef Q_OS_WINDOWS
-        if (!windowAttribute(QStringLiteral("windows-system-border-enabled")).toBool()) {
-            w->setWindowFlag(Qt::FramelessWindowHint);
-        }
 #endif
         return true;
     }

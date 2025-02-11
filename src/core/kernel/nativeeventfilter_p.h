@@ -34,7 +34,7 @@ namespace QWK {
         void removeNativeEventFilter(NativeEventFilter *filter);
 
     protected:
-        QVector<NativeEventFilter *> m_nativeEventFilters;
+        QList<NativeEventFilter *> m_nativeEventFilters;
 
         friend class NativeEventFilter;
 
