@@ -960,10 +960,10 @@ namespace QWK {
             bugWindowSet.insert(m_windowId);
             RECT rect{};
             ::GetWindowRect(hwnd, &rect);
-            ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, TRUE);
-            ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, TRUE);
+            ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, FALSE);
+            ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, FALSE);
             ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-                         TRUE);
+                         FALSE);
         };
 
         if (key == QStringLiteral("extra-margins")) {
