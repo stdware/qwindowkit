@@ -936,6 +936,23 @@ namespace QWK {
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
 
+        const auto &effectBugWorkaround = [this, hwnd](){
+            // We don't need the following *HACK* for QWidget windows.
+            if (m_host->isWidgetType()) {
+                return;
+            }
+            static QSet<WId> bugWindowSet{};
+            if (bugWindowSet.contains(m_windowId)) {
+                return;
+            }
+            bugWindowSet.insert(m_windowId);
+            RECT rect{};
+            ::GetWindowRect(hwnd, &rect);
+            ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, TRUE);
+            ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, TRUE);
+            ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+        };
+
         if (key == QStringLiteral("extra-margins")) {
             auto margins = qmargins2margins(attribute.value<QMargins>());
             return SUCCEEDED(apis.pDwmExtendFrameIntoClientArea(hwnd, &margins));
@@ -990,6 +1007,7 @@ namespace QWK {
                 }
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1010,6 +1028,7 @@ namespace QWK {
                                             sizeof(backdropType));
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1055,6 +1074,7 @@ namespace QWK {
 
                 restoreMargins();
             }
+            effectBugWorkaround();
             return true;
         }
 
@@ -1094,6 +1114,7 @@ namespace QWK {
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
             }
+            effectBugWorkaround();
             return true;
         }
         return false;
