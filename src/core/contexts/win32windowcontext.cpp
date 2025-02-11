@@ -943,9 +943,8 @@ namespace QWK {
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
         const auto &restoreMargins = [this, &apis, hwnd]() {
-            auto margins =
-                qmargins2margins(m_windowAttributes.value(QStringLiteral("extra-margins"))
-                                     ->second.value<QMargins>());
+            auto margins = qmargins2margins(
+                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
 
