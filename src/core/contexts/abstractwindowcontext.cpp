@@ -276,7 +276,7 @@ namespace QWK {
             }
             m_windowAttributes.insert(key,
                                       m_windowAttributesOrder.insert(m_windowAttributesOrder.end(),
-                                                                     qMakePair(key, attribute)));
+                                      std::make_pair(key, attribute)));
             return true;
         }
 

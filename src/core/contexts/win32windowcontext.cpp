@@ -367,8 +367,8 @@ namespace QWK {
 
     static MSG createMessageBlock(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
         MSG msg;
-        msg.hwnd = hWnd;       // re-create MSG structure
-        msg.message = message; // time and pt fields ignored
+        msg.hwnd = hWnd;
+        msg.message = message;
         msg.wParam = wParam;
         msg.lParam = lParam;
 
@@ -378,6 +378,8 @@ namespace QWK {
         if (!isNonClientMessage(message)) {
             ::ScreenToClient(hWnd, &msg.pt);
         }
+
+        msg.time = ::GetMessageTime();
         return msg;
     }
 
@@ -2058,8 +2060,6 @@ namespace QWK {
         // implement an elaborate client-area preservation technique, and
         // simply return 0, which means "preserve the entire old client area
         // and align it with the upper-left corner of our new client area".
-
-        // qDebug() << QDateTime::currentDateTime() << "WM_NCCALCSIZE";
 
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
