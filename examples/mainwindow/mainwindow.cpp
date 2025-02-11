@@ -40,12 +40,6 @@ protected:
         QLabel::timerEvent(event);
         setText(QTime::currentTime().toString(QStringLiteral("hh:mm:ss")));
     }
-
-    // void mouseReleaseEvent(QMouseEvent *ev) override {
-    //     window()->setWindowFlag(Qt::WindowStaysOnTopHint,
-    //                             !(window()->windowFlags() & Qt::WindowStaysOnTopHint));
-    //     window()->show();
-    // }
 };
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
