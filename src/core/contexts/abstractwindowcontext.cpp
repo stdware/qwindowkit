@@ -230,28 +230,30 @@ namespace QWK {
         if (m_windowHandle) {
             removeEventFilter(m_windowHandle);
         }
+
+        auto oldWindowHandle = m_windowHandle.data();
         m_windowHandle = m_delegate->hostWindow(m_host);
 
         if (oldWinId != m_windowId) {
             winIdChanged(m_windowId, oldWinId);
-        }
 
-        if (m_windowHandle) {
-            m_windowHandle->installEventFilter(this);
+            if (m_windowId) {
+                // Installing twice has no side-effect.
+                m_windowHandle->installEventFilter(this);
 
-            // Refresh window attributes
-            for (auto it = m_windowAttributesOrder.begin(); it != m_windowAttributesOrder.end();) {
-                if (!windowAttributeChanged(it->first, it->second, {})) {
-                    m_windowAttributes.remove(it->first);
-                    it = m_windowAttributesOrder.erase(it);
-                    continue;
+                // Refresh window attributes
+                for (auto it = m_windowAttributesOrder.begin();
+                     it != m_windowAttributesOrder.end();) {
+                    if (!windowAttributeChanged(it->first, it->second, {})) {
+                        m_windowAttributes.remove(it->first);
+                        it = m_windowAttributesOrder.erase(it);
+                        continue;
+                    }
+                    ++it;
                 }
-                ++it;
             }
-        }
 
-        // Send to shared dispatchers
-        if (oldWinId != m_windowId) {
+            // Send to shared dispatchers
             QEvent e(QEvent::WinIdChange);
             sharedDispatch(m_host, &e);
         }
@@ -271,18 +273,18 @@ namespace QWK {
             if (!attribute.isValid()) {
                 return true;
             }
-            if (m_windowHandle && !windowAttributeChanged(key, attribute, {})) {
+            if (m_windowId && !windowAttributeChanged(key, attribute, {})) {
                 return false;
             }
-            m_windowAttributes.insert(key,
-                                      m_windowAttributesOrder.insert(m_windowAttributesOrder.end(),
-                                      std::make_pair(key, attribute)));
+            m_windowAttributes.insert(
+                key, m_windowAttributesOrder.insert(m_windowAttributesOrder.end(),
+                                                    std::make_pair(key, attribute)));
             return true;
         }
 
         auto &listIter = it.value();
         auto &oldAttr = listIter->second;
-        if (m_windowHandle && !windowAttributeChanged(key, attribute, oldAttr)) {
+        if (m_windowId && !windowAttributeChanged(key, attribute, oldAttr)) {
             return false;
         }
 

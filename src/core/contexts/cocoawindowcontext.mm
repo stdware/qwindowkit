@@ -708,6 +708,8 @@ namespace QWK {
                                                     const QVariant &oldAttribute) {
         Q_UNUSED(oldAttribute)
 
+        Q_ASSERT(m_windowId);
+
         if (key == QStringLiteral("no-system-buttons")) {
             if (attribute.type() != QVariant::Bool)
                 return false;
@@ -740,7 +742,6 @@ namespace QWK {
             }
             return ensureWindowProxy(m_windowId)->setBlurEffect(mode);
         }
-
         return false;
     }
 

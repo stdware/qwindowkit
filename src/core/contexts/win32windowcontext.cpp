@@ -916,9 +916,7 @@ namespace QWK {
         Q_UNUSED(oldAttribute)
 
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-        if (!hwnd) {
-            return false;
-        }
+        Q_ASSERT(hwnd);
 
         const DynamicApis &apis = DynamicApis::instance();
         const auto &extendMargins = [this, &apis, hwnd]() {
