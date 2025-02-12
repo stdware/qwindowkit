@@ -230,17 +230,15 @@ namespace QWK {
         if (m_windowHandle) {
             removeEventFilter(m_windowHandle);
         }
-
-        auto oldWindowHandle = m_windowHandle.data();
         m_windowHandle = m_delegate->hostWindow(m_host);
+        if (m_windowHandle) {
+            m_windowHandle->installEventFilter(this);
+        }
 
         if (oldWinId != m_windowId) {
             winIdChanged(m_windowId, oldWinId);
 
             if (m_windowId) {
-                // Installing twice has no side-effect.
-                m_windowHandle->installEventFilter(this);
-
                 // Refresh window attributes
                 for (auto it = m_windowAttributesOrder.begin();
                      it != m_windowAttributesOrder.end();) {
