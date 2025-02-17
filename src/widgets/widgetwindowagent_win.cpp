@@ -83,7 +83,7 @@ namespace QWK {
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
             // and then update the top border area.
-            drawBorder();
+            drawBorderNative();
         }
 
         inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
@@ -97,7 +97,7 @@ namespace QWK {
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.
-            drawBorder();
+            drawBorderNative();
         }
 
     protected:

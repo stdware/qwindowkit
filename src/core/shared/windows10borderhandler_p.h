@@ -45,7 +45,17 @@ namespace QWK {
                      (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
         }
 
-        inline void drawBorder() {
+        inline void drawBorderEmulated(QPainter *painter, const QRect &rect) {
+            QRegion region(rect);
+            void *args[] = {
+                painter,
+                const_cast<QRect *>(&rect),
+                &region,
+            };
+            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Emulated, args);
+        }
+
+        inline void drawBorderNative() {
             ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native, nullptr);
         }
 
@@ -54,6 +64,7 @@ namespace QWK {
         }
 
         inline void updateExtraMargins(bool windowActive) {
+            // ### FIXME: transparent seam
             if (windowActive) {
                 // Restore margins when the window is active
                 static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
