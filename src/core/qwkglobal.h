@@ -34,6 +34,13 @@ using QT_ENTER_EVENT_TYPE = QEvent;
 #  define QWINDOWKIT_CONFIG(feature) ((1 / QWINDOWKIT_##feature) == 1)
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define QWINDOWKIT_PRINTF_FORMAT(fmtpos, attrpos)                                                \
+      __attribute__((__format__(__printf__, fmtpos, attrpos)))
+#else
+#  define QWINDOWKIT_PRINTF_FORMAT(fmtpos, attrpos)
+#endif
+
 namespace QWK {
 
     using ScreenRectCallback = std::function<QRect(const QSize &)>;

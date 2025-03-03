@@ -9,13 +9,9 @@ file(GLOB _src *.h *.cpp)
 add_library(${PROJECT_NAME} STATIC)
 
 qm_configure_target(${PROJECT_NAME}
+    FEATURES cxx_std_17
     SOURCES ${_src}
     QT_LINKS Core Gui Widgets
-)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED TRUE
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC . ..)

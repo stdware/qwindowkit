@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(QWindowKit VERSION 1.4.0.0 LANGUAGES CXX)
+project(QWindowKit
+    VERSION 1.4.0.0
+    LANGUAGES CXX
+    HOMEPAGE_URL "https://github.com/stdware/qwindowkit"
+    DESCRIPTION "Cross-platform window customization framework"
+)
 
 # ----------------------------------
 # Build Options
@@ -68,6 +73,10 @@ endif()
 # ----------------------------------
 set(QWINDOWKIT_VERSION ${PROJECT_VERSION})
 set(QWINDOWKIT_INSTALL_NAME ${PROJECT_NAME})
+
+string(TIMESTAMP _QACTIONKIT_CURRENT_YEAR "%Y")
+set(QACTIONKIT_COPYRIGHT "Copyright 2023-${_QACTIONKIT_CURRENT_YEAR} Stdware Collections")
+set(QACTIONKIT_DESCRIPTION ${PROJECT_DESCRIPTION})
 
 # ----------------------------------
 # Find basic dependencies

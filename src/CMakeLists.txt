@@ -1,9 +1,5 @@
 qm_import(Preprocess)
 
-string(TIMESTAMP _current_year "%Y")
-
-set(QWINDOWKIT_PROJECT_DESCRIPTION "Cross-platform window customization framework")
-set(QWINDOWKIT_PROJECT_COPYRIGHT "Copyright 2023-${_current_year} Stdware Collections")
 set(QWINDOWKIT_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include)
 set(QWINDOWKIT_BUILD_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/../etc/include)
 
@@ -60,8 +56,8 @@ macro(qwk_add_library _target)
     if(WIN32 AND NOT FUNC_NO_WIN_RC AND(${_type} STREQUAL "SHARED"))
         qm_add_win_rc(${_target}
             NAME ${QWINDOWKIT_INSTALL_NAME}
-            DESCRIPTION ${QWINDOWKIT_PROJECT_DESCRIPTION}
-            COPYRIGHT ${QWINDOWKIT_PROJECT_COPYRIGHT}
+            DESCRIPTION ${QWINDOWKIT_DESCRIPTION}
+            COPYRIGHT ${QACTIONKIT_COPYRIGHT}
         )
     endif()
 
@@ -164,7 +160,7 @@ if(QWINDOWKIT_BUILD_DOCUMENTATIONS)
     qm_import(Doxygen)
     qm_setup_doxygen(QWindowKit_RunDoxygen
         NAME "QWindowKit"
-        DESCRIPTION "${QWINDOWKIT_PROJECT_DESCRIPTION}"
+        DESCRIPTION "${QWINDOWKIT_DESCRIPTION}"
         MDFILE ../README.md
         OUTPUT_DIR ${CMAKE_BUILD_SHARE_DIR}/doc/${QWINDOWKIT_INSTALL_NAME}
         INPUT ${QWINDOWKIT_ENABLED_SUBDIRECTORIES}
