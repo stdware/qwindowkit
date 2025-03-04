@@ -61,7 +61,7 @@ namespace QWK {
         w->setAttribute(Qt::WA_DontCreateNativeAncestors);
         // Make sure the native window handle is actually created before we apply
         // various hooks.
-        w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Remove
+        //w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Check
 
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;

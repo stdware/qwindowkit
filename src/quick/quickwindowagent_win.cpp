@@ -97,21 +97,14 @@ namespace QWK {
     BorderItem::~BorderItem() = default;
 
     void BorderItem::updateGeometry() {
-        setHeight(borderThickness());
+        setHeight(borderThickness() / window()->devicePixelRatio());
         setVisible(isNormalWindow());
     }
 
     void BorderItem::paint(QPainter *painter) {
         Q_UNUSED(painter)
         if (shouldEnableEmulatedPainter()) {
-            QRect rect(QPoint(0, 0), size().toSize());
-            QRegion region(rect);
-            void *args[] = {
-                painter,
-                &rect,
-                &region,
-            };
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Emulated, args);
+            drawBorderEmulated(painter, QRect({0, 0}, size().toSize()));
         } else {
             needPaint = true;
         }
@@ -170,7 +163,7 @@ namespace QWK {
     void BorderItem::_q_afterSynchronizing() {
         if (needPaint) {
             needPaint = false;
-            drawBorder();
+            drawBorderNative();
         }
     }
 
