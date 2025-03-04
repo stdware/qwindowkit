@@ -31,10 +31,12 @@ namespace QWK {
         }
 
         inline void setupNecessaryAttributes() {
-            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
-            // Must extend top frame to client area
-            static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
-            ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
+            if (!isWin11OrGreater()) {
+                // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
+                // Must extend top frame to client area
+                static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
+                ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
+            }
 
             // Enable dark mode by default, otherwise the system borders are white
             ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
@@ -64,6 +66,10 @@ namespace QWK {
         }
 
         inline void updateExtraMargins(bool windowActive) {
+            if (isWin11OrGreater()) {
+                return;
+            }
+
             // ### FIXME: transparent seam
             if (windowActive) {
                 // Restore margins when the window is active
