@@ -14,10 +14,6 @@
 // version without notice, or may even be removed.
 //
 
-#include <shellscalingapi.h>
-#include <dwmapi.h>
-#include <timeapi.h>
-
 #include <QWKCore/qwindowkit_windows.h>
 
 #include <QtCore/QtMath>
@@ -28,6 +24,41 @@
 #include <QtCore/private/qsystemlibrary_p.h>
 
 // Don't include this header in any header files.
+
+typedef struct _MARGINS
+{
+    int cxLeftWidth;
+    int cxRightWidth;
+    int cyTopHeight;
+    int cyBottomHeight;
+} MARGINS, *PMARGINS;
+
+typedef enum MONITOR_DPI_TYPE {
+    MDT_EFFECTIVE_DPI = 0,
+    MDT_ANGULAR_DPI = 1,
+    MDT_RAW_DPI = 2,
+    MDT_DEFAULT = MDT_EFFECTIVE_DPI
+} MONITOR_DPI_TYPE;
+
+typedef struct _DWM_BLURBEHIND
+{
+    DWORD dwFlags;
+    BOOL fEnable;
+    HRGN hRgnBlur;
+    BOOL fTransitionOnMaximized;
+} DWM_BLURBEHIND, *PDWM_BLURBEHIND;
+
+extern "C" {
+    UINT    WINAPI GetDpiForWindow(HWND);
+    int     WINAPI GetSystemMetricsForDpi(int, UINT);
+    HRESULT WINAPI GetDpiForMonitor(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *);
+    HRESULT WINAPI DwmFlush();
+    HRESULT WINAPI DwmIsCompositionEnabled(BOOL*);
+    HRESULT WINAPI DwmGetWindowAttribute(HWND, DWORD, PVOID, DWORD);
+    HRESULT WINAPI DwmSetWindowAttribute(HWND, DWORD, LPCVOID, DWORD);
+    HRESULT WINAPI DwmExtendFrameIntoClientArea(HWND, const MARGINS*);
+    HRESULT WINAPI DwmEnableBlurBehindWindow(HWND, const DWM_BLURBEHIND*);
+} // extern "C"
 
 namespace QWK {
 
@@ -160,7 +191,7 @@ namespace QWK {
     namespace {
 
         struct DynamicApis {
-            static const DynamicApis &instance() {
+            static inline const DynamicApis &instance() {
                 static const DynamicApis inst;
                 return inst;
             }
@@ -188,7 +219,7 @@ namespace QWK {
             SetPreferredAppModePtr pSetPreferredAppMode = nullptr;
 
         private:
-            DynamicApis() {
+            inline DynamicApis() {
 #define DYNAMIC_API_RESOLVE(DLL, NAME)                                                             \
     p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(#NAME))
 
@@ -224,7 +255,7 @@ namespace QWK {
 #undef UNDOC_API_RESOLVE
             }
 
-            ~DynamicApis() = default;
+            inline ~DynamicApis() = default;
 
             Q_DISABLE_COPY(DynamicApis)
         };

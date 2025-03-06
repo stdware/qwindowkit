@@ -37,6 +37,10 @@
 #  error Current Qt version has a critical bug which will break QWK functionality. Please upgrade to > 6.6.1 or downgrade to < 6.6.0
 #endif
 
+#ifndef DWM_BB_ENABLE
+#  define DWM_BB_ENABLE 0x00000001
+#endif
+
 namespace QWK {
 
     enum IconButtonClickLevelFlag {

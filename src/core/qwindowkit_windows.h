@@ -5,6 +5,14 @@
 #ifndef QWINDOWKIT_WINDOWS_H
 #define QWINDOWKIT_WINDOWS_H
 
+#ifndef _USER32_
+#  define _USER32_
+#endif
+
+#ifndef _DWMAPI_
+#  define _DWMAPI_
+#endif
+
 #include <QtCore/qt_windows.h>
 #include <QtCore/qglobal.h>
 
