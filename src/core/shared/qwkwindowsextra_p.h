@@ -51,6 +51,7 @@ typedef struct _DWM_BLURBEHIND
 extern "C" {
     UINT    WINAPI GetDpiForWindow(HWND);
     int     WINAPI GetSystemMetricsForDpi(int, UINT);
+    BOOL    WINAPI AdjustWindowRectExForDpi(LPRECT, DWORD, BOOL, DWORD, UINT);
     HRESULT WINAPI GetDpiForMonitor(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *);
     HRESULT WINAPI DwmFlush();
     HRESULT WINAPI DwmIsCompositionEnabled(BOOL*);
