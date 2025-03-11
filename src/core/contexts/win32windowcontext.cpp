@@ -41,6 +41,10 @@
 #  define DWM_BB_ENABLE 0x00000001
 #endif
 
+#ifndef ABM_GETAUTOHIDEBAREX
+#  define ABM_GETAUTOHIDEBAREX 0x0000000b
+#endif
+
 namespace QWK {
 
     enum IconButtonClickLevelFlag {
