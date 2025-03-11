@@ -116,13 +116,13 @@ namespace QWK {
         QPointer<QWindow> m_windowHandle;
         WId m_windowId{};
 
-        QSet<const QObject *> m_hitTestVisibleItems;
+        QVector<QPointer<QObject>> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC
         ScreenRectCallback m_systemButtonAreaCallback;
 #endif
 
-        QObject *m_titleBar{};
-        std::array<QObject *, WindowAgentBase::Close + 1> m_systemButtons{};
+        QPointer<QObject> m_titleBar{};
+        std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
 
         std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
         QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
@@ -130,11 +130,6 @@ namespace QWK {
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
 
         void removeSystemButtonsAndHitTestItems();
-
-    private:
-        void _q_titleBarDistroyed(QObject *obj);
-        void _q_hitTestVisibleItemDestroyed(QObject *obj);
-        void _q_systemButtonDestroyed(QObject *obj);
     };
 
     inline QObject *AbstractWindowContext::host() const {
@@ -154,7 +149,7 @@ namespace QWK {
     }
 
     inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {
-        return m_hitTestVisibleItems.contains(obj);
+        return m_hitTestVisibleItems.contains(const_cast<QObject *>(obj));
     }
 
     inline QObject *
