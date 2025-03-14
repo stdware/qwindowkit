@@ -123,11 +123,11 @@ namespace QWK {
 
         WindowAgentBase::SystemButton button;
         if (isInSystemButtons(pos, &button)) {
-            return true;
+            return false;
         }
 
         for (auto item : m_hitTestVisibleItems) {
-            if (item && m_delegate->isVisible(item)&&
+            if (item && m_delegate->isVisible(item) &&
                 m_delegate->mapGeometryToScene(item).contains(pos)) {
                 return false;
             }
