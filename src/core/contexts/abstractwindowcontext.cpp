@@ -88,8 +88,7 @@ namespace QWK {
         *button = WindowAgentBase::Unknown;
         for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
-            if (!currentButton || !m_delegate->isVisible(currentButton) ||
-                !m_delegate->isEnabled(currentButton)) {
+            if (!currentButton || !m_delegate->isVisible(currentButton)) {
                 continue;
             }
             if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
@@ -122,17 +121,13 @@ namespace QWK {
             return false;
         }
 
-        for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
-            auto currentButton = m_systemButtons[i];
-            if (currentButton && m_delegate->isVisible(currentButton) &&
-                m_delegate->isEnabled(currentButton) &&
-                m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
-                return false;
-            }
+        WindowAgentBase::SystemButton button;
+        if (isInSystemButtons(pos, &button)) {
+            return true;
         }
 
         for (auto item : m_hitTestVisibleItems) {
-            if (item && m_delegate->isVisible(item) && m_delegate->isEnabled(item) &&
+            if (item && m_delegate->isVisible(item)&&
                 m_delegate->mapGeometryToScene(item).contains(pos)) {
                 return false;
             }
