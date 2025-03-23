@@ -76,6 +76,7 @@ git clone --recursive https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -B build -S . \
+  -DCMAKE_PREFIX_PATH=<QT_DIR> \
   -Dqmsetup_DIR=<dir> \             # Optional
   -DQWINDOWKIT_BUILD_QUICK=TRUE \   # Optional
   -DCMAKE_INSTALL_PREFIX=/path/install \
