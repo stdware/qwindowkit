@@ -23,10 +23,6 @@ namespace QWK {
 
     using ProxyList = QHash<WId, NSWindowProxy *>;
     Q_GLOBAL_STATIC(ProxyList, g_proxyList);
-
-    using ProxyList2 = QHash<NSWindow *, NSWindowProxy *>;
-    Q_GLOBAL_STATIC(ProxyList2, g_proxyIndexes);
-
 }
 
 struct QWK_NSWindowDelegate {
@@ -87,7 +83,8 @@ public:
 
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
-    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+    auto nsview = [nswindow contentView];
+    if (auto proxy = QWK::g_proxyList->value(reinterpret_cast<WId>(nsview))) {
         reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
             QWK_NSWindowDelegate::WillEnterFullScreen);
     }
@@ -95,7 +92,8 @@ public:
 
 - (void)windowDidEnterFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
-    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+    auto nsview = [nswindow contentView];
+    if (auto proxy = QWK::g_proxyList->value(reinterpret_cast<WId>(nsview))) {
         reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
             QWK_NSWindowDelegate::DidEnterFullScreen);
     }
@@ -103,7 +101,8 @@ public:
 
 - (void)windowWillExitFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
-    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+    auto nsview = [nswindow contentView];
+    if (auto proxy = QWK::g_proxyList->value(reinterpret_cast<WId>(nsview))) {
         reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
             QWK_NSWindowDelegate::WillExitFullScreen);
     }
@@ -111,7 +110,8 @@ public:
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
-    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+    auto nsview = [nswindow contentView];
+    if (auto proxy = QWK::g_proxyList->value(reinterpret_cast<WId>(nsview))) {
         reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
             QWK_NSWindowDelegate::DidExitFullScreen);
     }
@@ -119,12 +119,17 @@ public:
 
 - (void)windowDidResize:(NSNotification *)notification {
     auto nswindow = reinterpret_cast<NSWindow *>(notification.object);
-    if (auto proxy = QWK::g_proxyIndexes->value(nswindow)) {
+    auto nsview = [nswindow contentView];
+    if (auto proxy = QWK::g_proxyList->value(reinterpret_cast<WId>(nsview))) {
         reinterpret_cast<QWK_NSWindowDelegate *>(proxy)->windowEvent(
             QWK_NSWindowDelegate::DidResize);
     }
 }
 
+@end
+
+@interface QWK_NSViewObserver : NSObject
+- (instancetype)initWithProxy:(QWK::NSWindowProxy*)proxy;
 @end
 
 //
@@ -140,13 +145,19 @@ namespace QWK {
             None,
         };
 
-        NSWindowProxy(NSWindow *macWindow) {
-            nswindow = macWindow;
-            g_proxyIndexes->insert(nswindow, this);
+        NSWindowProxy(NSView *macView) {
+            nsview = macView;
+
+            observer = [[QWK_NSViewObserver alloc] initWithProxy:this];
+            [nsview addObserver:observer
+                     forKeyPath:@"window"
+                        options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
+                        context:nil];
         }
 
         ~NSWindowProxy() override {
-            g_proxyIndexes->remove(nswindow);
+            [nsview removeObserver:observer forKeyPath:@"window"];
+            [observer release];
         }
 
         // Delegate
@@ -213,6 +224,9 @@ namespace QWK {
         }
 
         void updateSystemButtonRect() {
+            if (!screenRectCallback || !systemButtonVisible) {
+                return;
+            }
             const auto &buttons = systemButtons();
             const auto &leftButton = buttons[0];
             const auto &midButton = buttons[1];
@@ -225,8 +239,7 @@ namespace QWK {
             auto width = midButton.frame.size.width;
             auto height = midButton.frame.size.height;
 
-            auto viewSize =
-                nswindow.contentView ? nswindow.contentView.frame.size : nswindow.frame.size;
+            auto viewSize = nsview.frame.size;
             QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
 
             // The origin of the NSWindow coordinate system is in the lower left corner, we
@@ -256,6 +269,10 @@ namespace QWK {
         }
 
         inline std::array<NSButton *, 3> systemButtons() {
+            auto nswindow = [nsview window];
+            if (!nswindow) {
+                return {nullptr, nullptr, nullptr};
+            }
             NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
             NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
             NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
@@ -263,6 +280,10 @@ namespace QWK {
         }
 
         inline int titleBarHeight() const {
+            auto nswindow = [nsview window];
+            if (!nswindow) {
+                return 0;
+            }
             NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
             return closeBtn.superview.frame.size.height;
         }
@@ -274,8 +295,7 @@ namespace QWK {
                 return false;
 
             NSVisualEffectView *effectView = nil;
-            NSView *const view = [nswindow contentView];
-            for (NSView *subview in [[view superview] subviews]) {
+            for (NSView *subview in [[nsview superview] subviews]) {
                 if ([subview isKindOfClass:visualEffectViewClass]) {
                     effectView = reinterpret_cast<NSVisualEffectView *>(subview);
                 }
@@ -311,8 +331,8 @@ namespace QWK {
 
         // System title bar
         void setSystemTitleBarVisible(const bool visible) {
-            NSView *nsview = [nswindow contentView];
-            if (!nsview) {
+            auto nswindow = [nsview window];
+            if (!nswindow) {
                 return;
             }
 
@@ -396,7 +416,9 @@ namespace QWK {
 
     protected:
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
-            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
+            auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            auto nsview = [nswindow contentView];
+            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
                 return YES;
             }
 
@@ -408,7 +430,9 @@ namespace QWK {
         }
 
         static BOOL canBecomeMainWindow(id obj, SEL sel) {
-            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
+            auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            auto nsview = [nswindow contentView];
+            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
                 return YES;
             }
 
@@ -420,7 +444,9 @@ namespace QWK {
         }
 
         static void setStyleMask(id obj, SEL sel, NSWindowStyleMask styleMask) {
-            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
+            auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            auto nsview = [nswindow contentView];
+            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
                 styleMask |= NSWindowStyleMaskFullSizeContentView;
             }
 
@@ -430,7 +456,9 @@ namespace QWK {
         }
 
         static void setTitlebarAppearsTransparent(id obj, SEL sel, BOOL transparent) {
-            if (g_proxyIndexes->contains(reinterpret_cast<NSWindow *>(obj))) {
+            auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            auto nsview = [nswindow contentView];
+            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
                 transparent = YES;
             }
 
@@ -463,7 +491,8 @@ namespace QWK {
     private:
         Q_DISABLE_COPY(NSWindowProxy)
 
-        NSWindow *nswindow = nil;
+        NSView *nsview = nil;
+        QWK_NSViewObserver* observer = nil;
 
         bool systemButtonVisible = true;
         ScreenRectCallback screenRectCallback;
@@ -500,8 +529,8 @@ namespace QWK {
 
         auto it = g_proxyList->find(windowId);
         if (it == g_proxyList->end()) {
-            NSWindow *nswindow = mac_getNSWindow(windowId);
-            const auto proxy = new NSWindowProxy(nswindow);
+            NSView *nsview = reinterpret_cast<NSView *>(windowId);
+            const auto proxy = new NSWindowProxy(nsview);
             it = g_proxyList->insert(windowId, proxy);
         }
         return it.value();
@@ -701,7 +730,12 @@ namespace QWK {
         }
 
         // Allocate new resources
-        ensureWindowProxy(winId)->setSystemTitleBarVisible(false);
+        const auto proxy = ensureWindowProxy(winId);
+        if (proxy) {
+            proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
+            proxy->setScreenRectCallback(m_systemButtonAreaCallback);
+            proxy->setSystemTitleBarVisible(false);
+        }
     }
 
     bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
@@ -746,3 +780,33 @@ namespace QWK {
     }
 
 }
+
+@implementation QWK_NSViewObserver {
+    QWK::NSWindowProxy* _proxy; // Weak reference
+}
+
+- (instancetype)initWithProxy:(QWK::NSWindowProxy*)proxy {
+    if (self = [super init]) {
+        _proxy = proxy;
+    }
+    return self;
+}
+
+// Using QEvent::Show to call setSystemTitleBarVisible/updateSystemButtonRect could also work,
+// but observing the window property change via KVO provides more immediate notification when
+// the NSWindow becomes available, making this approach more natural and reliable.
+- (void)observeValueForKeyPath:(NSString*)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary*)change
+                       context:(void*)context {
+    if ([keyPath isEqualToString:@"window"]) {
+        NSWindow* newWindow = change[NSKeyValueChangeNewKey];
+        // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
+        if (newWindow) {
+            _proxy->setSystemTitleBarVisible(false);
+            _proxy->updateSystemButtonRect();
+        }
+    }
+}
+
+@end

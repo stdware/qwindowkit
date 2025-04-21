@@ -210,6 +210,11 @@ void MainWindow::installWindowAgent() {
                 });
 
 #elif defined(Q_OS_MAC)
+        // Set whether to use system buttons (close/minimize/zoom)
+        // - true:  Hide system buttons (use custom UI controls)
+        // - false: Show native system buttons (default behavior)
+        windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), false);
+
         auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);
         darkBlurAction->setCheckable(true);
         connect(darkBlurAction, &QAction::toggled, this, [this](bool checked) {
