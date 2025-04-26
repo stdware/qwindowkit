@@ -2329,7 +2329,7 @@ namespace QWK {
                 if (!mouseHook) {
                     mouseHook = ::SetWindowsHookExW(
                         WH_MOUSE,
-                        [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT WINAPI {
+                        [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
                             if (nCode >= 0) {
                                 switch (wParam) {
                                     case WM_LBUTTONDBLCLK:
