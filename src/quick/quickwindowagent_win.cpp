@@ -47,7 +47,11 @@ namespace QWK {
 
     bool BorderItem::shouldEnableEmulatedPainter() const {
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        auto api = window()->rendererInterface()->graphicsApi();
+        const QQuickWindow* win = window();
+        if (!win) {
+            return true;
+        }
+        auto api = win->rendererInterface()->graphicsApi();
         switch (api) {
             case QSGRendererInterface::OpenGL:
                 // FIXME: experimental, try to find the exact fixed version.
@@ -97,7 +101,11 @@ namespace QWK {
     BorderItem::~BorderItem() = default;
 
     void BorderItem::updateGeometry() {
-        setHeight(borderThickness() / window()->devicePixelRatio());
+        const QQuickWindow* win = window();
+        if (!win) {
+            return;
+        }
+        setHeight(borderThickness() / win->effectiveDevicePixelRatio());
         setVisible(isNormalWindow());
     }
 
