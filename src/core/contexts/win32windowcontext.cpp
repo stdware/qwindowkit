@@ -1909,6 +1909,18 @@ namespace QWK {
                 break;
             }
 
+            case WM_SHOWWINDOW: {
+                if (!wParam || !isWindowNoState(hWnd) || isFullScreen(hWnd)) {
+                    break;
+                }
+                RECT windowRect{};
+                ::GetWindowRect(hWnd, &windowRect);
+                static constexpr const auto swpFlags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_NOOWNERZORDER;
+                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect) + 1, RECT_HEIGHT(windowRect) + 1, swpFlags);
+                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect), RECT_HEIGHT(windowRect), swpFlags);
+                break;
+            }
+
             default:
                 break;
         }
