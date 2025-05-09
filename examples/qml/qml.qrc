@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>QWKButton.qml</file>
+        <file>FramelessWindow.qml</file>
     </qresource>
 </RCC>
