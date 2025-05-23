@@ -745,7 +745,11 @@ namespace QWK {
         Q_ASSERT(m_windowId);
 
         if (key == QStringLiteral("no-system-buttons")) {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             if (attribute.type() != QVariant::Bool)
+#else
+            if (attribute.typeId() != QMetaType::Type::Bool)
+#endif
                 return false;
             ensureWindowProxy(m_windowId)->setSystemButtonVisible(!attribute.toBool());
             return true;
@@ -753,14 +757,22 @@ namespace QWK {
 
         if (key == QStringLiteral("blur-effect")) {
             auto mode = NSWindowProxy::BlurMode::None;
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             if (attribute.type() == QVariant::Bool) {
+#else
+            if (attribute.typeId() == QMetaType::Type::Bool) {
+#endif
                 if (attribute.toBool()) {
                     NSString *osxMode =
                         [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
                     mode = [osxMode isEqualToString:@"Dark"] ? NSWindowProxy::BlurMode::Dark
                                                              : NSWindowProxy::BlurMode::Light;
                 }
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             } else if (attribute.type() == QVariant::String) {
+#else
+            } else if (attribute.typeId() == QMetaType::Type::QString) {
+#endif
                 auto value = attribute.toString();
                 if (value == QStringLiteral("dark")) {
                     mode = NSWindowProxy::BlurMode::Dark;
