@@ -350,8 +350,8 @@ void MainWindow::installWindowAgent() {
         if (isHidden() || isMinimized() || isMaximized() || isFullScreen()) {
             return;
         }
-        setWindowFlag(Qt::WindowStaysOnTopHint, pin);
-        show();
+        auto window = windowHandle();
+        window->setFlag(Qt::WindowStaysOnTopHint, pin);
         pinButton->setChecked(pin);
     });
     connect(windowBar, &QWK::WindowBar::minimizeRequested, this, &QWidget::showMinimized);
