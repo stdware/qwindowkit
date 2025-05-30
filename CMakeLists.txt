@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(QWindowKit
-    VERSION 1.4.0.0
+    VERSION 1.4.1.0
     LANGUAGES CXX
     HOMEPAGE_URL "https://github.com/stdware/qwindowkit"
     DESCRIPTION "Cross-platform window customization framework"
