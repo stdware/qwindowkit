@@ -24,13 +24,17 @@ namespace QWK {
     class WindowMoveManipulator : public QObject {
     public:
         explicit WindowMoveManipulator(QWindow *targetWindow)
-            : QObject(targetWindow), target(targetWindow), initialMousePosition(QCursor::pos()),
+            : QObject(targetWindow), target(targetWindow), operationComplete(false),
+              initialMousePosition(QCursor::pos()),
               initialWindowPosition(targetWindow->position()) {
             target->installEventFilter(this);
         }
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
+            if (operationComplete) {
+                return false;
+            }
             switch (event->type()) {
                 case QEvent::MouseMove: {
                     auto mouseEvent = static_cast<QMouseEvent *>(event);
@@ -43,8 +47,9 @@ namespace QWK {
                     if (target->y() < 0) {
                         target->setPosition(target->x(), 0);
                     }
-                    target->removeEventFilter(this);
+                    operationComplete = true;
                     deleteLater();
+                    break;
                 }
 
                 default:
@@ -55,6 +60,7 @@ namespace QWK {
 
     private:
         QWindow *target;
+        bool operationComplete;
         QPoint initialMousePosition;
         QPoint initialWindowPosition;
     };
@@ -62,13 +68,17 @@ namespace QWK {
     class WindowResizeManipulator : public QObject {
     public:
         WindowResizeManipulator(QWindow *targetWindow, Qt::Edges edges)
-            : QObject(targetWindow), target(targetWindow), resizeEdges(edges),
-              initialMousePosition(QCursor::pos()), initialWindowRect(target->geometry()) {
+            : QObject(targetWindow), target(targetWindow), operationComplete(false),
+              initialMousePosition(QCursor::pos()), initialWindowRect(target->geometry()),
+              resizeEdges(edges) {
             target->installEventFilter(this);
         }
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
+            if (operationComplete) {
+                return false;
+            }
             switch (event->type()) {
                 case QEvent::MouseMove: {
                     auto mouseEvent = static_cast<QMouseEvent *>(event);
@@ -97,8 +107,9 @@ namespace QWK {
                 }
 
                 case QEvent::MouseButtonRelease: {
-                    target->removeEventFilter(this);
+                    operationComplete = true;
                     deleteLater();
+                    break;
                 }
 
                 default:
@@ -109,6 +120,7 @@ namespace QWK {
 
     private:
         QWindow *target;
+        bool operationComplete;
         QPoint initialMousePosition;
         QRect initialWindowRect;
         Qt::Edges resizeEdges;
