@@ -7,6 +7,20 @@ project(QWindowKit
     DESCRIPTION "Cross-platform window customization framework"
 )
 
+if(NOT DEFINED CMAKE_BUILD_TYPE AND NOT DEFINED CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+if(LINUX AND NOT CMAKE_CROSSCOMPILING)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+endif()
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+set(CMAKE_C_VISIBILITY_PRESET "hidden")
+set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
+
 # ----------------------------------
 # Build Options
 # ----------------------------------
