@@ -715,6 +715,7 @@ namespace QWK {
             }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+            // ### FIXME: May be deprecated
             case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
                     return;
@@ -726,7 +727,11 @@ namespace QWK {
                 const auto hwnd = reinterpret_cast<HWND>(m_windowId);
 
                 QPen pen;
-                pen.setWidth(int(getWindowFrameBorderThickness(hwnd)) * 2);
+#  if QT_VERSION_MAJOR < 6
+                pen.setWidth(1);
+#  else
+                pen.setWidthF(1 / m_windowHandle->devicePixelRatio()); // why 0.25?
+#  endif
 
                 const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
                 if (m_delegate->isWindowActive(m_host)) {
@@ -774,7 +779,7 @@ namespace QWK {
                     0,
                     0,
                     RECT_WIDTH(windowRect),
-                    int(getWindowFrameBorderThickness(hWnd)),
+                    1,
                 };
                 ::FillRect(hdc, &rcTopBorder,
                            reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
@@ -1915,9 +1920,12 @@ namespace QWK {
                 }
                 RECT windowRect{};
                 ::GetWindowRect(hWnd, &windowRect);
-                static constexpr const auto swpFlags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_NOOWNERZORDER;
-                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect) + 1, RECT_HEIGHT(windowRect) + 1, swpFlags);
-                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect), RECT_HEIGHT(windowRect), swpFlags);
+                static constexpr const auto swpFlags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE |
+                                                       SWP_FRAMECHANGED | SWP_NOOWNERZORDER;
+                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect) + 1,
+                               RECT_HEIGHT(windowRect) + 1, swpFlags);
+                ::SetWindowPos(hWnd, nullptr, 0, 0, RECT_WIDTH(windowRect), RECT_HEIGHT(windowRect),
+                               swpFlags);
                 break;
             }
 

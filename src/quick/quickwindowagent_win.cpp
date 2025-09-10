@@ -39,7 +39,7 @@ namespace QWK {
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override;
 
     private:
-        volatile bool needPaint = false;
+        bool needNativePaint = false;
 
         void _q_afterSynchronizing();
         void _q_windowActivityChanged();
@@ -47,15 +47,15 @@ namespace QWK {
 
     bool BorderItem::shouldEnableEmulatedPainter() const {
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const QQuickWindow* win = window();
+        const QQuickWindow *win = window();
         if (!win) {
             return true;
         }
         auto api = win->rendererInterface()->graphicsApi();
         switch (api) {
             case QSGRendererInterface::OpenGL:
-                // FIXME: experimental, try to find the exact fixed version.
-                return !isWindows1022H2OrGreater();
+                // FIXME: may be wrong in earlier Windows 10.
+                return false;
             case QSGRendererInterface::Direct3D11:
 #    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
             case QSGRendererInterface::Direct3D12:
@@ -70,14 +70,17 @@ namespace QWK {
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
         : QQuickPaintedItem(parent), Windows10BorderHandler(context) {
-        setAntialiasing(true);   // We need anti-aliasing to give us better result.
-        setFillColor({});        // Will improve the performance a little bit.
-        setOpaquePainting(true); // Will also improve the performance, we don't draw
-                                 // semi-transparent borders of course.
+        setAntialiasing(true);         // We need anti-aliasing to give us better result.
+        setFillColor(Qt::transparent); // Will improve the performance a little bit.
+        setOpaquePainting(true);       // Will also improve the performance, we don't draw
+                                       // semi-transparent borders of course.
 
         auto parentPri = QQuickItemPrivate::get(parent);
         auto anchors = QQuickItemPrivate::get(this)->anchors();
-        anchors->setTop(parentPri->top());
+
+        // Workaround for top border
+        // anchors->setTop(parentPri->top());
+
         anchors->setLeft(parentPri->left());
         anchors->setRight(parentPri->right());
 
@@ -101,11 +104,20 @@ namespace QWK {
     BorderItem::~BorderItem() = default;
 
     void BorderItem::updateGeometry() {
-        const QQuickWindow* win = window();
+        const QQuickWindow *win = window();
         if (!win) {
             return;
         }
-        setHeight(borderThickness() / win->effectiveDevicePixelRatio());
+#  if QT_VERSION_MAJOR < 6
+        setHeight(1);
+#  else
+        // Workaround for top border
+        // When the height is less than 0.5, it will be regarded as invisible, we apply this
+        // workaround to make it slightly exposed. When the height is too big, a transparent gap
+        // will appear on the upper frame.
+        setHeight(0.5);
+        setY(-0.49);
+#  endif
         setVisible(isNormalWindow());
     }
 
@@ -114,7 +126,7 @@ namespace QWK {
         if (shouldEnableEmulatedPainter()) {
             drawBorderEmulated(painter, QRect({0, 0}, size().toSize()));
         } else {
-            needPaint = true;
+            needNativePaint = true;
         }
     }
 
@@ -169,8 +181,8 @@ namespace QWK {
     }
 
     void BorderItem::_q_afterSynchronizing() {
-        if (needPaint) {
-            needPaint = false;
+        if (needNativePaint) {
+            needNativePaint = false;
             drawBorderNative();
         }
     }
