@@ -272,7 +272,7 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 - To achieve better frameless functionality, QWindowKit depends heavily on Qt's internal implementation. However, there are many differences in different versions of Qt, and earlier versions of Qt5 and Qt6 have many bugs which make it extremely difficult for QWindowKit to workaround without changing the Qt source code.
 - And also due to limited manpower, although QWindowKit can be successfully compiled on Qt 5.12 or later, it can hardly work perfectly on all Qt versions.
 - Therefore, the following Qt version ranges are recommended, if there are any exceptions with QWindowKit in your application, make sure the Qt version you use is in the ranges before raising the issue.
-    - Qt 5: 5.15.2 or higher
+    - Qt 5: 5.15.2 or higher (you may be able to build QWK on top of older Qt versions, however, QWK may not behave well and we won't accept bug reports from these unsupported versions)
     - Qt 6: 6.6.2 or higher (the newer, the better)
 
 #### Hot Switch
@@ -282,12 +282,13 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 - If you are about to add a widget with `Qt::WA_NativeWindow` property enabled as a descendent of the frameless window, you should enable `Qt::WA_DontCreateNativeAncestors` of it in advance.
 
 #### Size Constrains
-- If you want to disable window resizing, you can set a fixed size, which is officially supported by QWindowKit. If you use other special means to achieve this, QWK doesn't guarantee everything can still be fully functional.
+- If you want to disable window resizing, you can set a fixed size, which is officially supported by QWindowKit. If you use other special means to achieve this (eg. hook Win32 messages), QWK doesn't guarantee everything can still be fully functional.
 - If you set a maximized width or height, the window should not be maximized because you cannot get the correct window size through Qt APIs. You may workaround this by using system APIs such as `GetWindowRect` or `GetClientRect`. The root cause lies deep in Qt QPA implementations and currently we don't know how to fix it without modifying Qt itself.
 
 #### Windows 10
-- Due to the inherent defects in the Windows 10 window system, the top border will disappear when the system title bar is removed. We have filtered Qt's event and perfectly reshown the system top border, thanks to the implementation of Windows Terminal for our reference. However, this workaround only works with QtWidgets and QtQuick (**only when rendering through D3D**) applications.
-- In QtQuick applications that use OpenGL or other rendering backends, we use Qt's painting system to emulate this border. But since Windows 10 system border is translucent, the difference from the system border is more noticeable in a dark background.
+- Due to the inherent defects in the Windows 10 window system, the top border will disappear when the system title bar is removed. We have filtered Qt's event and perfectly reshown the system top border, thanks to the implementation of Windows Terminal for our reference. However, this workaround only works with QtWidgets and QtQuick (**only when rendering through OpenGL/OpenGLES/D3D11/D3D12, not Vulkan**) applications.
+- For QtQuick applications, when rendering through Vulkan, the top border will become a solid black line, that's a known issue and currently we are not able to fix it. Please use QWK's borderless version if you can't change your graphics backend.
+- For QtQuick applications, when rendering through D3D11/D3D12, you may see a strange white line on window top, it may disappear if you resize the window. Currently it's a bug and we are working hard to find a suitable solution for it, for now you can set the environment variable `QT_QPA_DISABLE_REDIRECTION_SURFACE` to a non-zero value in your `main` function before any `QCoreApplication` instance is created to workaround this issue. This environment variable is first introduced in Qt 6.7.0 (qtbase/838fc606c170fac112f7bb5971c2507b7b56d08a). You must **NOT** enable this feature for OpenGL/OpenGLES/Vulkan because their rendering will be totally broken.
 
 ## TODO
 
