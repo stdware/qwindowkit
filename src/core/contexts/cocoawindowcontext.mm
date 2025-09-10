@@ -164,6 +164,8 @@ namespace QWK {
         void windowEvent(NSEventType eventType) override {
             switch (eventType) {
                 case WillExitFullScreen: {
+                    auto nswindow = [nsview window];
+                    nswindow.titleVisibility = NSWindowTitleHidden;
                     if (!screenRectCallback || !systemButtonVisible)
                         return;
 
@@ -192,6 +194,12 @@ namespace QWK {
                         return;
                     }
                     updateSystemButtonRect();
+                    break;
+                }
+
+                case DidEnterFullScreen: {
+                    auto nswindow = [nsview window];
+                    nswindow.titleVisibility = NSWindowTitleVisible;
                     break;
                 }
 
@@ -344,7 +352,7 @@ namespace QWK {
                 nswindow.styleMask |= NSWindowStyleMaskFullSizeContentView;
             }
             nswindow.titlebarAppearsTransparent = (visible ? NO : YES);
-            nswindow.titleVisibility = (visible ? NSWindowTitleVisible : NSWindowTitleHidden);
+            nswindow.titleVisibility = (visible || (nswindow.styleMask & NSWindowStyleMaskFullScreen) ? NSWindowTitleVisible : NSWindowTitleHidden);
             nswindow.hasShadow = YES;
             // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
