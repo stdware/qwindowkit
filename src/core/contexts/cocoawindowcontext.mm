@@ -665,8 +665,7 @@ namespace QWK {
                 if (me->button() == Qt::LeftButton && inTitleBar && !m_context->isHostSizeFixed()) {
                     Qt::WindowFlags windowFlags = delegate->getWindowFlags(host);
                     Qt::WindowStates windowState = delegate->getWindowState(host);
-                    if ((windowFlags & Qt::WindowMaximizeButtonHint) &&
-                        !(windowState & Qt::WindowFullScreen)) {
+                    if (!(windowState & Qt::WindowFullScreen)) {
                         if (windowState & Qt::WindowMaximized) {
                             delegate->setWindowState(host, windowState & ~Qt::WindowMaximized);
                         } else {
