@@ -92,6 +92,10 @@ namespace QWK {
     }
 
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
+        // https://github.com/stdware/qwindowkit/issues/48
+        // Now we seem do not need this workaround anymore.
+        return;
+
         const QVariant marginsVar = QVariant::fromValue(margins);
 
         // We need to tell Qt we have set a custom margin, because we are hiding
@@ -964,14 +968,18 @@ namespace QWK {
         const auto &effectBugWorkaround = [this, hwnd]() {
             // We don't need the following *HACK* for QWidget windows.
             // Completely based on actual experiments, root reason is totally unknown.
+            
+            // TODO: add more descriptions
             if (m_host->isWidgetType()) {
                 return;
             }
-            static QSet<WId> bugWindowSet{};
-            if (bugWindowSet.contains(m_windowId)) {
+            
+            static const char *kPropKey = "_qwk_effectBugWorkaround1";
+            if (property(kPropKey).toBool()) {
                 return;
             }
-            bugWindowSet.insert(m_windowId);
+            setProperty(kPropKey, true);
+
             RECT rect{};
             ::GetWindowRect(hwnd, &rect);
             ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, FALSE);
