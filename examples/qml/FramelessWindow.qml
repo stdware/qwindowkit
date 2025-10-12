@@ -6,6 +6,7 @@ import QWindowKit 1.0
 
 Window {
     property bool showWhenReady: true
+    property alias titleBar: titleBar
 
     id: window
     width: 800

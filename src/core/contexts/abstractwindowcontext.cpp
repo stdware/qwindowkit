@@ -88,7 +88,7 @@ namespace QWK {
         *button = WindowAgentBase::Unknown;
         for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
-            if (!currentButton || !m_delegate->isVisible(currentButton)) {
+            if (!currentButton || !m_delegate->isVisible(currentButton) || !m_delegate->isEnabled(currentButton)) {
                 continue;
             }
             if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
