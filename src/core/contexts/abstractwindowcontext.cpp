@@ -85,19 +85,10 @@ namespace QWK {
 
     bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
                                                   WindowAgentBase::SystemButton *button) const {
-        if (!m_titleBar) {
-            // There's no title bar at all, the mouse will always be in the client area.
-            return false;
-        }
-        if (!m_delegate->isVisible(m_titleBar) || !m_delegate->isEnabled(m_titleBar)) {
-            // The title bar is hidden or disabled for some reason, treat it as there's
-            // no title bar.
-            return false;
-        }
         *button = WindowAgentBase::Unknown;
         for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
-            if (!currentButton || !m_delegate->isVisible(currentButton)) {
+            if (!currentButton || !m_delegate->isVisible(currentButton) || !m_delegate->isEnabled(currentButton)) {
                 continue;
             }
             if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
