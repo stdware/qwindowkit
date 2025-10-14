@@ -13,7 +13,7 @@
 namespace QWK {
 
     static inline bool isWindows1022H2OrGreater() {
-        RTL_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
+        QWK_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
         return (rovi.dwMajorVersion > 10) ||
                (rovi.dwMajorVersion == 10 &&
                 (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19045));

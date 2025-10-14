@@ -4,16 +4,18 @@
 
 #include "qwindowkit_windows.h"
 
+using QWK_NTSTATUS = long;
+
 namespace QWK {
 
-    static RTL_OSVERSIONINFOW GetRealOSVersionImpl() {
+    static QWK_OSVERSIONINFOW GetRealOSVersionImpl() {
         HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
         Q_ASSERT(hMod);
-        using RtlGetVersionPtr = NTSTATUS(WINAPI *)(PRTL_OSVERSIONINFOW);
+        using RtlGetVersionPtr = QWK_NTSTATUS(WINAPI *)(QWK_OSVERSIONINFOW*);
         auto pRtlGetVersion =
             reinterpret_cast<RtlGetVersionPtr>(::GetProcAddress(hMod, "RtlGetVersion"));
         Q_ASSERT(pRtlGetVersion);
-        RTL_OSVERSIONINFOW rovi{};
+        QWK_OSVERSIONINFOW rovi{};
         rovi.dwOSVersionInfoSize = sizeof(rovi);
         pRtlGetVersion(&rovi);
         return rovi;
@@ -21,7 +23,7 @@ namespace QWK {
 
     namespace Private {
 
-        RTL_OSVERSIONINFOW GetRealOSVersion() {
+        QWK_OSVERSIONINFOW GetRealOSVersion() {
             static const auto result = GetRealOSVersionImpl();
             return result;
         }

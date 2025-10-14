@@ -33,6 +33,8 @@
 #include "qwkglobal_p.h"
 #include "qwkwindowsextra_p.h"
 
+#include <shellapi.h>
+
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)) && (QT_VERSION <= QT_VERSION_CHECK(6, 6, 1))
 #  error Current Qt version has a critical bug which will break QWK functionality. Please upgrade to > 6.6.1 or downgrade to < 6.6.0
 #endif

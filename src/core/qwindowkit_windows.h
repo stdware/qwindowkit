@@ -61,28 +61,37 @@
 #  define WM_NCUAHDRAWFRAME (0x00AF)
 #endif
 
+using QWK_OSVERSIONINFOW = struct _QWK_OSVERSIONINFOW {
+    DWORD dwOSVersionInfoSize;
+    DWORD dwMajorVersion;
+    DWORD dwMinorVersion;
+    DWORD dwBuildNumber;
+    DWORD dwPlatformId;
+    wchar_t szCSDVersion[128];
+};
+
 namespace QWK {
 
     namespace Private {
 
-        QWK_CORE_EXPORT RTL_OSVERSIONINFOW GetRealOSVersion();
+        QWK_CORE_EXPORT QWK_OSVERSIONINFOW GetRealOSVersion();
 
         inline bool IsWindows1122H2OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 22621));
         }
 
         inline bool IsWindows11OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 22000));
         }
 
         inline bool IsWindows1020H1OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19041));
@@ -93,7 +102,7 @@ namespace QWK {
         }
 
         inline bool IsWindows101903OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 18362));
@@ -104,7 +113,7 @@ namespace QWK {
         }
 
         inline bool IsWindows101809OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 17763));
@@ -115,18 +124,18 @@ namespace QWK {
         }
 
         inline bool IsWindows10OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return rovi.dwMajorVersion >= 10;
         }
 
         inline bool IsWindows8Point1OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 6) ||
                    (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 3);
         }
 
         inline bool IsWindows8OrGreater_Real() {
-            RTL_OSVERSIONINFOW rovi = GetRealOSVersion();
+            QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 6) ||
                    (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
         }
