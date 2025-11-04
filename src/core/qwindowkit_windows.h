@@ -177,16 +177,21 @@ namespace QWK {
     using WindowsRegistryKey = QWinRegistryKey;
 #else
     class WindowsRegistryKey : public QWinRegistryKey {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0)
+        using SubKeyType = const wchar_t*;
+#else
+        using SubKeyType = QStringView;
+#endif
     public:
-        WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ,
-                           REGSAM access = 0)
+        WindowsRegistryKey(HKEY parentHandle, SubKeyType subKey,
+            REGSAM permissions = KEY_READ, REGSAM access = 0)
             : QWinRegistryKey(parentHandle, subKey, permissions, access) {
         }
 
-        inline std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
+        inline std::pair<DWORD, bool> dwordValue(SubKeyType subKey) const;
     };
 
-    inline std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
+    inline std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(SubKeyType subKey) const {
         const auto val = value<DWORD>(subKey);
         if (!val) {
             return {0, false};
