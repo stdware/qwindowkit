@@ -21,6 +21,14 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 set(CMAKE_C_VISIBILITY_PRESET "hidden")
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
+set(QWINDOWKIT_IS_TOP_LEVEL ON)
+if("x${CMAKE_SOURCE_DIR}" STREQUAL "x${PROJECT_SOURCE_DIR}")
+    message("QWindowKit: Building as a top-level project.")
+else()
+    set(QWINDOWKIT_IS_TOP_LEVEL OFF)
+    message("QWindowKit: Building as a subproject.")
+endif()
+
 # ----------------------------------
 # Build Options
 # ----------------------------------
@@ -63,18 +71,20 @@ Detailed Introcuction to Configure Options:
 # ----------------------------------
 # CMake Settings
 # ----------------------------------
-if(MSVC)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /manifest:no")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /manifest:no")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /manifest:no")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+if(QWINDOWKIT_IS_TOP_LEVEL)
+    if(MSVC)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /manifest:no")
+        set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /manifest:no")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /manifest:no")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
 
-    if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-        set(CMAKE_DEBUG_POSTFIX "d")
+        if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
+            set(CMAKE_DEBUG_POSTFIX "d")
+        endif()
+    elseif(MINGW)
+        set(CMAKE_STATIC_LIBRARY_PREFIX "")
+        set(CMAKE_SHARED_LIBRARY_PREFIX "")
     endif()
-elseif(MINGW)
-    set(CMAKE_STATIC_LIBRARY_PREFIX "")
-    set(CMAKE_SHARED_LIBRARY_PREFIX "")
 endif()
 
 if(QWINDOWKIT_INSTALL)
