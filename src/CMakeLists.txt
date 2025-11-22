@@ -57,7 +57,7 @@ macro(qwk_add_library _target)
         qm_add_win_rc(${_target}
             NAME ${QWINDOWKIT_INSTALL_NAME}
             DESCRIPTION ${QWINDOWKIT_DESCRIPTION}
-            COPYRIGHT ${QACTIONKIT_COPYRIGHT}
+            COPYRIGHT ${QWINDOWKIT_COPYRIGHT}
         )
     endif()
 
