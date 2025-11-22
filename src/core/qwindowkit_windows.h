@@ -177,7 +177,7 @@ namespace QWK {
     using WindowsRegistryKey = QWinRegistryKey;
 #else
     class WindowsRegistryKey : public QWinRegistryKey {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 1)
         using SubKeyType = const wchar_t*;
 #else
         using SubKeyType = QStringView;
