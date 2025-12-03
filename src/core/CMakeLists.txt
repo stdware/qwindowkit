@@ -66,6 +66,17 @@ else()
             contexts/qtwindowcontext_p.h
             contexts/qtwindowcontext.cpp
         )
+
+        if(LINUX)
+            list(APPEND _src
+                contexts/linuxdesktopenvapi.h
+                contexts/linuxdesktopenvapi.cpp
+                contexts/linuxx11context_p.h
+                contexts/linuxx11context.cpp
+                contexts/linuxwaylandcontext_p.h
+                contexts/linuxwaylandcontext.cpp
+            )
+        endif()
     endif()
 endif()
 

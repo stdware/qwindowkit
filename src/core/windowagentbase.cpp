@@ -15,6 +15,9 @@
 #  include "cocoawindowcontext_p.h"
 #else
 #  include "qtwindowcontext_p.h"
+#  include "linuxdesktopenvapi.h"
+#  include "linuxwaylandcontext_p.h"
+#  include "linuxx11context_p.h"
 #endif
 
 Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
@@ -56,6 +59,16 @@ namespace QWK {
 #elif defined(Q_OS_MAC) && !QWINDOWKIT_CONFIG(ENABLE_QT_WINDOW_CONTEXT)
         return new CocoaWindowContext();
 #else
+        if (LinuxDesktopEnvAPI::isX11Platform()) {
+            if (LinuxDesktopEnvAPI::x11API().isValid()) {
+                return new LinuxX11Context();
+            }
+        } else if (LinuxDesktopEnvAPI::isWaylandPlatform()) {
+            if (LinuxDesktopEnvAPI::waylandAPI().isValid()) {
+                return new LinuxWaylandContext();
+            }
+        }
+        // fallback to QtWindowContext
         return new QtWindowContext();
 #endif
     }

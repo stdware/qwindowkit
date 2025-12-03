@@ -1,5 +1,5 @@
-// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
+// Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
 // SPDX-License-Identifier: Apache-2.0
 
 #include "abstractwindowcontext_p.h"
@@ -126,7 +126,7 @@ namespace QWK {
             return false;
         }
 
-        for (auto item : m_hitTestVisibleItems) {
+        for (auto &&item : std::as_const(m_hitTestVisibleItems)) {
             if (item && m_delegate->isVisible(item) &&
                 m_delegate->mapGeometryToScene(item).contains(pos)) {
                 return false;
