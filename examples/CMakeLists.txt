@@ -18,6 +18,8 @@ if(QWINDOWKIT_BUILD_WIDGETS)
     add_subdirectory(mainwindow)
 endif()
 
+add_subdirectory(accent_color)
+
 if(QWINDOWKIT_BUILD_QUICK)
     add_subdirectory(qml)
 endif()
