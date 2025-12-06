@@ -5,7 +5,7 @@
 
 #include "linuxwaylandcontext_p.h"
 
-#include "linuxdesktopenvapi.h"
+#include "qwindowkit_linux.h"
 
 #include <QtGui/qpa/qplatformnativeinterface.h>
 
@@ -14,7 +14,7 @@ namespace QWK {
                                                      struct wl_seat *seat, uint32_t serial,
                                                      int32_t x, int32_t y) {
         constexpr auto XDG_TOPLEVEL_SHOW_WINDOW_MENU = 4;
-        const auto &api = LinuxDesktopEnvAPI::waylandAPI();
+        const auto &api = QWK::Private::waylandAPI();
         Q_ASSERT(api.isValid());
         api.wl_proxy_marshal_flags(
             reinterpret_cast<struct wl_proxy *>(xdg_toplevel), XDG_TOPLEVEL_SHOW_WINDOW_MENU,
@@ -54,7 +54,7 @@ namespace QWK {
 
             wl_display *d = waylandApp->display();
             if (d) {
-                const auto &api = LinuxDesktopEnvAPI::waylandAPI();
+                const auto &api = QWK::Private::waylandAPI();
                 Q_ASSERT(api.isValid());
                 api.wl_display_flush(d);
             }

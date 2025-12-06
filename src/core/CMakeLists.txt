@@ -36,6 +36,7 @@ elseif(APPLE)
 else()
     list(APPEND _src
         qwindowkit_linux.h
+        qwindowkit_linux.cpp
     )
 endif()
 
@@ -69,8 +70,6 @@ else()
 
         if(LINUX)
             list(APPEND _src
-                contexts/linuxdesktopenvapi.h
-                contexts/linuxdesktopenvapi.cpp
                 contexts/linuxx11context_p.h
                 contexts/linuxx11context.cpp
                 contexts/linuxwaylandcontext_p.h

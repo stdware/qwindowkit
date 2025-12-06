@@ -6,7 +6,7 @@
 
 #include "linuxx11context_p.h"
 
-#include "linuxdesktopenvapi.h"
+#include "qwindowkit_linux.h"
 
 // copy from X11 library and simplify it
 typedef struct _XExtData XExtData;
@@ -145,7 +145,7 @@ namespace QWK {
                 return;
             }
 
-            const auto &api = LinuxDesktopEnvAPI::x11API();
+            const auto &api = QWK::Private::x11API();
             Q_ASSERT(api.isValid());
 
             // some marcos to constexpr in X11
