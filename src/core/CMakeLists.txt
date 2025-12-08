@@ -36,6 +36,7 @@ elseif(APPLE)
 else()
     list(APPEND _src
         qwindowkit_linux.h
+        qwindowkit_linux.cpp
     )
 endif()
 
@@ -66,6 +67,15 @@ else()
             contexts/qtwindowcontext_p.h
             contexts/qtwindowcontext.cpp
         )
+
+        if(LINUX)
+            list(APPEND _src
+                contexts/linuxx11context_p.h
+                contexts/linuxx11context.cpp
+                contexts/linuxwaylandcontext_p.h
+                contexts/linuxwaylandcontext.cpp
+            )
+        endif()
     endif()
 endif()
 

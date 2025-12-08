@@ -1,9 +1,11 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // Copyright (C) 2023-2024 Stdware Collections (https://www.github.com/stdware)
+// Copyright (C) 2025-2027 Wing-summer (wingsummer)
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef QTWINDOWCONTEXT_P_H
-#define QTWINDOWCONTEXT_P_H
+
+#ifndef LINUXWAYLANDCONTEXT_P_H
+#define LINUXWAYLANDCONTEXT_P_H
 
 //
 //  W A R N I N G !!!
@@ -14,26 +16,21 @@
 // version without notice, or may even be removed.
 //
 
-#include <QWKCore/private/abstractwindowcontext_p.h>
+
+#include "qtwindowcontext_p.h"
 
 namespace QWK {
 
-    class QtWindowContext : public AbstractWindowContext {
+    class LinuxWaylandContext : public QtWindowContext {
         Q_OBJECT
     public:
-        QtWindowContext();
-        ~QtWindowContext() override;
+        LinuxWaylandContext();
+        ~LinuxWaylandContext() override;
 
         QString key() const override;
         void virtual_hook(int id, void *data) override;
-
-    protected:
-        void winIdChanged(WId winId, WId oldWinId) override;
-
-    protected:
-        std::unique_ptr<SharedEventFilter> qtWindowEventFilter;
     };
 
 }
 
-#endif // QTWINDOWCONTEXT_P_H
+#endif // LINUXWAYLANDCONTEXT_P_H

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "windowagentbase.h"
+#include "qwindowkit_linux.h"
 #include "windowagentbase_p.h"
 
 #include <QWKCore/qwkconfig.h>
@@ -15,6 +16,8 @@
 #  include "cocoawindowcontext_p.h"
 #else
 #  include "qtwindowcontext_p.h"
+#  include "linuxwaylandcontext_p.h"
+#  include "linuxx11context_p.h"
 #endif
 
 Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
@@ -56,6 +59,16 @@ namespace QWK {
 #elif defined(Q_OS_MAC) && !QWINDOWKIT_CONFIG(ENABLE_QT_WINDOW_CONTEXT)
         return new CocoaWindowContext();
 #else
+        if (QWK::Private::isX11Platform()) {
+            if (QWK::Private::x11API().isValid()) {
+                return new LinuxX11Context();
+            }
+        } else if (QWK::Private::isWaylandPlatform()) {
+            if (QWK::Private::waylandAPI().isValid()) {
+                return new LinuxWaylandContext();
+            }
+        }
+        // fallback to QtWindowContext
         return new QtWindowContext();
 #endif
     }
