@@ -6,6 +6,9 @@
 #include "styleagent_p.h"
 
 #include <QtCore/QVariant>
+#include <QtGui/QColor>
+#include <QtGui/QPalette>
+#include <QtGui/QGuiApplication>
 
 namespace QWK {
 
@@ -38,6 +41,16 @@ namespace QWK {
         Q_EMIT q->systemThemeChanged();
     }
 
+    void StyleAgentPrivate::notifyAccentColorChanged(const QColor &color) {
+        Q_ASSERT(color.isValid());
+        if (color == systemAccentColor)
+            return;
+        systemAccentColor = color;
+
+        Q_Q(StyleAgent);
+        Q_EMIT q->systemAccentColorChanged();
+    }
+
     /*!
         Constructor. Since it is not related to a concrete window instance, it is better to be used
         as a singleton.
@@ -60,6 +73,14 @@ namespace QWK {
     }
 
     /*!
+        Returns the system accent color.
+    */
+    QColor StyleAgent::systemAccentColor() const {
+        Q_D(const StyleAgent);
+        return d->systemAccentColor;
+    }
+
+    /*!
         \internal
     */
     StyleAgent::StyleAgent(StyleAgentPrivate &d, QObject *parent) : QObject(parent), d_ptr(&d) {
@@ -72,6 +93,12 @@ namespace QWK {
         \fn void StyleAgent::systemThemeChanged()
 
         This signal is emitted when the system theme changes.
+    */
+
+    /*!
+        \fn void StyleAgent::systemAccentColorChanged()
+
+        This signal is emitted when the system accent color changes.
     */
 
 }
