@@ -42,6 +42,7 @@ namespace QWK {
     }
 
     void StyleAgentPrivate::notifyAccentColorChanged(const QColor &color) {
+        Q_ASSERT(color.isValid());
         if (color == systemAccentColor)
             return;
         systemAccentColor = color;
@@ -76,14 +77,7 @@ namespace QWK {
     */
     QColor StyleAgent::systemAccentColor() const {
         Q_D(const StyleAgent);
-        if (d->systemAccentColor.isValid()) {
-            return d->systemAccentColor;
-        }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-        return QGuiApplication::palette().color(QPalette::Accent);
-#else
-        return QGuiApplication::palette().color(QPalette::Highlight);
-#endif
+        return d->systemAccentColor;
     }
 
     /*!
