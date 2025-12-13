@@ -5,6 +5,10 @@
 
 #include "qwindowkit_linux.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QGuiApplication>
+#include <QLibrary>
+
 namespace QWK {
     namespace Private {
 
@@ -78,3 +82,4 @@ namespace QWK {
 
     }
 }
+#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)

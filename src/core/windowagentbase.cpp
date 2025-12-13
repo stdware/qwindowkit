@@ -59,6 +59,7 @@ namespace QWK {
 #elif defined(Q_OS_MAC) && !QWINDOWKIT_CONFIG(ENABLE_QT_WINDOW_CONTEXT)
         return new CocoaWindowContext();
 #else
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         if (QWK::Private::isX11Platform()) {
             if (QWK::Private::x11API().isValid()) {
                 return new LinuxX11Context();
@@ -68,6 +69,7 @@ namespace QWK {
                 return new LinuxWaylandContext();
             }
         }
+#  endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         // fallback to QtWindowContext
         return new QtWindowContext();
 #endif

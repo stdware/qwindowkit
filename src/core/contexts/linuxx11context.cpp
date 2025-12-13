@@ -8,6 +8,7 @@
 
 #include "qwindowkit_linux.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 // copy from X11 library and simplify it
 typedef struct _XExtData XExtData;
 struct ScreenFormat;
@@ -189,3 +190,4 @@ namespace QWK {
         }
     }
 }
+#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)

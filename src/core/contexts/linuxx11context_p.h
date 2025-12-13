@@ -17,6 +17,7 @@
 
 #include "qtwindowcontext_p.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 namespace QWK {
 
     class LinuxX11Context : public QtWindowContext {
@@ -30,5 +31,5 @@ namespace QWK {
     };
 
 }
-
+#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #endif // LINUXX11CONTEXT_P_H

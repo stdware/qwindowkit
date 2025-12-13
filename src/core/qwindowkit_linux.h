@@ -15,11 +15,10 @@
 // version without notice, or may even be removed.
 //
 
-#include "qguiapplication_platform.h"
+#include <QtCore/qglobal.h>
 
-#include <QString>
-#include <QGuiApplication>
-#include <QLibrary>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <qguiapplication_platform.h>
 
 // some declarations about x11
 using Atom = unsigned long;
@@ -81,5 +80,5 @@ namespace QWK {
         const LinuxWaylandAPI &waylandAPI();
     }
 }
-
+#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #endif // QWINDOWKIT_LINUX_H

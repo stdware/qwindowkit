@@ -19,6 +19,7 @@
 
 #include "qtwindowcontext_p.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 namespace QWK {
 
     class LinuxWaylandContext : public QtWindowContext {
@@ -32,5 +33,5 @@ namespace QWK {
     };
 
 }
-
+#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #endif // LINUXWAYLANDCONTEXT_P_H
