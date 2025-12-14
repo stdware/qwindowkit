@@ -5,8 +5,6 @@
 #include "styleagent_p.h"
 
 #include <QtCore/QSet>
-#include <QtCore/QVariant>
-#include <QtGui/QColor>
 
 #include <QWKCore/private/qwkwindowsextra_p.h>
 #include <QWKCore/private/nativeeventfilter_p.h>

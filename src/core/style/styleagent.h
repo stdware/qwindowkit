@@ -8,7 +8,6 @@
 #include <memory>
 
 #include <QtCore/QObject>
-#include <QtGui/QWindow>
 #include <QtGui/QColor>
 
 #include <QWKCore/qwkglobal.h>

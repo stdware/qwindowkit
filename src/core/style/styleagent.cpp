@@ -5,11 +5,6 @@
 #include "styleagent.h"
 #include "styleagent_p.h"
 
-#include <QtCore/QVariant>
-#include <QtGui/QColor>
-#include <QtGui/QPalette>
-#include <QtGui/QGuiApplication>
-
 namespace QWK {
 
     /*!

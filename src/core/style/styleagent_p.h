@@ -14,8 +14,6 @@
 // version without notice, or may even be removed.
 //
 
-#include <QtCore/QHash>
-
 #include <QWKCore/styleagent.h>
 
 namespace QWK {

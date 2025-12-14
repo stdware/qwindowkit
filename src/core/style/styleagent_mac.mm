@@ -6,9 +6,6 @@
 
 #include <Cocoa/Cocoa.h>
 
-#include <QtCore/QVariant>
-#include <QtGui/QColor>
-
 namespace QWK {
 
     static StyleAgent::SystemTheme getSystemTheme() {
