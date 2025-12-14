@@ -21,6 +21,8 @@ set(_src
     shared/systemwindow_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
+    contexts/qtwindowcontext_p.h
+    contexts/qtwindowcontext.cpp
 )
 
 set(_links_private)
@@ -40,43 +42,29 @@ else()
     )
 endif()
 
-if(QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT)
+if(WIN32)
     list(APPEND _src
-        contexts/qtwindowcontext_p.h
-        contexts/qtwindowcontext.cpp
+        contexts/win32windowcontext_p.h
+        contexts/win32windowcontext.cpp
+    )
+    list(APPEND _links_private uxtheme)
+elseif(APPLE)
+    list(APPEND _src
+        contexts/cocoawindowcontext_p.h
+        contexts/cocoawindowcontext.mm
+    )
+    list(APPEND _links_private
+        "-framework Foundation"
+        "-framework Cocoa"
+        "-framework AppKit"
     )
 else()
-    if(WIN32)
-        list(APPEND _src
-            contexts/win32windowcontext_p.h
-            contexts/win32windowcontext.cpp
-        )
-        list(APPEND _links_private uxtheme)
-    elseif(APPLE)
-        list(APPEND _src
-            contexts/cocoawindowcontext_p.h
-            contexts/cocoawindowcontext.mm
-        )
-        list(APPEND _links_private
-            "-framework Foundation"
-            "-framework Cocoa"
-            "-framework AppKit"
-        )
-    else()
-        list(APPEND _src
-            contexts/qtwindowcontext_p.h
-            contexts/qtwindowcontext.cpp
-        )
-
-        if(LINUX)
-            list(APPEND _src
-                contexts/linuxx11context_p.h
-                contexts/linuxx11context.cpp
-                contexts/linuxwaylandcontext_p.h
-                contexts/linuxwaylandcontext.cpp
-            )
-        endif()
-    endif()
+    list(APPEND _src
+        contexts/linuxx11context_p.h
+        contexts/linuxx11context.cpp
+        contexts/linuxwaylandcontext_p.h
+        contexts/linuxwaylandcontext.cpp
+    )
 endif()
 
 set(_sync_include_options)

@@ -39,7 +39,7 @@ option(QWINDOWKIT_BUILD_EXAMPLES "Build examples" OFF)
 option(QWINDOWKIT_BUILD_DOCUMENTATIONS "Build documentations" OFF)
 option(QWINDOWKIT_INSTALL "Install library" ON)
 
-option(QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT "Enable Qt Window Context anyway" OFF)
+option(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT "Force use Qt Window Context" OFF)
 option(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS "Enable system borders on Windows" ON)
 option(QWINDOWKIT_ENABLE_STYLE_AGENT "Enable building style agent" ON)
 
@@ -58,9 +58,10 @@ Detailed Introcuction to Configure Options:
   - If so, the Windows 10 top border issue will disappear. However, part of the client edge
     area will be occupied as the resizing margins.
 
-`QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT`
+`QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT`
   - If you want to use pure Qt emulated frameless implementation, you can ENABLE this option.
   - If so, all system native features will be lost.
+  - The Qt Window Context is supported on all platforms.
 
 `QWINDOWKIT_ENABLE_STYLE_AGENT`
   - Select whether to exclude the style component by DISABLING this option according to your
