@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "windowagentbase.h"
-#include "qwindowkit_linux.h"
 #include "windowagentbase_p.h"
 
 #include <QWKCore/qwkconfig.h>
@@ -14,11 +13,12 @@
 #  include "win32windowcontext_p.h"
 #elif defined(Q_OS_MAC) && !QWINDOWKIT_CONFIG(ENABLE_QT_WINDOW_CONTEXT)
 #  include "cocoawindowcontext_p.h"
-#else
-#  include "qtwindowcontext_p.h"
+#elif defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#  include "qwindowkit_linux.h"
 #  include "linuxwaylandcontext_p.h"
 #  include "linuxx11context_p.h"
 #endif
+#include "qtwindowcontext_p.h"
 
 Q_LOGGING_CATEGORY(qWindowKitLog, "qwindowkit")
 
@@ -58,8 +58,7 @@ namespace QWK {
         return new Win32WindowContext();
 #elif defined(Q_OS_MAC) && !QWINDOWKIT_CONFIG(ENABLE_QT_WINDOW_CONTEXT)
         return new CocoaWindowContext();
-#else
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#elif defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         if (QWK::Private::isX11Platform()) {
             if (QWK::Private::x11API().isValid()) {
                 return new LinuxX11Context();
@@ -69,10 +68,8 @@ namespace QWK {
                 return new LinuxWaylandContext();
             }
         }
-#  endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        // fallback to QtWindowContext
-        return new QtWindowContext();
 #endif
+        return new QtWindowContext();
     }
 
     void WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
