@@ -133,6 +133,8 @@ endif()
 qm_import(Filesystem)
 qm_init_directories()
 
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
+
 # ----------------------------------
 # Add source modules
 # ----------------------------------
