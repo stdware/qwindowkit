@@ -1207,6 +1207,9 @@ namespace QWK {
                 const auto xButtonMask = GET_XBUTTON_WPARAM(wParam);
                 return MAKEWPARAM(keyState, xButtonMask);
             }
+            if (myMsg == WM_NCPOINTERDOWN) {
+                return keyState | MK_LBUTTON;
+            }
             return keyState;
         }();
         const auto lParamNew = [myMsg, lParam, hWnd]() -> LPARAM {
@@ -1269,7 +1272,7 @@ namespace QWK {
                 SEND_MESSAGE(hWnd, WM_MOUSEMOVE, wParamNew, lParamNew);
                 break;
             case WM_NCPOINTERDOWN:
-                SEND_MESSAGE(hWnd, WM_LBUTTONDOWN, wParamNew | MK_LBUTTON, lParamNew);
+                SEND_MESSAGE(hWnd, WM_LBUTTONDOWN, wParamNew, lParamNew);
                 break;
             case WM_NCPOINTERUP:
                 SEND_MESSAGE(hWnd, WM_LBUTTONUP, wParamNew, lParamNew);
@@ -1343,17 +1346,6 @@ namespace QWK {
                 break;
             }
 
-            case WM_NCPOINTERUPDATE:
-            case WM_NCPOINTERDOWN:
-            case WM_NCPOINTERUP: {
-                if (message >= WM_NCPOINTERUPDATE && message <= WM_NCPOINTERUP) {
-                    POINTER_INPUT_TYPE pointerType;
-                    if (::GetPointerType(LOWORD(wParam), &pointerType) && pointerType == PT_MOUSE) {
-                        break;
-                    }
-                }
-            }
-
             case WM_NCMOUSEMOVE:
             case WM_NCLBUTTONDOWN:
             case WM_NCLBUTTONUP:
@@ -1367,6 +1359,9 @@ namespace QWK {
             case WM_NCXBUTTONDOWN:
             case WM_NCXBUTTONUP:
             case WM_NCXBUTTONDBLCLK:
+            case WM_NCPOINTERUPDATE:
+            case WM_NCPOINTERDOWN:
+            case WM_NCPOINTERUP:
             case WM_NCMOUSEHOVER: {
                 if (message == WM_NCMOUSEMOVE) {
                     if (lastHitTestResult != WindowPart::ChromeButton) {
