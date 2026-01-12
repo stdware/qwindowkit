@@ -2,3 +2,6 @@
 	path = qmsetup
 	url = ../../stdware/qmsetup.git
 	branch = main
+[submodule "pyqwindowkit"]
+	path = pyqwindowkit
+	url = https://github.com/childishtree/PyQWindowKit.git
