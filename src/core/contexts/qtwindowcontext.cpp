@@ -127,17 +127,37 @@ namespace QWK {
         QPoint globalPos = getMouseEventGlobalPos(me);
 
         bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
+
+        const auto& updateCursorShape{ [&](){
+            if (fixedSize) {
+                return;
+            }
+            const Qt::CursorShape shape = calculateCursorShape(window, scenePos);
+            if (shape == Qt::ArrowCursor) {
+                if (m_cursorShapeChanged) {
+                    delegate->restoreCursorShape(host);
+                    m_cursorShapeChanged = false;
+                }
+            } else {
+                delegate->setCursorShape(host, shape);
+                m_cursorShapeChanged = true;
+            }
+        } };
+
+        bool handled = false;
+
         switch (type) {
             case QEvent::MouseButtonPress: {
+                m_windowStatus = WaitingRelease;
                 switch (me->button()) {
                     case Qt::LeftButton: {
                         if (!fixedSize) {
                             Qt::Edges edges = calculateWindowEdges(window, scenePos);
                             if (edges != Qt::Edges()) {
-                                m_windowStatus = Resizing;
                                 startSystemResize(window, edges);
-                                event->accept();
-                                return true;
+                                m_windowStatus = Resizing;
+                                handled = true;
+                                break;
                             }
                         }
                         if (inTitleBar) {
@@ -145,76 +165,63 @@ namespace QWK {
                             // movement, there will be no MouseReleaseEvent, so we defer it when the
                             // mouse is actually moving for the first time
                             m_windowStatus = PreparingMove;
-                            event->accept();
-                            return true;
+                            handled = true;
                         }
                         break;
                     }
                     case Qt::RightButton: {
                         if (inTitleBar) {
                             m_context->showSystemMenu(globalPos);
+                            m_windowStatus = Idle;
+                            handled = true;
                         }
                         break;
                     }
                     default:
                         break;
                 }
-                m_windowStatus = WaitingRelease;
                 break;
             }
 
             case QEvent::MouseButtonRelease: {
                 switch (m_windowStatus) {
-                    case PreparingMove:
-                    case Moving:
-                    case Resizing: {
-                        m_windowStatus = Idle;
-                        event->accept();
-                        return true;
-                    }
-                    case WaitingRelease: {
-                        m_windowStatus = Idle;
-                        break;
-                    }
-                    default: {
+                    case Idle: {
                         if (inTitleBar) {
-                            event->accept();
-                            return true;
+                            handled = true;
                         }
                         break;
                     }
+                    case WaitingRelease:
+                        break;
+                    case PreparingMove:
+                    case Moving:
+                    case Resizing: {
+                        handled = true;
+                        break;
+                    }
                 }
+                m_windowStatus = Idle;
                 break;
             }
 
             case QEvent::MouseMove: {
                 switch (m_windowStatus) {
-                    case Moving: {
-                        return true;
+                    case Idle:
+                    case WaitingRelease: {
+                        updateCursorShape();
+                        break;
                     }
                     case PreparingMove: {
-                        m_windowStatus = Moving;
                         startSystemMove(window);
-                        event->accept();
-                        return true;
-                    }
-                    case Idle: {
-                        if (!fixedSize) {
-                            const Qt::CursorShape shape = calculateCursorShape(window, scenePos);
-                            if (shape == Qt::ArrowCursor) {
-                                if (m_cursorShapeChanged) {
-                                    delegate->restoreCursorShape(host);
-                                    m_cursorShapeChanged = false;
-                                }
-                            } else {
-                                delegate->setCursorShape(host, shape);
-                                m_cursorShapeChanged = true;
-                            }
-                        }
+                        m_windowStatus = Moving;
+                        handled = true;
                         break;
                     }
-                    default:
+                    case Moving:
+                    case Resizing: {
+                        handled = true;
                         break;
+                    }
                 }
                 break;
             }
@@ -230,8 +237,7 @@ namespace QWK {
                         } else {
                             delegate->setWindowState(host, windowState | Qt::WindowMaximized);
                         }
-                        event->accept();
-                        return true;
+                        handled = true;
                     }
                 }
                 break;
@@ -240,6 +246,12 @@ namespace QWK {
             default:
                 break;
         }
+
+        if (handled) {
+            event->accept();
+            return true;
+        }
+
         return false;
     }
 
