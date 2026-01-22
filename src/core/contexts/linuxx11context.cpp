@@ -182,6 +182,7 @@ namespace QWK {
             ev.xclient.data.l[2] = root_y;
 
             Window root = DefaultRootWindow(display);
+            api.XUngrabPointer(display, 0L);
             api.XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask,
                            &ev);
             api.XFlush(display);
