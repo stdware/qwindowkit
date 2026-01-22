@@ -74,6 +74,8 @@ namespace QWK {
                     api.XSendEvent =
                         reinterpret_cast<LinuxX11API::XSendEventFn>(x11lib.resolve("XSendEvent"));
                     api.XFlush = reinterpret_cast<LinuxX11API::XFlushFn>(x11lib.resolve("XFlush"));
+                    api.XUngrabPointer = reinterpret_cast<LinuxX11API::XUngrabPointerFn>(
+                        x11lib.resolve("XUngrabPointer"));
                 }
             }
             guard = false;
