@@ -50,7 +50,7 @@ namespace QWK {
             return false;
         }
 
-#ifndef NDEBUG
+#if defined(_DEBUG) || !defined(NDEBUG)
         if (w->inherits("QDockWidget")) {
             qWarning()
                 << "QWK::WidgetWindowAgent: QWindowKit does not support QDockWidget as top window.";
