@@ -346,7 +346,7 @@ void MainWindow::installWindowAgent() {
 
 
 #ifndef Q_OS_MAC
-    connect(windowBar, &QWK::WindowBar::pinRequested, this, [this, pinButton](bool pin){
+    connect(windowBar, &QWK::WindowBar::pinRequested, this, [this, pinButton](bool pin) {
         if (isHidden() || isMinimized() || isMaximized() || isFullScreen()) {
             return;
         }

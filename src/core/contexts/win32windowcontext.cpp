@@ -607,6 +607,11 @@ namespace QWK {
             return ::DefWindowProcW(hWnd, message, wParam, lParam);
         }
 
+        // QWindow may have been destroyed before WinIdChange event comes
+        if (!ctx->window()) {
+            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+        }
+
         WindowsNativeEventFilter::lastMessageContext = ctx;
         const auto &contextCleaner = qScopeGuard([]() {
             WindowsNativeEventFilter::lastMessageContext = nullptr; //
@@ -970,12 +975,12 @@ namespace QWK {
         const auto &effectBugWorkaround = [this, hwnd]() {
             // We don't need the following *HACK* for QWidget windows.
             // Completely based on actual experiments, root reason is totally unknown.
-            
+
             // TODO: add more descriptions
             if (m_host->isWidgetType()) {
                 return;
             }
-            
+
             static const char *kPropKey = "_qwk_effectBugWorkaround1";
             if (property(kPropKey).toBool()) {
                 return;

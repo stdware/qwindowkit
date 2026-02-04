@@ -278,6 +278,8 @@ See [examples](examples) for more demo use cases. The examples have no High DPI 
 #### Hot Switch
 - Once you have made the window frameless, it will not be able to switch back to the system frame again unless you destroy your window and recreate it with different settings.
 
+- Do not use `QWidget::setWindowFlags` to change the window flags after `windowAgent.setup()` is called. As a result, `QWK::WidgetWindowAgent` can not be setup on `QDockWidget`.
+
 #### Native Child Widget
 - If you are about to add a widget with `Qt::WA_NativeWindow` property enabled as a descendent of the frameless window, you should enable `Qt::WA_DontCreateNativeAncestors` of it in advance.
 

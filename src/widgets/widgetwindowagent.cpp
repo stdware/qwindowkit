@@ -50,6 +50,13 @@ namespace QWK {
             return false;
         }
 
+#ifndef NDEBUG
+        if (w->inherits("QDockWidget")) {
+            qWarning()
+                << "QWK::WidgetWindowAgent: QWindowKit does not support QDockWidget as top window.";
+        }
+#endif
+
         Q_D(WidgetWindowAgent);
         if (d->hostWidget) {
             return false;
@@ -61,7 +68,7 @@ namespace QWK {
         w->setAttribute(Qt::WA_DontCreateNativeAncestors);
         // Make sure the native window handle is actually created before we apply
         // various hooks.
-        //w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Check
+        // w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Check
 
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;
