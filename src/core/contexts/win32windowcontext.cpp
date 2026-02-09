@@ -2365,11 +2365,17 @@ namespace QWK {
                 ::ClientToScreen(hWnd, &menuPos);
                 nativeGlobalPos = menuPos;
 
+#ifdef __MINGW32__
+#  define MOUSE_HOOK CALLBACK
+#else
+#  define MOUSE_HOOK
+#endif
+
                 // Install mouse hook
                 if (!mouseHook) {
                     mouseHook = ::SetWindowsHookExW(
                         WH_MOUSE,
-                        [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
+                        [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT MOUSE_HOOK {
                             if (nCode >= 0) {
                                 switch (wParam) {
                                     case WM_LBUTTONDBLCLK:
@@ -2396,6 +2402,8 @@ namespace QWK {
                     mouseHookedLocal = true;
                 }
             }
+
+#undef MOUSE_HOOK
 
             bool res =
                 showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
