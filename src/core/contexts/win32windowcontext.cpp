@@ -117,13 +117,13 @@ namespace QWK {
                                       marginsVar);
             }
         }
-#  else // >= 6.0.0
+#  else  // >= 6.0.0
         if (const auto platformWindow =
                 dynamic_cast<QNativeInterface::Private::QWindowsWindow *>(window->handle())) {
             platformWindow->setCustomMargins(margins);
         }
 #  endif // < 6.0.0
-#endif // >= 6.7.0
+#endif   // >= 6.7.0
     }
 
     static inline MONITORINFOEXW getMonitorForWindow(HWND hwnd) {
@@ -920,7 +920,7 @@ namespace QWK {
         }
 
         // Whether to show system menu
-        if (systemMenuHandler(hWnd, message, wParam, lParam, result)) {
+        if (!noSystemMenu && systemMenuHandler(hWnd, message, wParam, lParam, result)) {
             return true;
         }
 
@@ -995,6 +995,11 @@ namespace QWK {
             ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
                          FALSE);
         };
+
+        if (key == QStringLiteral("no-system-menu")) {
+            noSystemMenu = attribute.toBool();
+            return true;
+        }
 
         if (key == QStringLiteral("extra-margins")) {
             auto margins = qmargins2margins(attribute.value<QMargins>());
@@ -2348,6 +2353,7 @@ namespace QWK {
             default:
                 break;
         }
+
         if (shouldShowSystemMenu) {
             static HHOOK mouseHook = nullptr;
             static std::optional<POINT> mouseClickPos;
@@ -2365,7 +2371,7 @@ namespace QWK {
                 ::ClientToScreen(hWnd, &menuPos);
                 nativeGlobalPos = menuPos;
 
-#ifdef __MINGW32__
+#ifdef Q_CC_MINGW
 #  define MOUSE_HOOK CALLBACK
 #else
 #  define MOUSE_HOOK

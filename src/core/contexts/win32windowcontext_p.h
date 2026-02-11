@@ -76,6 +76,9 @@ namespace QWK {
         // For emulating traditional icon button behavior
         uint64_t iconButtonClickTime = 0;
         int iconButtonClickLevel = 0;
+
+        // Attributes
+        bool noSystemMenu = false;
     };
 
 }

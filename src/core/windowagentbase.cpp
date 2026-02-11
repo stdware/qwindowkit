@@ -98,6 +98,7 @@ namespace QWK {
         Sets the platform-related attribute for the window. Available attributes:
 
         On Windows,
+            \li \c no-system-menu: Specify a boolean value to disable the system menu.
             \li \c dwm-blur: Specify a boolean value to enable or disable dwm blur effect, this
                    attribute is available on Windows 10 or later.
             \li \c dark-mode: Specify a boolean value to enable or disable the dark mode, it is
