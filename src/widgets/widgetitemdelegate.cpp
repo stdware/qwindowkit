@@ -14,9 +14,9 @@ extern Q_DECL_IMPORT QWidget *qt_button_down;
 
 namespace QWK {
 
-    class WidgetWinIdChangeEventFilter : public WinIdChangeEventFilter {
+    class WidgetWinIdChangeEventFilter final : public WinIdChangeEventFilter {
     public:
-        explicit WidgetWinIdChangeEventFilter(QObject *host, AbstractWindowContext *ctx)
+        WidgetWinIdChangeEventFilter(QObject *host, AbstractWindowContext *ctx)
             : WinIdChangeEventFilter(host, ctx), widget(static_cast<QWidget *>(host)) {
             widget->installEventFilter(this);
         }
@@ -27,6 +27,8 @@ namespace QWK {
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_ASSERT(obj);
+            Q_ASSERT(event);
             Q_UNUSED(obj)
             if (event->type() == QEvent::WinIdChange) {
                 context->notifyWinIdChange();
@@ -34,7 +36,7 @@ namespace QWK {
             return false;
         }
 
-        QWidget *widget;
+        QWidget *widget = nullptr;
     };
 
     WidgetItemDelegate::WidgetItemDelegate() = default;
@@ -42,18 +44,22 @@ namespace QWK {
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
     QWindow *WidgetItemDelegate::window(const QObject *obj) const {
+        Q_ASSERT(obj);
         return static_cast<const QWidget *>(obj)->windowHandle();
     }
 
     bool WidgetItemDelegate::isEnabled(const QObject *obj) const {
+        Q_ASSERT(obj);
         return static_cast<const QWidget *>(obj)->isEnabled();
     }
 
     bool WidgetItemDelegate::isVisible(const QObject *obj) const {
+        Q_ASSERT(obj);
         return static_cast<const QWidget *>(obj)->isVisible();
     }
 
     QRect WidgetItemDelegate::mapGeometryToScene(const QObject *obj) const {
+        Q_ASSERT(obj);
         auto widget = static_cast<const QWidget *>(obj);
         const QPoint originPoint = widget->mapTo(widget->window(), QPoint(0, 0));
         const QSize size = widget->size();
@@ -61,14 +67,17 @@ namespace QWK {
     }
 
     QWindow *WidgetItemDelegate::hostWindow(const QObject *host) const {
+        Q_ASSERT(host);
         return static_cast<const QWidget *>(host)->windowHandle();
     }
 
     bool WidgetItemDelegate::isWindowActive(const QObject *host) const {
+        Q_ASSERT(host);
         return static_cast<const QWidget *>(host)->isActiveWindow();
     }
 
     void WidgetItemDelegate::resetQtGrabbedControl(QObject *host) const {
+        Q_ASSERT(host);
         Q_UNUSED(host);
         if (!qt_button_down) {
             return;
@@ -83,48 +92,60 @@ namespace QWK {
     }
 
     Qt::WindowStates WidgetItemDelegate::getWindowState(const QObject *host) const {
+        Q_ASSERT(host);
         return static_cast<const QWidget *>(host)->windowState();
     }
 
     void WidgetItemDelegate::setWindowState(QObject *host, Qt::WindowStates state) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->setWindowState(state);
     }
 
     void WidgetItemDelegate::setCursorShape(QObject *host, Qt::CursorShape shape) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->setCursor(QCursor(shape));
     }
 
     void WidgetItemDelegate::restoreCursorShape(QObject *host) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->unsetCursor();
     }
 
     Qt::WindowFlags WidgetItemDelegate::getWindowFlags(const QObject *host) const {
+        Q_ASSERT(host);
         return static_cast<const QWidget *>(host)->windowFlags();
     }
 
     QRect WidgetItemDelegate::getGeometry(const QObject *host) const {
+        Q_ASSERT(host);
         return static_cast<const QWidget *>(host)->geometry();
     }
 
     void WidgetItemDelegate::setWindowFlags(QObject *host, Qt::WindowFlags flags) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->setWindowFlags(flags);
     }
 
     void WidgetItemDelegate::setWindowVisible(QObject *host, bool visible) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->setVisible(visible);
     }
 
     void WidgetItemDelegate::setGeometry(QObject *host, const QRect &rect) {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->setGeometry(rect);
     }
 
     void WidgetItemDelegate::bringWindowToTop(QObject *host) const {
+        Q_ASSERT(host);
         static_cast<QWidget *>(host)->raise();
     }
 
     WinIdChangeEventFilter *
         WidgetItemDelegate::createWinIdEventFilter(QObject *host,
                                                    AbstractWindowContext *context) const {
+        Q_ASSERT(host);
+        Q_ASSERT(context);
         return new WidgetWinIdChangeEventFilter(host, context);
     }
 

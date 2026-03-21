@@ -6,7 +6,8 @@
 
 namespace QWK {
 
-    class SystemButtonAreaItemHandler : public QObject {
+    class SystemButtonAreaItemHandler final : public QObject {
+        Q_OBJECT
     public:
         SystemButtonAreaItemHandler(QQuickItem *item, AbstractWindowContext *ctx,
                                     QObject *parent = nullptr);
@@ -15,8 +16,8 @@ namespace QWK {
         void updateSystemButtonArea();
 
     protected:
-        QQuickItem *item;
-        AbstractWindowContext *ctx;
+        QQuickItem *item = nullptr;
+        AbstractWindowContext *ctx = nullptr;
     };
 
     SystemButtonAreaItemHandler::SystemButtonAreaItemHandler(QQuickItem *item,
@@ -73,3 +74,5 @@ namespace QWK {
     }
 
 }
+
+#include "quickwindowagent_mac.moc"

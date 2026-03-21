@@ -50,6 +50,8 @@ namespace QWK {
     Q_SIGNALS:
         void titleBarWidgetChanged(QQuickItem *item);
         void systemButtonChanged(SystemButton button, QQuickItem *item);
+        void startMovingOrResizing();
+        void endMovingOrResizing();
 
     protected:
         QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent = nullptr);

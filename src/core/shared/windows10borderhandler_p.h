@@ -89,12 +89,12 @@ namespace QWK {
 
         virtual void updateGeometry() = 0;
 
-        virtual bool isWindowActive() const {
+        inline virtual bool isWindowActive() const {
             return ctx->window()->isActive();
         }
 
     protected:
-        bool nativeEventFilter(const QByteArray &eventType, void *message,
+        inline bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
 
@@ -131,7 +131,7 @@ namespace QWK {
             return false;
         }
 
-        bool sharedEventFilter(QObject *obj, QEvent *event) override {
+        inline bool sharedEventFilter(QObject *obj, QEvent *event) override {
             Q_UNUSED(obj)
 
             if (event->type() == QEvent::WinIdChange) {
@@ -144,7 +144,7 @@ namespace QWK {
         }
 
     protected:
-        AbstractWindowContext *ctx;
+        AbstractWindowContext *ctx = nullptr;
     };
 
 }

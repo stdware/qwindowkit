@@ -39,6 +39,8 @@ Window {
 
     WindowAgent {
         id: windowAgent
+        onStartMovingOrResizing: console.log("QWK: start moving or resizing!")
+        onEndMovingOrResizing: console.log("QWK: end moving or resizing!")
     }
 
     TapHandler {

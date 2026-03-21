@@ -40,11 +40,15 @@ namespace QWK {
     // returns, because Qt calls BeginPaint() and EndPaint() itself. We should make sure that we
     // draw the top border between these two calls, otherwise some display exceptions may arise.
 
-    class WidgetBorderHandler : public QObject, public Windows10BorderHandler {
+    class WidgetBorderHandler final : public QObject, public Windows10BorderHandler {
+        Q_OBJECT
     public:
-        explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
+        WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
                                      QObject *parent = nullptr)
             : QObject(parent), Windows10BorderHandler(ctx), widget(widget) {
+            Q_ASSERT(widget);
+            Q_ASSERT(ctx);
+
             widget->installEventFilter(this);
 
             // First update
@@ -102,6 +106,8 @@ namespace QWK {
 
     protected:
         bool sharedEventFilter(QObject *obj, QEvent *event) override {
+            Q_ASSERT(obj);
+            Q_ASSERT(event);
             Q_UNUSED(obj)
 
             switch (event->type()) {
@@ -137,6 +143,8 @@ namespace QWK {
         }
 
         bool eventFilter(QObject *obj, QEvent *event) override {
+            Q_ASSERT(obj);
+            Q_ASSERT(event);
             Q_UNUSED(obj)
 
             switch (event->type()) {
@@ -164,7 +172,7 @@ namespace QWK {
             return false;
         }
 
-        QWidget *widget;
+        QWidget *widget = nullptr;
     };
 
     void WidgetWindowAgentPrivate::setupWindows10BorderWorkaround() {
@@ -177,3 +185,5 @@ namespace QWK {
 #endif
 
 }
+
+#include "widgetwindowagent_win.moc"

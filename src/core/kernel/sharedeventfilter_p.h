@@ -49,7 +49,7 @@ namespace QWK {
         virtual bool sharedEventFilter(QObject *obj, QEvent *event) = 0;
 
     protected:
-        SharedEventDispatcher *m_sharedDispatcher;
+        SharedEventDispatcher *m_sharedDispatcher = nullptr;
 
         friend class SharedEventDispatcher;
 

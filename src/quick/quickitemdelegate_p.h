@@ -22,7 +22,7 @@
 
 namespace QWK {
 
-    class QWK_QUICK_EXPORT QuickItemDelegate : public WindowItemDelegate {
+    class QWK_QUICK_EXPORT QuickItemDelegate final : public WindowItemDelegate {
     public:
         QuickItemDelegate();
         ~QuickItemDelegate() override;

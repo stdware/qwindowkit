@@ -16,9 +16,15 @@
 
 #include <QWKCore/private/abstractwindowcontext_p.h>
 
+#ifdef Q_OS_WIN
+#  define QWK_FINAL final
+#else
+#  define QWK_FINAL
+#endif
+
 namespace QWK {
 
-    class QtWindowContext : public AbstractWindowContext {
+    class QWK_CORE_EXPORT QtWindowContext QWK_FINAL : public AbstractWindowContext {
         Q_OBJECT
     public:
         QtWindowContext();
@@ -35,5 +41,7 @@ namespace QWK {
     };
 
 }
+
+#undef QWK_FINAL
 
 #endif // QTWINDOWCONTEXT_P_H

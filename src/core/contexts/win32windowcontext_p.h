@@ -19,7 +19,7 @@
 
 namespace QWK {
 
-    class Win32WindowContext : public AbstractWindowContext {
+    class QWK_CORE_EXPORT Win32WindowContext final : public AbstractWindowContext {
         Q_OBJECT
     public:
         Win32WindowContext();

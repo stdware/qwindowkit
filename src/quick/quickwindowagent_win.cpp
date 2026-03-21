@@ -21,9 +21,9 @@ namespace QWK {
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
 
-    class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
+    class BorderItem final : public QQuickPaintedItem, public Windows10BorderHandler {
     public:
-        explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
+        BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
 
         bool shouldEnableEmulatedPainter() const;

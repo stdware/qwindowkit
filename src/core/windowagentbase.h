@@ -35,12 +35,12 @@ namespace QWK {
         Q_INVOKABLE bool setWindowAttribute(const QString &key, const QVariant &attribute);
 
     public Q_SLOTS:
-        void showSystemMenu(const QPoint &pos); // Only available on Windows now
+        void showSystemMenu(const QPoint &pos); // Not available on macOS.
         void centralize();
         void raise();
 
     protected:
-        explicit WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent = nullptr);
+        WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent = nullptr);
 
         const std::unique_ptr<WindowAgentBasePrivate> d_ptr;
     };

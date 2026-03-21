@@ -92,6 +92,7 @@ namespace QWK {
         have been set will be removed.
     */
     void WidgetWindowAgent::setTitleBar(QWidget *w) {
+        Q_ASSERT(w);
         Q_D(WidgetWindowAgent);
         if (!d->context->setTitleBar(w)) {
             return;
@@ -115,6 +116,7 @@ namespace QWK {
         you don't need to call \c setHitTestVisible for them.
     */
     void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
+        Q_ASSERT(w);
         Q_D(WidgetWindowAgent);
         if (!d->context->setSystemButton(button, w)) {
             return;
@@ -126,6 +128,7 @@ namespace QWK {
         Returns \a true if the widget can receive mouse events on title bar.
     */
     bool WidgetWindowAgent::isHitTestVisible(const QWidget *w) const {
+        Q_ASSERT(w);
         Q_D(const WidgetWindowAgent);
         return d->context->isHitTestVisible(w);
     }
@@ -136,6 +139,7 @@ namespace QWK {
         of the title bar widget.
     */
     void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
+        Q_ASSERT(w);
         Q_D(WidgetWindowAgent);
         d->context->setHitTestVisible(w, visible);
     }
@@ -145,6 +149,7 @@ namespace QWK {
     */
     WidgetWindowAgent::WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
+        d.q_ptr = this;
         d.init();
     }
 

@@ -18,7 +18,7 @@
 
 namespace QWK {
 
-    class CocoaWindowContext : public AbstractWindowContext {
+    class QWK_CORE_EXPORT CocoaWindowContext final : public AbstractWindowContext {
         Q_OBJECT
     public:
         CocoaWindowContext();

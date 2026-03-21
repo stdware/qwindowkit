@@ -22,7 +22,7 @@
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 namespace QWK {
 
-    class LinuxWaylandContext : public QtWindowContext {
+    class QWK_CORE_EXPORT LinuxWaylandContext final : public QtWindowContext {
         Q_OBJECT
     public:
         LinuxWaylandContext();

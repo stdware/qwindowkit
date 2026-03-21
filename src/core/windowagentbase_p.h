@@ -27,7 +27,7 @@ namespace QWK {
 
         void init();
 
-        WindowAgentBase *q_ptr; // no need to initialize
+        WindowAgentBase *q_ptr{ nullptr };
 
         virtual AbstractWindowContext *createContext() const;
 
@@ -38,7 +38,7 @@ namespace QWK {
     public:
         using WindowContextFactoryMethod = AbstractWindowContext *(*) ();
 
-        static WindowContextFactoryMethod windowContextFactoryMethod;
+        static inline WindowContextFactoryMethod windowContextFactoryMethod = nullptr;
 
     private:
         Q_DISABLE_COPY(WindowAgentBasePrivate)

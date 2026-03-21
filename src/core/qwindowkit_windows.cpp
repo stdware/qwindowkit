@@ -8,7 +8,7 @@ using QWK_NTSTATUS = long;
 
 namespace QWK {
 
-    static QWK_OSVERSIONINFOW GetRealOSVersionImpl() {
+    static inline QWK_OSVERSIONINFOW GetRealOSVersionImpl() {
         HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
         Q_ASSERT(hMod);
         using RtlGetVersionPtr = QWK_NTSTATUS(WINAPI *)(QWK_OSVERSIONINFOW*);
@@ -45,17 +45,16 @@ namespace QWK {
 
     void WindowsRegistryKey::close() {
         if (isValid()) {
-            ::RegCloseKey(m_key);
-            m_key = nullptr;
+            ::RegCloseKey(std::exchange(m_key, nullptr));
         }
     }
 
     QString WindowsRegistryKey::stringValue(QStringView subKey) const {
-        QString result;
+        QString result{};
         if (!isValid())
             return result;
-        DWORD type;
-        DWORD size;
+        DWORD type{ 0 };
+        DWORD size{ 0 };
         auto subKeyC = reinterpret_cast<const wchar_t *>(subKey.utf16());
         if (::RegQueryValueExW(m_key, subKeyC, nullptr, &type, nullptr, &size) != ERROR_SUCCESS ||
             (type != REG_SZ && type != REG_EXPAND_SZ) || size <= 2) {
@@ -76,7 +75,7 @@ namespace QWK {
     std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(QStringView subKey) const {
         if (!isValid())
             return std::make_pair(0, false);
-        DWORD type;
+        DWORD type{ 0 };
         auto subKeyC = reinterpret_cast<const wchar_t *>(subKey.utf16());
         if (::RegQueryValueExW(m_key, subKeyC, nullptr, &type, nullptr, nullptr) != ERROR_SUCCESS ||
             type != REG_DWORD) {

@@ -41,12 +41,13 @@ namespace QWK {
         ~AbstractWindowContext() override;
 
     public:
-        void setup(QObject *host, WindowItemDelegate *delegate);
+        void setup(QObject *host, WindowItemDelegate *delegate, WindowAgentBase* agent);
 
         inline QObject *host() const;
         inline QWindow *window() const;
         inline WId windowId() const;
         inline WindowItemDelegate *delegate() const;
+        inline WindowAgentBase* agent() const;
 
         inline bool isHitTestVisible(const QObject *obj) const;
         bool setHitTestVisible(QObject *obj, bool visible);
@@ -65,23 +66,9 @@ namespace QWK {
         bool isInSystemButtons(const QPoint &pos, WindowAgentBase::SystemButton *button) const;
         bool isInTitleBarDraggableArea(const QPoint &pos) const;
 
-        inline bool isHostWidthFixed() const {
-            return m_windowHandle
-                       ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
-                          m_windowHandle->minimumWidth() == m_windowHandle->maximumWidth())
-                       : false;
-        }
-        inline bool isHostHeightFixed() const {
-            return m_windowHandle
-                       ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
-                          m_windowHandle->minimumHeight() == m_windowHandle->maximumHeight())
-                       : false;
-        }
-        inline bool isHostSizeFixed() const {
-            return m_windowHandle ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
-                                     m_windowHandle->minimumSize() == m_windowHandle->maximumSize())
-                                  : false;
-        }
+        inline bool isHostWidthFixed() const;
+        inline bool isHostHeightFixed() const;
+        inline bool isHostSizeFixed() const;
 
         virtual QString key() const;
 
@@ -111,18 +98,19 @@ namespace QWK {
                                             const QVariant &oldAttribute);
 
     protected:
-        QObject *m_host{};
+        QObject *m_host{ nullptr };
         std::unique_ptr<WindowItemDelegate> m_delegate;
+        WindowAgentBase* m_agent{ nullptr };
         QPointer<QWindow> m_windowHandle;
-        WId m_windowId{};
+        WId m_windowId{ 0 };
 
         QVector<QPointer<QObject>> m_hitTestVisibleItems;
 #ifdef Q_OS_MAC
-        ScreenRectCallback m_systemButtonAreaCallback;
+        ScreenRectCallback m_systemButtonAreaCallback{};
 #endif
 
-        QPointer<QObject> m_titleBar{};
-        std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
+        QPointer<QObject> m_titleBar;
+        std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons;
 
         std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
         QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
@@ -148,6 +136,10 @@ namespace QWK {
         return m_delegate.get();
     }
 
+    inline WindowAgentBase* AbstractWindowContext::agent() const {
+        return m_agent;
+    }
+
     inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {
         return m_hitTestVisibleItems.contains(const_cast<QObject *>(obj));
     }
@@ -166,6 +158,26 @@ namespace QWK {
         return m_systemButtonAreaCallback;
     }
 #endif
+
+    inline bool AbstractWindowContext::isHostWidthFixed() const {
+        return m_windowHandle
+                   ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                      m_windowHandle->minimumWidth() == m_windowHandle->maximumWidth())
+                   : false;
+    }
+
+    inline bool AbstractWindowContext::isHostHeightFixed() const {
+        return m_windowHandle
+                   ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                      m_windowHandle->minimumHeight() == m_windowHandle->maximumHeight())
+                   : false;
+    }
+
+    inline bool AbstractWindowContext::isHostSizeFixed() const {
+        return m_windowHandle ? ((m_windowHandle->flags() & Qt::MSWindowsFixedSizeDialogHint) ||
+                                 m_windowHandle->minimumSize() == m_windowHandle->maximumSize())
+                              : false;
+    }
 
 }
 

@@ -38,11 +38,7 @@ namespace QWK {
         shared methods for derived classes to call.
     */
 
-    WindowAgentBasePrivate::WindowContextFactoryMethod
-        WindowAgentBasePrivate::windowContextFactoryMethod = nullptr;
-
-    WindowAgentBasePrivate::WindowAgentBasePrivate() : q_ptr(nullptr), context(nullptr) {
-    }
+    WindowAgentBasePrivate::WindowAgentBasePrivate() = default;
 
     WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 
@@ -74,8 +70,10 @@ namespace QWK {
     }
 
     void WindowAgentBasePrivate::setup(QObject *host, WindowItemDelegate *delegate) {
+        Q_ASSERT(host);
+        Q_ASSERT(delegate);
         auto ctx = createContext();
-        ctx->setup(host, delegate);
+        ctx->setup(host, delegate, q_ptr);
         context.reset(ctx);
     }
 

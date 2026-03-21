@@ -151,21 +151,21 @@ namespace QWK {
     //
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    class QWK_CORE_EXPORT WindowsRegistryKey {
+    class QWK_CORE_EXPORT WindowsRegistryKey final {
     public:
         WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ,
                            REGSAM access = 0);
 
         ~WindowsRegistryKey();
 
-        bool isValid() const;
+        inline bool isValid() const;
 
         void close();
         QString stringValue(QStringView subKey) const;
         std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
 
     private:
-        HKEY m_key;
+        HKEY m_key = nullptr;
 
         Q_DISABLE_COPY(WindowsRegistryKey)
     };
@@ -176,14 +176,14 @@ namespace QWK {
 #elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
     using WindowsRegistryKey = QWinRegistryKey;
 #else
-    class WindowsRegistryKey : public QWinRegistryKey {
+    class QWK_CORE_EXPORT WindowsRegistryKey final : public QWinRegistryKey {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 1)
         using SubKeyType = const wchar_t*;
 #else
         using SubKeyType = QStringView;
 #endif
     public:
-        WindowsRegistryKey(HKEY parentHandle, SubKeyType subKey,
+        inline WindowsRegistryKey(HKEY parentHandle, SubKeyType subKey,
             REGSAM permissions = KEY_READ, REGSAM access = 0)
             : QWinRegistryKey(parentHandle, subKey, permissions, access) {
         }

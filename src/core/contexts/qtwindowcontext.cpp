@@ -13,7 +13,7 @@ namespace QWK {
 
     static constexpr const quint8 kDefaultResizeBorderThickness = 8;
 
-    static Qt::CursorShape calculateCursorShape(const QWindow *window, const QPoint &pos) {
+    static inline Qt::CursorShape calculateCursorShape(const QWindow *window, const QPoint &pos) {
 #ifdef Q_OS_MACOS
         Q_UNUSED(window);
         Q_UNUSED(pos);
@@ -81,9 +81,9 @@ namespace QWK {
 #endif
     }
 
-    class QtWindowEventFilter : public SharedEventFilter {
+    class QtWindowEventFilter final : public SharedEventFilter {
     public:
-        explicit QtWindowEventFilter(AbstractWindowContext *context);
+        QtWindowEventFilter(AbstractWindowContext *context);
         ~QtWindowEventFilter() override;
 
         enum WindowStatus {
@@ -98,19 +98,22 @@ namespace QWK {
         bool sharedEventFilter(QObject *object, QEvent *event) override;
 
     private:
-        AbstractWindowContext *m_context;
-        bool m_cursorShapeChanged;
-        WindowStatus m_windowStatus;
+        AbstractWindowContext *m_context = nullptr;
+        bool m_cursorShapeChanged = false;
+        WindowStatus m_windowStatus = Idle;
     };
 
     QtWindowEventFilter::QtWindowEventFilter(AbstractWindowContext *context)
-        : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        : m_context(context) {
         m_context->installSharedEventFilter(this);
     }
 
     QtWindowEventFilter::~QtWindowEventFilter() = default;
 
     bool QtWindowEventFilter::sharedEventFilter(QObject *obj, QEvent *event) {
+        Q_ASSERT(obj);
+        Q_ASSERT(event);
+
         Q_UNUSED(obj)
 
         auto type = event->type();

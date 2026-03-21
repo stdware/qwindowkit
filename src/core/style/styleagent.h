@@ -16,7 +16,7 @@ namespace QWK {
 
     class StyleAgentPrivate;
 
-    class QWK_CORE_EXPORT StyleAgent : public QObject {
+    class QWK_CORE_EXPORT StyleAgent final : public QObject {
         Q_OBJECT
         Q_DECLARE_PRIVATE(StyleAgent)
     public:

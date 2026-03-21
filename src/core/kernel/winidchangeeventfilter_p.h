@@ -22,28 +22,32 @@ namespace QWK {
 
     class AbstractWindowContext;
 
-    class WinIdChangeEventFilter : public QObject {
+    class QWK_CORE_EXPORT WinIdChangeEventFilter : public QObject {
+        Q_OBJECT
     public:
-        WinIdChangeEventFilter(QObject *host, AbstractWindowContext *context)
+        inline WinIdChangeEventFilter(QObject *host, AbstractWindowContext *context)
             : host(host), context(context) {
+            Q_ASSERT(host);
+            Q_ASSERT(context);
         }
 
         virtual WId winId() const = 0;
 
     protected:
-        QObject *host;
-        AbstractWindowContext *context;
+        QObject *host = nullptr;
+        AbstractWindowContext *context = nullptr;
     };
 
-    class QWK_CORE_EXPORT WindowWinIdChangeEventFilter : public WinIdChangeEventFilter {
+    class QWK_CORE_EXPORT WindowWinIdChangeEventFilter final : public WinIdChangeEventFilter {
+        Q_OBJECT
     public:
         WindowWinIdChangeEventFilter(QWindow *host, AbstractWindowContext *context);
 
         WId winId() const override;
 
     protected:
-        QWindow *win;
-        bool isAboutToBeDestroyed;
+        QWindow *win = nullptr;
+        bool isAboutToBeDestroyed = false;
 
         bool eventFilter(QObject *obj, QEvent *event) override;
     };

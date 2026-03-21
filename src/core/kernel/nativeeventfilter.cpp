@@ -9,8 +9,7 @@
 
 namespace QWK {
 
-    NativeEventFilter::NativeEventFilter() : m_nativeDispatcher(nullptr) {
-    }
+    NativeEventFilter::NativeEventFilter() = default;
 
     NativeEventFilter::~NativeEventFilter() {
         if (m_nativeDispatcher)
@@ -21,13 +20,17 @@ namespace QWK {
 
     NativeEventDispatcher::~NativeEventDispatcher() {
         for (const auto &observer : std::as_const(m_nativeEventFilters)) {
+            Q_ASSERT(observer);
             observer->m_nativeDispatcher = nullptr;
         }
     }
 
     bool NativeEventDispatcher::nativeDispatch(const QByteArray &eventType, void *message,
                                                QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        Q_ASSERT(message);
+        Q_ASSERT(result);
         for (const auto &ef : std::as_const(m_nativeEventFilters)) {
+            Q_ASSERT(ef);
             if (ef->nativeEventFilter(eventType, message, result))
                 return true;
         }
@@ -35,6 +38,7 @@ namespace QWK {
     }
 
     void NativeEventDispatcher::installNativeEventFilter(NativeEventFilter *filter) {
+        Q_ASSERT(filter);
         if (!filter || filter->m_nativeDispatcher)
             return;
 
@@ -43,6 +47,7 @@ namespace QWK {
     }
 
     void NativeEventDispatcher::removeNativeEventFilter(NativeEventFilter *filter) {
+        Q_ASSERT(filter);
         if (!m_nativeEventFilters.removeOne(filter)) {
             return;
         }
@@ -52,7 +57,7 @@ namespace QWK {
 
     // Avoid adding multiple global native event filters to QGuiApplication
     // in this library.
-    class AppMasterNativeEventFilter : public QAbstractNativeEventFilter,
+    class AppMasterNativeEventFilter final : public QAbstractNativeEventFilter,
                                        public NativeEventDispatcher {
     public:
         AppMasterNativeEventFilter() {
@@ -64,6 +69,8 @@ namespace QWK {
 
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
+            Q_ASSERT(message);
+            Q_ASSERT(result);
             return nativeDispatch(eventType, message, result);
         }
 
@@ -82,8 +89,7 @@ namespace QWK {
     AppNativeEventFilter::~AppNativeEventFilter() {
         AppMasterNativeEventFilter::instance->removeNativeEventFilter(this);
         if (AppMasterNativeEventFilter::instance->m_nativeEventFilters.isEmpty()) {
-            delete AppMasterNativeEventFilter::instance;
-            AppMasterNativeEventFilter::instance = nullptr;
+            delete std::exchange(AppMasterNativeEventFilter::instance, nullptr);
         }
     }
 

@@ -20,7 +20,7 @@
 
 namespace QWK {
 
-    class WidgetWindowAgentPrivate : public WindowAgentBasePrivate {
+    class QWK_WIDGETS_EXPORT WidgetWindowAgentPrivate final : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(WidgetWindowAgent)
     public:
         WidgetWindowAgentPrivate();
@@ -29,10 +29,10 @@ namespace QWK {
         void init();
 
         // Host
-        QWidget *hostWidget{};
+        QWidget *hostWidget{ nullptr };
 
 #ifdef Q_OS_MAC
-        QWidget *systemButtonAreaWidget{};
+        QWidget *systemButtonAreaWidget{ nullptr };
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;
 #endif
 

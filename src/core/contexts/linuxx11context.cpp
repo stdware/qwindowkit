@@ -125,8 +125,7 @@ union _XEvent {
 
 namespace QWK {
 
-    LinuxX11Context::LinuxX11Context() : QtWindowContext() {
-    }
+    LinuxX11Context::LinuxX11Context() = default;
 
     LinuxX11Context::~LinuxX11Context() = default;
 

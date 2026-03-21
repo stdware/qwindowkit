@@ -6,8 +6,7 @@
 
 namespace QWK {
 
-    SharedEventFilter::SharedEventFilter() : m_sharedDispatcher(nullptr) {
-    }
+    SharedEventFilter::SharedEventFilter() = default;
 
     SharedEventFilter::~SharedEventFilter() {
         if (m_sharedDispatcher)
@@ -18,12 +17,16 @@ namespace QWK {
 
     SharedEventDispatcher::~SharedEventDispatcher() {
         for (const auto &observer : std::as_const(m_sharedEventFilters)) {
+            Q_ASSERT(observer);
             observer->m_sharedDispatcher = nullptr;
         }
     }
 
     bool SharedEventDispatcher::sharedDispatch(QObject *obj, QEvent *event) {
+        Q_ASSERT(obj);
+        Q_ASSERT(event);
         for (const auto &ef : std::as_const(m_sharedEventFilters)) {
+            Q_ASSERT(ef);
             if (ef->sharedEventFilter(obj, event))
                 return true;
         }
@@ -31,6 +34,7 @@ namespace QWK {
     }
 
     void SharedEventDispatcher::installSharedEventFilter(SharedEventFilter *filter) {
+        Q_ASSERT(filter);
         if (!filter || filter->m_sharedDispatcher)
             return;
 
@@ -39,6 +43,7 @@ namespace QWK {
     }
 
     void SharedEventDispatcher::removeSharedEventFilter(SharedEventFilter *filter) {
+        Q_ASSERT(filter);
         if (!m_sharedEventFilters.removeOne(filter)) {
             return;
         }

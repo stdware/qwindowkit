@@ -21,10 +21,12 @@
 
 namespace QWK {
 
-    class WindowMoveManipulator : public QObject {
+    class QWK_CORE_EXPORT WindowMoveManipulator final : public QObject {
+        Q_OBJECT
     public:
-        explicit WindowMoveManipulator(QWindow *targetWindow)
-            : QObject(targetWindow), target(targetWindow), operationComplete(false),
+        WindowMoveManipulator(QWindow *targetWindow)
+            : QObject(targetWindow),
+              target(targetWindow),
               initialMousePosition(QCursor::pos()),
               initialWindowPosition(targetWindow->position()) {
             target->installEventFilter(this);
@@ -59,17 +61,20 @@ namespace QWK {
         }
 
     private:
-        QWindow *target;
-        bool operationComplete;
-        QPoint initialMousePosition;
-        QPoint initialWindowPosition;
+        QWindow *target = nullptr;
+        bool operationComplete = false;
+        QPoint initialMousePosition{};
+        QPoint initialWindowPosition{};
     };
 
-    class WindowResizeManipulator : public QObject {
+    class QWK_CORE_EXPORT WindowResizeManipulator final : public QObject {
+        Q_OBJECT
     public:
         WindowResizeManipulator(QWindow *targetWindow, Qt::Edges edges)
-            : QObject(targetWindow), target(targetWindow), operationComplete(false),
-              initialMousePosition(QCursor::pos()), initialWindowRect(target->geometry()),
+            : QObject(targetWindow),
+              target(targetWindow),
+              initialMousePosition(QCursor::pos()),
+              initialWindowRect(target->geometry()),
               resizeEdges(edges) {
             target->installEventFilter(this);
         }
@@ -119,11 +124,11 @@ namespace QWK {
         }
 
     private:
-        QWindow *target;
-        bool operationComplete;
-        QPoint initialMousePosition;
-        QRect initialWindowRect;
-        Qt::Edges resizeEdges;
+        QWindow *target = nullptr;
+        bool operationComplete = false;
+        QPoint initialMousePosition{};
+        QRect initialWindowRect{};
+        Qt::Edges resizeEdges{};
     };
 
     // QWindow::startSystemMove() and QWindow::startSystemResize() is first supported at Qt 5.15
@@ -133,6 +138,7 @@ namespace QWK {
     // When the new API fails, we emulate the window actions using the classical API.
 
     inline void startSystemMove(QWindow *window) {
+        Q_ASSERT(window);
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
         std::ignore = new WindowMoveManipulator(window);
 #elif defined(Q_OS_LINUX)
@@ -146,6 +152,7 @@ namespace QWK {
     }
 
     inline void startSystemResize(QWindow *window, Qt::Edges edges) {
+        Q_ASSERT(window);
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
         std::ignore = new WindowResizeManipulator(window, edges);
 #elif defined(Q_OS_MAC) || defined(Q_OS_LINUX)

@@ -18,18 +18,18 @@
 
 namespace QWK {
 
-    class StyleAgentPrivate : public QObject {
+    class QWK_CORE_EXPORT StyleAgentPrivate final {
         Q_DECLARE_PUBLIC(StyleAgent)
     public:
         StyleAgentPrivate();
-        ~StyleAgentPrivate() override;
+        ~StyleAgentPrivate();
 
         void init();
 
-        StyleAgent *q_ptr;
+        StyleAgent *q_ptr{ nullptr };
 
         StyleAgent::SystemTheme systemTheme = StyleAgent::Unknown;
-        QColor systemAccentColor;
+        QColor systemAccentColor{};
 
         void setupSystemThemeHook();
         void removeSystemThemeHook();

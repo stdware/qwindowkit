@@ -14,7 +14,7 @@ namespace QWK {
     using StyleAgentSet = QSet<StyleAgentPrivate *>;
     Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
 
-    static StyleAgent::SystemTheme getSystemTheme() {
+    static inline StyleAgent::SystemTheme getSystemTheme() {
         if (isHighContrastModeEnabled()) {
             return StyleAgent::HighContrast;
         } else if (isDarkThemeActive()) {
@@ -24,21 +24,24 @@ namespace QWK {
         }
     }
 
-    static void notifyAllStyleAgents() {
+    static inline void notifyAllStyleAgents() {
         auto theme = getSystemTheme();
         auto color = getAccentColor();
         for (auto &&ap : std::as_const(*g_styleAgentSet())) {
+            Q_ASSERT(ap);
             ap->notifyThemeChanged(theme);
             ap->notifyAccentColorChanged(color);
         }
     }
 
-    class SystemSettingEventFilter : public AppNativeEventFilter {
+    class SystemSettingEventFilter final : public AppNativeEventFilter {
     public:
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
-            if (!result) {
+            Q_ASSERT(message);
+            Q_ASSERT(result);
+            if (!message || !result) {
                 return false;
             }
 
@@ -77,8 +80,7 @@ namespace QWK {
             if (!instance) {
                 return;
             }
-            delete instance;
-            instance = nullptr;
+            delete std::exchange(instance, nullptr);
         }
     };
 

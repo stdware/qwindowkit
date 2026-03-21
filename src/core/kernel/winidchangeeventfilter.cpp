@@ -12,20 +12,24 @@ namespace QWK {
 
     WindowWinIdChangeEventFilter::WindowWinIdChangeEventFilter(QWindow *host,
                                                                AbstractWindowContext *context)
-        : WinIdChangeEventFilter(host, context), win(host), isAboutToBeDestroyed(false) {
+        : WinIdChangeEventFilter(host, context), win(host) {
+        Q_ASSERT(host);
+        Q_ASSERT(context);
         host->installEventFilter(this);
     }
 
     WId WindowWinIdChangeEventFilter::winId() const {
-        auto win = static_cast<QWindow *>(host);
         if (isAboutToBeDestroyed)
             return 0;
+        auto win = static_cast<QWindow *>(host);
         if (auto platformWindow = win->handle())
             return platformWindow->winId();
         return 0;
     }
 
     bool WindowWinIdChangeEventFilter::eventFilter(QObject *obj, QEvent *event) {
+        Q_ASSERT(obj);
+        Q_ASSERT(event);
         Q_UNUSED(obj)
         if (event->type() == QEvent::PlatformSurface) {
             auto e = static_cast<QPlatformSurfaceEvent *>(event);

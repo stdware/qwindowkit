@@ -16,12 +16,16 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
-    void AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
-        if (m_host || !host || !delegate) {
+    void AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate, WindowAgentBase* agent) {
+        Q_ASSERT(host);
+        Q_ASSERT(delegate);
+        Q_ASSERT(agent);
+        if (m_host || !host || !delegate || !agent) {
             return;
         }
         m_host = host;
         m_delegate.reset(delegate);
+        m_agent = agent;
         m_winIdChangeEventFilter.reset(delegate->createWinIdEventFilter(host, this));
         notifyWinIdChange();
     }
@@ -49,7 +53,8 @@ namespace QWK {
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
         Q_ASSERT(button != WindowAgentBase::Unknown);
-        if (button == WindowAgentBase::Unknown) {
+        Q_ASSERT(obj);
+        if (button == WindowAgentBase::Unknown || !obj) {
             return false;
         }
 
@@ -63,6 +68,10 @@ namespace QWK {
 
     bool AbstractWindowContext::setTitleBar(QObject *item) {
         Q_ASSERT(item);
+        if (!item) {
+            return false;
+        }
+
         auto org = m_titleBar;
         if (org == item) {
             return false;
@@ -85,6 +94,7 @@ namespace QWK {
 
     bool AbstractWindowContext::isInSystemButtons(const QPoint &pos,
                                                   WindowAgentBase::SystemButton *button) const {
+        Q_ASSERT(button);
         *button = WindowAgentBase::Unknown;
         for (int i = WindowAgentBase::WindowIcon; i <= WindowAgentBase::Close; ++i) {
             auto currentButton = m_systemButtons[i];
@@ -144,7 +154,7 @@ namespace QWK {
         const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
         const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
         const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
-    } kSampleColorSet;
+    } kSampleColorSet{};
 
     void AbstractWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
@@ -273,7 +283,7 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::eventFilter(QObject *obj, QEvent *event) {
-        if (obj == m_windowHandle && sharedDispatch(obj, event)) {
+        if (obj && event && obj == m_windowHandle && sharedDispatch(obj, event)) {
             return true;
         }
         return QObject::eventFilter(obj, event);

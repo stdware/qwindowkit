@@ -11,6 +11,9 @@
 namespace QWK {
 
     bool forwardObjectEventFilters(QObject *currentFilter, QObject *receiver, QEvent *event) {
+        Q_ASSERT(currentFilter);
+        Q_ASSERT(receiver);
+        Q_ASSERT(event);
         // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/corelib/kernel/qcoreapplication.cpp#L1244
         // Send the event through the rest event filters
         auto d = QObjectPrivate::get(receiver);

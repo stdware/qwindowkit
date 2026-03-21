@@ -22,7 +22,7 @@
 
 namespace QWK {
 
-    class QWK_WIDGETS_EXPORT WidgetItemDelegate : public WindowItemDelegate {
+    class QWK_WIDGETS_EXPORT WidgetItemDelegate final : public WindowItemDelegate {
     public:
         WidgetItemDelegate();
         ~WidgetItemDelegate() override;

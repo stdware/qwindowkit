@@ -20,7 +20,7 @@
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 namespace QWK {
 
-    class LinuxX11Context : public QtWindowContext {
+    class QWK_CORE_EXPORT LinuxX11Context final : public QtWindowContext {
         Q_OBJECT
     public:
         LinuxX11Context();

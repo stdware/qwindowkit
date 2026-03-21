@@ -20,7 +20,7 @@
 
 namespace QWK {
 
-    class QuickWindowAgentPrivate : public WindowAgentBasePrivate {
+    class QWK_QUICK_EXPORT QuickWindowAgentPrivate final : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(QuickWindowAgent)
     public:
         QuickWindowAgentPrivate();
@@ -29,10 +29,10 @@ namespace QWK {
         void init();
 
         // Host
-        QQuickWindow *hostWindow{};
+        QQuickWindow *hostWindow{ nullptr };
 
 #ifdef Q_OS_MAC
-        QQuickItem *systemButtonAreaItem{};
+        QQuickItem *systemButtonAreaItem{ nullptr };
         std::unique_ptr<QObject> systemButtonAreaItemHandler;
 #endif
 

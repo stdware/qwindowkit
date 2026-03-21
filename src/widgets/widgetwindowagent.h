@@ -14,7 +14,7 @@ namespace QWK {
 
     class WidgetWindowAgentPrivate;
 
-    class QWK_WIDGETS_EXPORT WidgetWindowAgent : public WindowAgentBase {
+    class QWK_WIDGETS_EXPORT WidgetWindowAgent final : public WindowAgentBase {
         Q_OBJECT
         Q_DECLARE_PRIVATE(WidgetWindowAgent)
     public:
@@ -45,6 +45,8 @@ namespace QWK {
     Q_SIGNALS:
         void titleBarChanged(QWidget *w);
         void systemButtonChanged(SystemButton button, QWidget *w);
+        void startMovingOrResizing();
+        void endMovingOrResizing();
 
     protected:
         WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent = nullptr);

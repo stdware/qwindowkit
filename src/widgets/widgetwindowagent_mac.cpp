@@ -12,7 +12,8 @@ namespace QWK {
         return {widget->mapTo(widget->window(), QPoint()), widget->size()};
     }
 
-    class SystemButtonAreaWidgetEventFilter : public QObject {
+    class SystemButtonAreaWidgetEventFilter final : public QObject {
+        Q_OBJECT
     public:
         SystemButtonAreaWidgetEventFilter(QWidget *widget, AbstractWindowContext *ctx,
                                           QObject *parent = nullptr)
@@ -41,8 +42,8 @@ namespace QWK {
         }
 
     protected:
-        QWidget *widget;
-        AbstractWindowContext *ctx;
+        QWidget *widget = nullptr;
+        AbstractWindowContext *ctx = nullptr;
     };
 
     /*!
@@ -96,3 +97,5 @@ namespace QWK {
     }
 
 }
+
+#include "widgetwindowagent_mac.moc"
