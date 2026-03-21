@@ -45,8 +45,7 @@ namespace QWK {
 
     void WindowsRegistryKey::close() {
         if (isValid()) {
-            ::RegCloseKey(m_key);
-            m_key = nullptr;
+            ::RegCloseKey(std::exchange(m_key, nullptr));
         }
     }
 

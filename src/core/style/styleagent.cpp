@@ -16,8 +16,7 @@ namespace QWK {
         you don't include this class in your build system.
     */
 
-    StyleAgentPrivate::StyleAgentPrivate() {
-    }
+    StyleAgentPrivate::StyleAgentPrivate() = default;
 
     StyleAgentPrivate::~StyleAgentPrivate() {
         removeSystemThemeHook();
@@ -56,8 +55,7 @@ namespace QWK {
     /*!
         Destructor.
     */
-    StyleAgent::~StyleAgent() {
-    }
+    StyleAgent::~StyleAgent() = default;
 
     /*!
         Returns the system theme.

@@ -9,8 +9,7 @@
 
 namespace QWK {
 
-    QuickItemDelegate::QuickItemDelegate() : WindowItemDelegate() {
-    }
+    QuickItemDelegate::QuickItemDelegate() = default;
 
     QuickItemDelegate::~QuickItemDelegate() = default;
 

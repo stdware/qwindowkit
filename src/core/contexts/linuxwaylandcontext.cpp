@@ -23,8 +23,7 @@ namespace QWK {
             seat, serial, x, y);
     }
 
-    LinuxWaylandContext::LinuxWaylandContext() : QtWindowContext() {
-    }
+    LinuxWaylandContext::LinuxWaylandContext() = default;
 
     LinuxWaylandContext::~LinuxWaylandContext() = default;
 

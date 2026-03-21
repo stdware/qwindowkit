@@ -9,8 +9,7 @@
 
 namespace QWK {
 
-    NativeEventFilter::NativeEventFilter() : m_nativeDispatcher(nullptr) {
-    }
+    NativeEventFilter::NativeEventFilter() = default;
 
     NativeEventFilter::~NativeEventFilter() {
         if (m_nativeDispatcher)
@@ -82,8 +81,7 @@ namespace QWK {
     AppNativeEventFilter::~AppNativeEventFilter() {
         AppMasterNativeEventFilter::instance->removeNativeEventFilter(this);
         if (AppMasterNativeEventFilter::instance->m_nativeEventFilters.isEmpty()) {
-            delete AppMasterNativeEventFilter::instance;
-            AppMasterNativeEventFilter::instance = nullptr;
+            delete std::exchange(AppMasterNativeEventFilter::instance, nullptr);
         }
     }
 

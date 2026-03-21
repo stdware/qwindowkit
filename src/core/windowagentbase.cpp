@@ -41,8 +41,7 @@ namespace QWK {
     WindowAgentBasePrivate::WindowContextFactoryMethod
         WindowAgentBasePrivate::windowContextFactoryMethod = nullptr;
 
-    WindowAgentBasePrivate::WindowAgentBasePrivate() : q_ptr(nullptr), context(nullptr) {
-    }
+    WindowAgentBasePrivate::WindowAgentBasePrivate() = default;
 
     WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 

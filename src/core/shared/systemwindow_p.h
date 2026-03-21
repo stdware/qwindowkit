@@ -133,6 +133,7 @@ namespace QWK {
     // When the new API fails, we emulate the window actions using the classical API.
 
     inline void startSystemMove(QWindow *window) {
+        Q_ASSERT(window);
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
         std::ignore = new WindowMoveManipulator(window);
 #elif defined(Q_OS_LINUX)
@@ -146,6 +147,7 @@ namespace QWK {
     }
 
     inline void startSystemResize(QWindow *window, Qt::Edges edges) {
+        Q_ASSERT(window);
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
         std::ignore = new WindowResizeManipulator(window, edges);
 #elif defined(Q_OS_MAC) || defined(Q_OS_LINUX)

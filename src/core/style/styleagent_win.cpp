@@ -77,8 +77,7 @@ namespace QWK {
             if (!instance) {
                 return;
             }
-            delete instance;
-            instance = nullptr;
+            delete std::exchange(instance, nullptr);
         }
     };
 
