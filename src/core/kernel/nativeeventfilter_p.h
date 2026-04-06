@@ -51,7 +51,7 @@ namespace QWK {
                                        QT_NATIVE_EVENT_RESULT_TYPE *result) = 0;
 
     protected:
-        NativeEventDispatcher *m_nativeDispatcher;
+        NativeEventDispatcher *m_nativeDispatcher = nullptr;
 
         friend class NativeEventDispatcher;
 

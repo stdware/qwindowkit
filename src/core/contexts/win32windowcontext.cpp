@@ -50,9 +50,9 @@
 namespace QWK {
 
     enum IconButtonClickLevelFlag {
-        IconButtonClicked = 1,
-        IconButtonDoubleClicked = 2,
-        IconButtonTriggersClose = 4,
+        IconButtonClicked       = 1 << 0,
+        IconButtonDoubleClicked = 1 << 1,
+        IconButtonTriggersClose = 1 << 2,
     };
 
     // The thickness of an auto-hide taskbar in pixels.
@@ -88,12 +88,14 @@ namespace QWK {
     }
 
     static inline void triggerFrameChange(HWND hwnd) {
+        Q_ASSERT(hwnd);
         ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
                            SWP_FRAMECHANGED);
     }
 
     static void setInternalWindowFrameMargins(QWindow *window, const QMargins &margins) {
+        Q_ASSERT(window);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
         Q_UNUSED(window);
         Q_UNUSED(margins);
@@ -127,6 +129,7 @@ namespace QWK {
     }
 
     static inline MONITORINFOEXW getMonitorForWindow(HWND hwnd) {
+        Q_ASSERT(hwnd);
         // Use "MONITOR_DEFAULTTONEAREST" here so that we can still get the correct
         // monitor even if the window is minimized.
         HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
@@ -137,6 +140,7 @@ namespace QWK {
     }
 
     static inline void moveWindowToMonitor(HWND hwnd, const MONITORINFOEXW &activeMonitor) {
+        Q_ASSERT(hwnd);
         RECT currentMonitorRect = getMonitorForWindow(hwnd).rcMonitor;
         RECT activeMonitorRect = activeMonitor.rcMonitor;
         // We are in the same monitor, nothing to adjust here.
@@ -154,6 +158,7 @@ namespace QWK {
     }
 
     static inline bool isFullScreen(HWND hwnd) {
+        Q_ASSERT(hwnd);
         RECT windowRect{};
         ::GetWindowRect(hwnd, &windowRect);
         // Compare to the full area of the screen, not the work area.
@@ -161,14 +166,17 @@ namespace QWK {
     }
 
     static inline bool isMaximized(HWND hwnd) {
+        Q_ASSERT(hwnd);
         return ::IsZoomed(hwnd);
     }
 
     static inline bool isMinimized(HWND hwnd) {
+        Q_ASSERT(hwnd);
         return ::IsIconic(hwnd);
     }
 
     static inline bool isWindowNoState(HWND hwnd) {
+        Q_ASSERT(hwnd);
 #if 0
         WINDOWPLACEMENT wp{};
         wp.length = sizeof(wp);
@@ -184,6 +192,7 @@ namespace QWK {
     }
 
     static inline void bringWindowToFront(HWND hwnd) {
+        Q_ASSERT(hwnd);
         HWND oldForegroundWindow = ::GetForegroundWindow();
         if (!oldForegroundWindow) {
             // The foreground window can be NULL, it's not an API error.
@@ -234,6 +243,7 @@ namespace QWK {
     // Returns false if the menu is canceled
     static bool showSystemMenu_sys(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
                                    const bool fixedSize) {
+        Q_ASSERT(hWnd);
         HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
             // The corresponding window doesn't have a system menu, most likely due to the
@@ -310,7 +320,7 @@ namespace QWK {
         return true;
     }
 
-    static inline Win32WindowContext::WindowPart getHitWindowPart(int hitTestResult) {
+    static inline constexpr Win32WindowContext::WindowPart getHitWindowPart(int hitTestResult) {
         switch (hitTestResult) {
             case HTCLIENT:
                 return Win32WindowContext::ClientArea;
@@ -340,6 +350,7 @@ namespace QWK {
     }
 
     static bool isValidWindow(HWND hWnd, bool checkVisible, bool checkTopLevel) {
+        Q_ASSERT(hWnd);
         if (!::IsWindow(hWnd)) {
             return false;
         }
@@ -386,7 +397,9 @@ namespace QWK {
     }
 
     static MSG createMessageBlock(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-        MSG msg;
+        Q_ASSERT(hWnd);
+
+        MSG msg{};
         msg.hwnd = hWnd;
         msg.message = message;
         msg.wParam = wParam;
@@ -435,6 +448,8 @@ namespace QWK {
 
     // Send to QAbstractEventDispatcher
     static bool filterNativeEvent(MSG *msg, LRESULT *result) {
+        Q_ASSERT(msg);
+        Q_ASSERT(result);
         auto dispatcher = QAbstractEventDispatcher::instance();
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (dispatcher && dispatcher->filterNativeEvent(nativeEventType(), msg, &filterResult)) {
@@ -446,6 +461,9 @@ namespace QWK {
 
     // Send to QWindowSystemInterface
     static bool filterNativeEvent(QWindow *window, MSG *msg, LRESULT *result) {
+        Q_ASSERT(window);
+        Q_ASSERT(msg);
+        Q_ASSERT(result);
         QT_NATIVE_EVENT_RESULT_TYPE filterResult = *result;
         if (QWindowSystemInterface::handleNativeEvent(window, nativeEventType(), msg,
                                                       &filterResult)) {
@@ -457,6 +475,10 @@ namespace QWK {
 
     static inline bool forwardFilteredEvent(QWindow *window, HWND hWnd, UINT message, WPARAM wParam,
                                             LPARAM lParam, LRESULT *result) {
+        Q_ASSERT(window);
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
+
         MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
 
         // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1025
@@ -486,6 +508,8 @@ namespace QWK {
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
+            Q_ASSERT(message);
+            Q_ASSERT(result);
 
             // It has been observed that the pointer that Qt gives us is sometimes null on some
             // machines. We need to guard against it in such scenarios.
@@ -511,8 +535,7 @@ namespace QWK {
                 }
 
                     // case WM_NCHITTEST: {
-                    //     // The child window must return HTTRANSPARENT when processing
-                    //     WM_NCHITTEST for
+                    //     // The child window must return HTTRANSPARENT when processing WM_NCHITTEST for
                     //     // the parent window to receive WM_NCHITTEST.
                     //     if (!lastMessageContext) {
                     //         auto rootHWnd = ::GetAncestor(msg->hwnd, GA_ROOT);
@@ -543,8 +566,7 @@ namespace QWK {
             if (!instance) {
                 return;
             }
-            delete instance;
-            instance = nullptr;
+            delete std::exchange(instance, nullptr);
         }
     };
 
@@ -640,6 +662,10 @@ namespace QWK {
     }
 
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
+        Q_ASSERT(window);
+        Q_ASSERT(hWnd);
+        Q_ASSERT(ctx);
+
         if (isSystemBorderEnabled()) {
             // Inform Qt we want and have set custom margins
             setInternalWindowFrameMargins(window, QMargins(0, -int(getTitleBarHeight(hWnd)), 0, 0));
@@ -666,6 +692,8 @@ namespace QWK {
     }
 
     static inline void removeManagedWindow(HWND hWnd) {
+        Q_ASSERT(hWnd);
+
         // Remove window handle mapping
         if (!g_wndProcHash->remove(hWnd))
             return;
@@ -676,8 +704,7 @@ namespace QWK {
         }
     }
 
-    Win32WindowContext::Win32WindowContext() : AbstractWindowContext() {
-    }
+    Win32WindowContext::Win32WindowContext() = default;
 
     Win32WindowContext::~Win32WindowContext() {
         if (m_windowId) {
@@ -889,6 +916,9 @@ namespace QWK {
 
     bool Win32WindowContext::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                         LRESULT *result) {
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
+
         *result = FALSE;
 
         // We should skip these messages otherwise we will get crashes.
@@ -1205,6 +1235,7 @@ namespace QWK {
 
     static void emulateClientAreaMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
                                          const std::optional<int> &overrideMessage = std::nullopt) {
+        Q_ASSERT(hWnd);
         const int myMsg = overrideMessage.value_or(message);
         const auto wParamNew = [myMsg, wParam]() -> WPARAM {
             if (myMsg == WM_NCMOUSELEAVE) {
@@ -1303,6 +1334,7 @@ namespace QWK {
     }
 
     static inline void requestForMouseLeaveMessage(HWND hWnd, bool nonClient) {
+        Q_ASSERT(hWnd);
         TRACKMOUSEEVENT tme{};
         tme.cbSize = sizeof(tme);
         tme.dwFlags = TME_LEAVE;
@@ -1316,6 +1348,8 @@ namespace QWK {
 
     bool Win32WindowContext::snapLayoutHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                LPARAM lParam, LRESULT *result) {
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
         switch (message) {
             case WM_MOUSELEAVE: {
                 if (wParam != kMessageTag.wParam) {
@@ -1533,6 +1567,8 @@ namespace QWK {
 
     bool Win32WindowContext::customWindowHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                  LPARAM lParam, LRESULT *result) {
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
         switch (message) {
             case WM_NCHITTEST: {
                 // 原生Win32窗口只有顶边是在窗口内部resize的，其余三边都是在窗口
@@ -1943,6 +1979,15 @@ namespace QWK {
                 if (!wParam || !isWindowNoState(hWnd) || isFullScreen(hWnd)) {
                     break;
                 }
+                // The following code is totally a workaround. We should remove it as soon as possible.
+                // For windows painted by D3D (such as QtQuick windows), when it is first shown, there
+                // will always be a strange white line on the top, and it will always disappear when we
+                // resize the window. It seems to be some kind of leftover of the original window frame.
+                // So here we manually resize the window and restore it immediately to workaround this
+                // issue. Due to we only enlarge the window for 1x1 and restore it immediately, the user
+                // won't see this change in reality, but the strange white line is indeed gone.
+                // Anyway, this is still a non-sense workaround, no one can guarantee it will always work
+                // and won't break anything.
                 RECT windowRect{};
                 ::GetWindowRect(hWnd, &windowRect);
                 static constexpr const auto swpFlags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE |
@@ -2019,6 +2064,9 @@ namespace QWK {
 
     bool Win32WindowContext::nonClientCalcSizeHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                       LPARAM lParam, LRESULT *result) {
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
+
         Q_UNUSED(message)
         Q_UNUSED(this)
 
@@ -2110,7 +2158,20 @@ namespace QWK {
 
         const auto clientRect = wParam ? &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(lParam))->rgrc[0]
                                        : reinterpret_cast<LPRECT>(lParam);
+        // This is a workaround for the resize flicker when the window is painting by D3D or Vulkan.
+        // (OpenGL doesn't flicker at all so we skip it to avoid strange things from happening)
+        // According to my local experiments, it can greatly reduce the resize flicker if you disable
+        // QtQuick's V-Sync. I tested the same binary on 60Hz/120Hz/144Hz/240Hz monitors, and the
+        // conclusion is: for monitors whose refresh rate is greater than 60Hz, the flicker can be
+        // greatly reduced but cannot be totally gone, for monitors whose refresh rate is equal to
+        // or less than 60Hz, the flicker is totally gone.
+        // NOTE: The application's V-Sync MUST be DISABLED to let this trick work!
         [[maybe_unused]] const auto &flickerReducer = qScopeGuard([this]() {
+            // The user might doesn't want this, allow disable it.
+            static const bool disableThis = qEnvironmentVariableIntValue("QWK_DISABLE_FLICKER_WORKAROUND");
+            if (disableThis) {
+                return;
+            }
             // When we receive this message, it means the window size has changed
             // already, and it seems this message always come before any client
             // area size notifications (eg. WM_WINDOWPOSCHANGED and WM_SIZE). Let
@@ -2265,6 +2326,8 @@ namespace QWK {
 
     bool Win32WindowContext::systemMenuHandler(HWND hWnd, UINT message, WPARAM wParam,
                                                LPARAM lParam, LRESULT *result) {
+        Q_ASSERT(hWnd);
+        Q_ASSERT(result);
         const auto getNativePosFromMouse = [lParam]() -> POINT {
             return {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
         };

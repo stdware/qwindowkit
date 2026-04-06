@@ -18,11 +18,11 @@
 
 namespace QWK {
 
-    class StyleAgentPrivate : public QObject {
+    class StyleAgentPrivate {
         Q_DECLARE_PUBLIC(StyleAgent)
     public:
         StyleAgentPrivate();
-        ~StyleAgentPrivate() override;
+        ~StyleAgentPrivate();
 
         void init();
 

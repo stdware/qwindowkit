@@ -17,9 +17,9 @@ namespace QWK {
     }
 
     WId WindowWinIdChangeEventFilter::winId() const {
-        auto win = static_cast<QWindow *>(host);
         if (isAboutToBeDestroyed)
             return 0;
+        auto win = static_cast<QWindow *>(host);
         if (auto platformWindow = win->handle())
             return platformWindow->winId();
         return 0;

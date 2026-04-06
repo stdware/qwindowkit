@@ -342,8 +342,10 @@ namespace QWK {
     }
 
     inline /*constexpr*/ QString hwnd2str(const WId windowId) {
-        // NULL handle is allowed here.
-        return QLatin1String("0x") +
+        if (!windowId) {
+            return QStringLiteral("0x00000000");
+        }
+        return QStringLiteral("0x") +
                QString::number(windowId, 16).toUpper().rightJustified(8, u'0');
     }
 
@@ -404,6 +406,7 @@ namespace QWK {
     }
 
     inline bool isDarkWindowFrameEnabled(HWND hwnd) {
+        Q_ASSERT(hwnd);
         if (!isWin101809OrGreater()) {
             return false;
         }
@@ -438,6 +441,7 @@ namespace QWK {
     }
 
     inline quint32 getDpiForWindow(HWND hwnd) {
+        Q_ASSERT(hwnd);
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetDpiForWindow) { // Win10
             return apis.pGetDpiForWindow(hwnd);
@@ -472,6 +476,7 @@ namespace QWK {
     }
 
     inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+        Q_ASSERT(hwnd);
         const DynamicApis &apis = DynamicApis::instance();
         if (isWin11OrGreater()) {
             UINT result = 0;
@@ -490,6 +495,7 @@ namespace QWK {
     }
 
     inline quint32 getResizeBorderThickness(HWND hwnd) {
+        Q_ASSERT(hwnd);
         const quint32 dpi = getDpiForWindow(hwnd);
         // When DPI is 96, SM_CXSIZEFRAME is 4px, SM_CXPADDEDBORDER is also 4px,
         // so the result should be 8px. This result won't be affected by OS version,
@@ -499,6 +505,7 @@ namespace QWK {
     }
 
     inline quint32 getTitleBarHeight(HWND hwnd) {
+        Q_ASSERT(hwnd);
         const quint32 dpi = getDpiForWindow(hwnd);
         // When DPI is 96, SM_CYCAPTION is 23px, so the result should be 31px.
         // However, according to latest MS design manual, the title bar height

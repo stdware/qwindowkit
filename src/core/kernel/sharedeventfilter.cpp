@@ -6,8 +6,7 @@
 
 namespace QWK {
 
-    SharedEventFilter::SharedEventFilter() : m_sharedDispatcher(nullptr) {
-    }
+    SharedEventFilter::SharedEventFilter() = default;
 
     SharedEventFilter::~SharedEventFilter() {
         if (m_sharedDispatcher)

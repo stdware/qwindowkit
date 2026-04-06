@@ -2,6 +2,8 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
+#include "fpscounter.h"
+#include <QtCore/qloggingcategory.h>
 #include <QtGui/QGuiApplication>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQml/QQmlContext>
@@ -20,7 +22,10 @@ extern "C" {
 int main(int argc, char *argv[]) {
     qputenv("QT_WIN_DEBUG_CONSOLE", "attach"); // or "new": create a separate console window
     qputenv("QSG_INFO", "1");
+    qputenv("QT_NO_OPENGL_BUGLIST", "1");
     qputenv("QSG_NO_VSYNC", "1");
+    qputenv("QT_D3D_NO_VBLANK_THREAD", "1");
+    qputenv("QT_QPA_UPDATE_IDLE_TIME", "0");
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
@@ -29,7 +34,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef Q_OS_WINDOWS
-    qputenv("QSG_RHI_BACKEND", "d3d11"); // options: d3d11, d3d12, opengl, vulkan    
+    qputenv("QSG_RHI_BACKEND", "d3d11"); // options: d3d11, d3d12, opengl, vulkan
     qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 #endif
     //qputenv("QSG_RHI_HDR", "scrgb"); // other options: hdr10, p3
@@ -38,17 +43,24 @@ int main(int argc, char *argv[]) {
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
+
     QGuiApplication application(argc, argv);
+
+    QLoggingCategory::setFilterRules(QStringLiteral("qt.qpa.screen.updates=true"));
+
     // Make sure alpha channel is requested, our special effects on Windows depends on it.
     QQuickWindow::setDefaultAlphaBuffer(true);
-    QQmlApplicationEngine engine;
+
+    QQmlApplicationEngine engine{};
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-    const bool curveRenderingAvailable = true;
+    constexpr bool curveRenderingAvailable = true;
 #else
-    const bool curveRenderingAvailable = false;
+    constexpr bool curveRenderingAvailable = false;
 #endif
     engine.rootContext()->setContextProperty(QStringLiteral("$curveRenderingAvailable"), QVariant(curveRenderingAvailable));
     QWK::registerTypes(&engine);
+    qmlRegisterType<FPSCounter>("QWK.Demo", 1, 0, "FPSCounter");
     engine.load(QUrl(QStringLiteral("qrc:///main.qml")));
+
     return application.exec();
 }

@@ -48,6 +48,7 @@ QWK_CORE_EXPORT Q_DECLARE_LOGGING_CATEGORY(qWindowKitLog)
 namespace QWK {
 
     inline QPoint getMouseEventScenePos(const QMouseEvent *event) {
+        Q_ASSERT(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return event->scenePosition().toPoint();
 #else
@@ -56,6 +57,7 @@ namespace QWK {
     }
 
     inline QPoint getMouseEventGlobalPos(const QMouseEvent *event) {
+        Q_ASSERT(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return event->globalPosition().toPoint();
 #else

@@ -158,7 +158,7 @@ namespace QWK {
 
         ~WindowsRegistryKey();
 
-        bool isValid() const;
+        inline bool isValid() const;
 
         void close();
         QString stringValue(QStringView subKey) const;
