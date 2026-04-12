@@ -508,12 +508,10 @@ namespace QWK {
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
-            Q_ASSERT(message);
-            Q_ASSERT(result);
 
             // It has been observed that the pointer that Qt gives us is sometimes null on some
             // machines. We need to guard against it in such scenarios.
-            if (!result) {
+            if (!result || !message) {
                 return false;
             }
 
