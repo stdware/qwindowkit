@@ -109,6 +109,8 @@ namespace QWK {
                    this attribute is only available on Windows 11.
             \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
                    this attribute is only available on Windows 11.
+            \li \c dwm-border-color: Specifies the color of the window border,
+                   this attribute is only available on Windows 11.
             \li \c extra-margins: Specify a margin value to change the \c dwm extended area
                    geometry, you shouldn't change this attribute because it may break the
                    internal state.

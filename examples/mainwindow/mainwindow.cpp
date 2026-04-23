@@ -13,6 +13,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QColorDialog>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #  include <QtGui/QActionGroup>
 #else
@@ -209,6 +210,17 @@ void MainWindow::installWindowAgent() {
                     style()->polish(this);
                 });
 
+        auto borderColorAction = new QAction(tr("Border color"), menuBar);
+        borderColorAction->setData(QStringLiteral("dwm-border-color"));
+        borderColorAction->setCheckable(false);
+        connect(borderColorAction, &QAction::triggered, this, [this, borderColorAction]() {
+            QColor color = QColorDialog::getColor(Qt::black, this, tr("Select window border color"));
+            if (color.isValid()) {
+                const QString data = borderColorAction->data().toString();
+                windowAgent->setWindowAttribute(data, color);
+                style()->polish(this);
+            }
+        });
 #elif defined(Q_OS_MAC)
         // Set whether to use system buttons (close/minimize/zoom)
         // - true:  Hide system buttons (use custom UI controls)
@@ -268,6 +280,8 @@ void MainWindow::installWindowAgent() {
         settings->addAction(acrylicAction);
         settings->addAction(micaAction);
         settings->addAction(micaAltAction);
+        settings->addSeparator();
+        settings->addAction(borderColorAction);
 #elif defined(Q_OS_MAC)
         settings->addAction(darkBlurAction);
         settings->addAction(lightBlurAction);
