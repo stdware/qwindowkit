@@ -78,6 +78,9 @@ namespace QWK {
         // [set] WINDOW_CORNER_PREFERENCE, Controls the policy that rounds top-level window corners
         _DWMWA_WINDOW_CORNER_PREFERENCE = 33,
 
+        // [set] Set window border color [since Windows 11 Build 22000]
+        _DWMWA_BORDER_COLOR = 34,
+
         // [get] UINT, width of the visible border around a thick frame window
         _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37,
 

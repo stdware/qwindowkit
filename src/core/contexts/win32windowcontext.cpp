@@ -1193,6 +1193,20 @@ namespace QWK {
             effectBugWorkaround();
             return true;
         }
+        
+        if (key == QStringLiteral("dwm-border-color")) {
+            if (!isWin11OrGreater()) {
+                return false;
+            }
+            if (!attribute.canConvert<QColor>()) {
+                return false;
+            }
+
+            QColor color = attribute.value<QColor>();
+            COLORREF colorRef = RGB(color.red(), color.green(), color.blue());
+            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_BORDER_COLOR, &colorRef, sizeof(colorRef));
+            return true;
+        }
         return false;
     }
 
