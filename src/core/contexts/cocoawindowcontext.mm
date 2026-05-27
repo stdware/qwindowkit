@@ -132,6 +132,15 @@ public:
 - (instancetype)initWithProxy:(QWK::NSWindowProxy*)proxy;
 @end
 
+// AppKit re-shows the traffic-light buttons after panels close, so we use this to detect that and
+// re-hide them.
+@interface QWK_NSButtonObserver : NSObject
+- (instancetype)initWithProxy:(QWK::NSWindowProxy *)proxy;
+
+- (void)attach:(NSArray<NSButton *> *)buttons;
+- (void)detach;
+@end
+
 //
 // Objective C++ End
 //
@@ -153,9 +162,13 @@ namespace QWK {
                      forKeyPath:@"window"
                         options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
                         context:nil];
+
+            buttonObserver = [[QWK_NSButtonObserver alloc] initWithProxy:this];
         }
 
         ~NSWindowProxy() override {
+            [buttonObserver release];
+
             [nsview removeObserver:observer forKeyPath:@"window"];
             [observer release];
         }
@@ -172,9 +185,7 @@ namespace QWK {
                     // The system buttons will stuck at their default positions when the
                     // exit-fullscreen animation is running, we need to hide them until the
                     // animation finishes
-                    for (const auto &button : systemButtons()) {
-                        button.hidden = true;
-                    }
+                    setButtonsVisible(false);
                     break;
                 }
 
@@ -182,9 +193,8 @@ namespace QWK {
                     if (!screenRectCallback || !systemButtonVisible)
                         return;
 
-                    for (const auto &button : systemButtons()) {
-                        button.hidden = false;
-                    }
+                    setButtonsVisible(systemButtonVisible);
+
                     updateSystemButtonRect();
                     break;
                 }
@@ -211,9 +221,7 @@ namespace QWK {
         // System buttons visibility
         void setSystemButtonVisible(bool visible) {
             systemButtonVisible = visible;
-            for (const auto &button : systemButtons()) {
-                button.hidden = !visible;
-            }
+            setButtonsVisible(visible);
 
             if (!screenRectCallback || !visible) {
                 return;
@@ -287,6 +295,20 @@ namespace QWK {
             return {closeBtn, minimizeBtn, zoomBtn};
         }
 
+        void setButtonsVisible(bool visible) {
+            checkButton = false;
+
+            for (NSButton * button : systemButtons()) {
+                button.hidden = !visible;
+            }
+
+            checkButton = true;
+        }
+
+        bool hasButtonVisible() const { return systemButtonVisible; }
+
+        bool hasCheckButton() const { return checkButton; }
+
         inline int titleBarHeight() const {
             auto nswindow = [nsview window];
             if (!nswindow) {
@@ -358,9 +380,18 @@ namespace QWK {
             nswindow.movableByWindowBackground = NO;
             nswindow.movable = NO; // This line causes the window in the wrong position when
                                    // become fullscreen.
-            [nswindow standardWindowButton:NSWindowCloseButton].hidden = NO;
-            [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = NO;
-            [nswindow standardWindowButton:NSWindowZoomButton].hidden = NO;
+
+            NSWindowProxy *self_ = this;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSMutableArray<NSButton *> *array = [NSMutableArray arrayWithCapacity:3];
+                for (NSButton *button : self_->systemButtons()) {
+                    button.hidden = !self_->systemButtonVisible;
+                    [array addObject:button];
+                }
+
+                // Attach observer to get notified when AppKit reshows buttons.
+                [self_->buttonObserver attach:array];
+            });
         }
 
         static void replaceImplementations() {
@@ -501,8 +532,10 @@ namespace QWK {
 
         NSView *nsview = nil;
         QWK_NSViewObserver* observer = nil;
+        QWK_NSButtonObserver* buttonObserver = nil;
 
         bool systemButtonVisible = true;
+        bool checkButton = true;
         ScreenRectCallback screenRectCallback;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
@@ -826,6 +859,51 @@ namespace QWK {
             _proxy->updateSystemButtonRect();
         }
     }
+}
+
+@end
+
+@implementation QWK_NSButtonObserver {
+    QWK::NSWindowProxy *_proxy;
+    NSMutableArray<NSButton *> *_buttons;
+}
+
+- (instancetype)initWithProxy:(QWK::NSWindowProxy *)proxy {
+    if (self = [super init]) {
+        _proxy = proxy;
+        _buttons = [[NSMutableArray alloc] init];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [self detach];
+    [_buttons release];
+    [super dealloc];
+}
+
+- (void)detach {
+    for (NSButton *button in _buttons) {
+        [button removeObserver:self forKeyPath:@"hidden"];
+    }
+    [_buttons removeAllObjects];
+}
+
+- (void)attach:(NSArray<NSButton *> *)buttons {
+    [self detach];
+    for (NSButton *button in buttons) {
+        [button addObserver:self forKeyPath:@"hidden" options:0 context:nil];
+        [_buttons addObject:button];
+    }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary *)change
+                       context:(void *)context {
+    if (!_proxy || !_proxy->hasCheckButton()) return;
+
+    _proxy->setButtonsVisible(_proxy->hasButtonVisible());
 }
 
 @end
