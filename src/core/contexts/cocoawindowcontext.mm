@@ -284,7 +284,7 @@ namespace QWK {
             [rightButton setFrameOrigin:rightOrigin];
         }
 
-        inline std::array<NSButton *, 3> systemButtons() {
+        inline std::array<NSButton *, 3> systemButtons() const {
             auto nswindow = [nsview window];
             if (!nswindow) {
                 return {nullptr, nullptr, nullptr};
@@ -308,6 +308,19 @@ namespace QWK {
         bool hasButtonVisible() const { return systemButtonVisible; }
 
         bool hasCheckButton() const { return checkButton; }
+
+        void setNativeTitleBarDraggable(bool draggable) {
+            nativeTitleBarDraggable = draggable;
+            applyNativeTitleBarDraggable();
+        }
+
+        void applyNativeTitleBarDraggable() {
+            auto nswindow = [nsview window];
+            if (!nswindow) {
+                return;
+            }
+            nswindow.movable = nativeTitleBarDraggable ? YES : NO;
+        }
 
         inline int titleBarHeight() const {
             auto nswindow = [nsview window];
@@ -507,6 +520,15 @@ namespace QWK {
         }
 
         static void sendEvent(id obj, SEL sel, NSEvent *event) {
+            auto nswindow = reinterpret_cast<NSWindow *>(obj);
+            auto nsview = [nswindow contentView];
+            NSWindowProxy *proxy = g_proxyList->value(reinterpret_cast<WId>(nsview));
+
+            if (proxy && proxy->shouldPerformNativeWindowDrag(event)) {
+                [nswindow performWindowDragWithEvent:event];
+                return;
+            }
+
             if (oldSendEvent) {
                 oldSendEvent(obj, sel, event);
             }
@@ -536,6 +558,7 @@ namespace QWK {
 
         bool systemButtonVisible = true;
         bool checkButton = true;
+        bool nativeTitleBarDraggable = false;
         ScreenRectCallback screenRectCallback;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
@@ -556,6 +579,44 @@ namespace QWK {
 
         using sendEventPtr = void (*)(id, SEL, NSEvent *);
         static inline sendEventPtr oldSendEvent = nil;
+
+        bool shouldPerformNativeWindowDrag(NSEvent *event) const {
+            if (!nativeTitleBarDraggable || !event || event.type != NSEventTypeLeftMouseDown) {
+                return false;
+            }
+
+            auto nswindow = [nsview window];
+            if (!nswindow || nswindow != event.window || nswindow.isMiniaturized ||
+                (nswindow.styleMask & NSWindowStyleMaskFullScreen)) {
+                return false;
+            }
+
+            const NSPoint windowPoint = [event locationInWindow];
+            const NSPoint viewPoint = [nsview convertPoint:windowPoint fromView:nil];
+            if (![nsview mouse:viewPoint inRect:nsview.bounds]) {
+                return false;
+            }
+
+            const CGFloat height = titleBarHeight();
+            const bool inTitleBar = nsview.isFlipped
+                ? viewPoint.y <= height
+                : viewPoint.y >= nsview.bounds.size.height - height;
+            if (height <= 0 || !inTitleBar) {
+                return false;
+            }
+
+            for (NSButton *button : systemButtons()) {
+                if (!button || button.hidden || !button.enabled) {
+                    continue;
+                }
+                const NSPoint buttonPoint = [button convertPoint:windowPoint fromView:nil];
+                if ([button mouse:buttonPoint inRect:button.bounds]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     };
 
     static inline NSWindow *mac_getNSWindow(const WId windowId) {
@@ -775,6 +836,7 @@ namespace QWK {
             proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
             proxy->setScreenRectCallback(m_systemButtonAreaCallback);
             proxy->setSystemTitleBarVisible(false);
+            proxy->setNativeTitleBarDraggable(windowAttribute(QStringLiteral("native-titlebar-draggable")).toBool());
         }
     }
 
@@ -828,6 +890,17 @@ namespace QWK {
             }
             return ensureWindowProxy(m_windowId)->setBlurEffect(mode);
         }
+
+        if (key == QStringLiteral("native-titlebar-draggable")) {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+            if (attribute.type() != QVariant::Bool)
+#else
+            if (attribute.typeId() != QMetaType::Type::Bool)
+#endif
+                return false;
+            ensureWindowProxy(m_windowId)->setNativeTitleBarDraggable(attribute.toBool());
+            return true;
+        }
         return false;
     }
 
@@ -856,6 +929,7 @@ namespace QWK {
         // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
         if (newWindow) {
             _proxy->setSystemTitleBarVisible(false);
+            _proxy->applyNativeTitleBarDraggable();
             _proxy->updateSystemButtonRect();
         }
     }
