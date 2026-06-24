@@ -30,6 +30,20 @@ Window {
         readonly property color windowBackgroundColor: "#1E1E1E"
     }
 
+    function applyMacBlurEffect(effect) {
+        window.color = effect === "none" ? darkStyle.windowBackgroundColor : "transparent"
+        windowAgent.setWindowAttribute("glass-effect", "none")
+        windowAgent.setWindowAttribute("blur-effect", effect)
+    }
+
+    function applyMacGlassEffect(effect, tintColor, radius) {
+        window.color = effect === "none" ? darkStyle.windowBackgroundColor : "transparent"
+        windowAgent.setWindowAttribute("blur-effect", "none")
+        windowAgent.setWindowAttribute("glass-corner-radius", radius === undefined ? 0 : radius)
+        windowAgent.setWindowAttribute("glass-tint-color", tintColor === undefined ? "none" : tintColor)
+        windowAgent.setWindowAttribute("glass-effect", effect)
+    }
+
     Timer {
         interval: 100
         running: true
@@ -254,6 +268,66 @@ Window {
                     windowAgent.setWindowAttribute("mica", false)
                     windowAgent.setWindowAttribute("mica-alt", true)
                 }
+            }
+
+            MenuSeparator {
+                visible: Qt.platform.os === "osx"
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: clear")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("clear")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, rounded")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", undefined, 24)
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, dark tint")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", Qt.rgba(0, 0, 0, 0.18))
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, light tint")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", Qt.rgba(1, 1, 1, 0.18))
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Dark blur")
+                checkable: true
+                onTriggered: window.applyMacBlurEffect("dark")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Light blur")
+                checkable: true
+                onTriggered: window.applyMacBlurEffect("light")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("No effect")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("none")
             }
         }
     }

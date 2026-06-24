@@ -4,12 +4,15 @@
 
 #include "cocoawindowcontext_p.h"
 
+#include <algorithm>
+
 #include <objc/runtime.h>
 #include <AppKit/AppKit.h>
 
 #include <Cocoa/Cocoa.h>
 
 #include <QtGui/QGuiApplication>
+#include <QtGui/QColor>
 
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
@@ -151,6 +154,12 @@ namespace QWK {
         enum class BlurMode {
             Dark,
             Light,
+            None,
+        };
+
+        enum class GlassMode {
+            Regular,
+            Clear,
             None,
         };
 
@@ -346,7 +355,7 @@ namespace QWK {
             } else {
                 effectView.material = NSVisualEffectMaterialUnderWindowBackground;
                 effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-                effectView.state = NSVisualEffectStateFollowsWindowActiveState;
+                effectView.state = NSVisualEffectStateActive;
 
                 if (mode == BlurMode::Dark) {
                     effectView.appearance =
@@ -357,6 +366,116 @@ namespace QWK {
                 }
             }
             return true;
+        }
+
+        // Glass effect
+        NSView *findGlassEffectView(bool create) {
+            static Class glassEffectViewClass = NSClassFromString(@"NSGlassEffectView");
+            if (!glassEffectViewClass) {
+                return nil;
+            }
+
+            NSView *container = [nsview superview];
+            if (!container) {
+                return nil;
+            }
+
+            static NSString *glassEffectViewIdentifier = @"QWindowKitGlassEffectView";
+            for (NSView *subview in [container subviews]) {
+                if ([subview.identifier isEqualToString:glassEffectViewIdentifier] &&
+                    [subview isKindOfClass:glassEffectViewClass]) {
+                    return subview;
+                }
+            }
+
+            if (!create) {
+                return nil;
+            }
+
+            NSView *glassView = [[glassEffectViewClass alloc] initWithFrame:container.bounds];
+            glassView.identifier = glassEffectViewIdentifier;
+            glassView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            glassView.wantsLayer = YES;
+            glassView.layer.opaque = NO;
+
+            NSView *contentView = [[NSView alloc] initWithFrame:glassView.bounds];
+            contentView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            [glassView setValue:contentView forKey:@"contentView"];
+            [contentView release];
+
+            [container addSubview:glassView positioned:NSWindowBelow relativeTo:nsview];
+            [glassView release];
+            return glassView;
+        }
+
+        NSColor *glassTintNSColor() const {
+            if (!glassTintColor.isValid()) {
+                return nil;
+            }
+            return [NSColor colorWithSRGBRed:glassTintColor.redF()
+                                       green:glassTintColor.greenF()
+                                        blue:glassTintColor.blueF()
+                                       alpha:glassTintColor.alphaF()];
+        }
+
+        bool applyGlassEffectSettings(NSView *glassView) {
+            if (!glassView) {
+                return false;
+            }
+
+            glassView.frame = [glassView.superview bounds];
+            glassView.hidden = glassMode == GlassMode::None;
+            if (glassMode == GlassMode::None) {
+                return true;
+            }
+
+            auto nswindow = [nsview window];
+            if (!nswindow) {
+                return false;
+            }
+
+            nswindow.opaque = NO;
+            nswindow.backgroundColor = NSColor.clearColor;
+
+            nsview.wantsLayer = YES;
+            nsview.layer.opaque = NO;
+            nsview.layer.backgroundColor = NSColor.clearColor.CGColor;
+
+            [glassView setValue:@(glassMode == GlassMode::Clear ? 1 : 0) forKey:@"style"];
+            [glassView setValue:@(glassCornerRadius) forKey:@"cornerRadius"];
+            [glassView setValue:glassTintNSColor() forKey:@"tintColor"];
+            return true;
+        }
+
+        bool setGlassEffect(GlassMode mode) {
+            glassMode = mode;
+
+            if (mode == GlassMode::None) {
+                if (auto glassView = findGlassEffectView(false)) {
+                    return applyGlassEffectSettings(glassView);
+                }
+                return true;
+            }
+
+            return applyGlassEffectSettings(findGlassEffectView(true));
+        }
+
+        bool setGlassCornerRadius(qreal radius) {
+            glassCornerRadius = std::max<qreal>(0, radius);
+
+            if (glassMode == GlassMode::None) {
+                return true;
+            }
+            return applyGlassEffectSettings(findGlassEffectView(true));
+        }
+
+        bool setGlassTintColor(const QColor &color) {
+            glassTintColor = color;
+
+            if (glassMode == GlassMode::None) {
+                return true;
+            }
+            return applyGlassEffectSettings(findGlassEffectView(true));
         }
 
         // System title bar
@@ -537,6 +656,10 @@ namespace QWK {
         bool systemButtonVisible = true;
         bool checkButton = true;
         ScreenRectCallback screenRectCallback;
+
+        GlassMode glassMode = GlassMode::None;
+        qreal glassCornerRadius = 0;
+        QColor glassTintColor;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
@@ -827,6 +950,71 @@ namespace QWK {
                 return false;
             }
             return ensureWindowProxy(m_windowId)->setBlurEffect(mode);
+        }
+
+        if (key == QStringLiteral("glass-effect")) {
+            auto mode = NSWindowProxy::GlassMode::None;
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+            if (attribute.type() == QVariant::Bool) {
+#else
+            if (attribute.typeId() == QMetaType::Type::Bool) {
+#endif
+                mode = attribute.toBool() ? NSWindowProxy::GlassMode::Regular
+                                          : NSWindowProxy::GlassMode::None;
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+            } else if (attribute.type() == QVariant::String) {
+#else
+            } else if (attribute.typeId() == QMetaType::Type::QString) {
+#endif
+                const auto value = attribute.toString();
+                if (value == QStringLiteral("regular")) {
+                    mode = NSWindowProxy::GlassMode::Regular;
+                } else if (value == QStringLiteral("clear")) {
+                    mode = NSWindowProxy::GlassMode::Clear;
+                } else if (value == QStringLiteral("none")) {
+                    // ...
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            return ensureWindowProxy(m_windowId)->setGlassEffect(mode);
+        }
+
+        if (key == QStringLiteral("glass-corner-radius")) {
+            bool ok = false;
+            const auto radius = attribute.toDouble(&ok);
+            if (!ok) {
+                return false;
+            }
+            return ensureWindowProxy(m_windowId)->setGlassCornerRadius(radius);
+        }
+
+        if (key == QStringLiteral("glass-tint-color")) {
+            if (attribute.isNull()) {
+                return ensureWindowProxy(m_windowId)->setGlassTintColor(QColor());
+            }
+
+            QColor color;
+            if (attribute.canConvert<QColor>()) {
+                color = attribute.value<QColor>();
+            }
+
+            if (!color.isValid() && attribute.canConvert<QString>()) {
+                const auto value = attribute.toString();
+                if (value.isEmpty() || value == QStringLiteral("none") ||
+                    value == QStringLiteral("transparent")) {
+                    return ensureWindowProxy(m_windowId)->setGlassTintColor(QColor());
+                }
+                color = QColor(value);
+            }
+
+            if (!color.isValid()) {
+                return false;
+            }
+
+            return ensureWindowProxy(m_windowId)->setGlassTintColor(color);
         }
         return false;
     }
