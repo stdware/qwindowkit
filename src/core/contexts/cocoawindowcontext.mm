@@ -328,31 +328,65 @@ namespace QWK {
         }
 
         // Blur effect
-        bool setBlurEffect(BlurMode mode) {
+        static NSString *blurEffectViewIdentifier() { return @"QWindowKitBlurEffectView"; }
+
+        NSVisualEffectView *findBlurEffectView(bool create) {
             static Class visualEffectViewClass = NSClassFromString(@"NSVisualEffectView");
             if (!visualEffectViewClass)
-                return false;
+                return nil;
 
-            NSVisualEffectView *effectView = nil;
-            for (NSView *subview in [[nsview superview] subviews]) {
-                if ([subview isKindOfClass:visualEffectViewClass]) {
-                    effectView = reinterpret_cast<NSVisualEffectView *>(subview);
+            NSView *container = [nsview superview];
+            if (!container) {
+                return nil;
+            }
+
+            const auto identifier = NSWindowProxy::blurEffectViewIdentifier();
+            for (NSView *subview in [container subviews]) {
+                if ([subview.identifier isEqualToString:identifier] &&
+                    [subview isKindOfClass:visualEffectViewClass]) {
+                    return reinterpret_cast<NSVisualEffectView *>(subview);
                 }
             }
-            if (effectView == nil) {
-                return false;
+
+            if (!create) {
+                return nil;
             }
 
-            static const auto originalMaterial = effectView.material;
-            static const auto originalBlendingMode = effectView.blendingMode;
-            static const auto originalState = effectView.state;
+            NSVisualEffectView *effectView =
+                [[visualEffectViewClass alloc] initWithFrame:container.bounds];
+            effectView.identifier = identifier;
+            effectView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            effectView.wantsLayer = YES;
+            effectView.layer.opaque = NO;
 
+            [container addSubview:effectView positioned:NSWindowBelow relativeTo:nsview];
+            [effectView release];
+            return effectView;
+        }
+
+        bool setBlurEffect(BlurMode mode) {
+            auto effectView = findBlurEffectView(mode != BlurMode::None);
+            if (!effectView) {
+                return mode == BlurMode::None;
+            }
+
+            effectView.frame = [effectView.superview bounds];
             if (mode == BlurMode::None) {
-                effectView.material = originalMaterial;
-                effectView.blendingMode = originalBlendingMode;
-                effectView.state = originalState;
-                effectView.appearance = nil;
+                effectView.hidden = YES;
             } else {
+                auto nswindow = [nsview window];
+                if (!nswindow) {
+                    return false;
+                }
+
+                nswindow.opaque = NO;
+                nswindow.backgroundColor = NSColor.clearColor;
+
+                nsview.wantsLayer = YES;
+                nsview.layer.opaque = NO;
+                nsview.layer.backgroundColor = NSColor.clearColor.CGColor;
+
+                effectView.hidden = NO;
                 effectView.material = NSVisualEffectMaterialUnderWindowBackground;
                 effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
                 effectView.state = NSVisualEffectStateActive;
@@ -424,8 +458,40 @@ namespace QWK {
             }
             return [NSColor colorWithSRGBRed:glassTintColor.redF()
                                        green:glassTintColor.greenF()
-                                        blue:glassTintColor.blueF()
+                                       blue:glassTintColor.blueF()
                                        alpha:glassTintColor.alphaF()];
+        }
+
+        void updateGlassContainerCornerRadius(NSView *glassView) {
+            NSView *container = glassView ? glassView.superview : [nsview superview];
+            if (!container) {
+                return;
+            }
+
+            if (!glassContainerLayerStateCaptured) {
+                originalGlassContainerWantsLayer = container.wantsLayer;
+                if (container.layer) {
+                    originalGlassContainerCornerRadius = container.layer.cornerRadius;
+                    originalGlassContainerMasksToBounds = container.layer.masksToBounds;
+                }
+                glassContainerLayerStateCaptured = true;
+            }
+
+            const auto needsCustomRadius = glassMode != GlassMode::None && glassCornerRadius > 0;
+            container.wantsLayer = needsCustomRadius || originalGlassContainerWantsLayer;
+
+            auto layer = container.layer;
+            if (!layer) {
+                return;
+            }
+
+            layer.cornerRadius = needsCustomRadius ? glassCornerRadius
+                                                   : originalGlassContainerCornerRadius;
+            layer.masksToBounds = needsCustomRadius ? YES : originalGlassContainerMasksToBounds;
+
+            if (!needsCustomRadius && !originalGlassContainerWantsLayer) {
+                container.wantsLayer = NO;
+            }
         }
 
         bool applyGlassEffectSettings(NSView *glassView) {
@@ -436,6 +502,7 @@ namespace QWK {
             glassView.frame = [glassView.superview bounds];
             glassView.hidden = glassMode == GlassMode::None;
             if (glassMode == GlassMode::None) {
+                updateGlassContainerCornerRadius(glassView);
                 return true;
             }
 
@@ -456,6 +523,7 @@ namespace QWK {
             nsview.layer.opaque = NO;
             nsview.layer.backgroundColor = NSColor.clearColor.CGColor;
 
+            updateGlassContainerCornerRadius(glassView);
             [glassView setValue:@(glassMode == GlassMode::Clear ? 1 : 0) forKey:@"style"];
             [glassView setValue:@(glassCornerRadius) forKey:@"cornerRadius"];
             [glassView setValue:glassTintNSColor() forKey:@"tintColor"];
@@ -679,6 +747,10 @@ namespace QWK {
         GlassMode glassMode = GlassMode::None;
         qreal glassCornerRadius = 0;
         QColor glassTintColor;
+        bool glassContainerLayerStateCaptured = false;
+        BOOL originalGlassContainerWantsLayer = NO;
+        CGFloat originalGlassContainerCornerRadius = 0;
+        BOOL originalGlassContainerMasksToBounds = NO;
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 

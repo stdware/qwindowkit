@@ -7,6 +7,7 @@ import QWindowKit 1.0
 Window {
     property bool showWhenReady: true
     property alias titleBar: titleBar
+    readonly property bool isMacOS: Qt.platform.os === "osx"
 
     id: window
     width: 800
@@ -77,30 +78,41 @@ Window {
             anchors {
                 verticalCenter: parent.verticalCenter
                 left: parent.left
-                leftMargin: 10
+                leftMargin: window.isMacOS ? 0 : 10
             }
-            width: 18
-            height: 18
+            visible: !window.isMacOS
+            width: window.isMacOS ? 0 : 18
+            height: width
             mipmap: true
             source: "qrc:///app/example.png"
             fillMode: Image.PreserveAspectFit
-            Component.onCompleted: windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
+            Component.onCompleted: {
+                if (!window.isMacOS) {
+                    windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
+                }
+            }
         }
 
         Text {
             anchors {
                 verticalCenter: parent.verticalCenter
                 left: iconButton.right
-                leftMargin: 10
+                leftMargin: window.isMacOS ? 0 : 10
+                right: captionButtonRow.left
+                rightMargin: 10
             }
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
             text: window.title
             font.pixelSize: 14
             color: "#ECECEC"
         }
 
         Row {
+            id: captionButtonRow
+            visible: !window.isMacOS
+            width: visible ? implicitWidth : 0
             anchors {
                 top: parent.top
                 right: parent.right
@@ -112,7 +124,11 @@ Window {
                 height: parent.height
                 source: "qrc:///window-bar/minimize.svg"
                 onClicked: window.showMinimized()
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
+                    }
+                }
             }
 
             QWKButton {
@@ -126,7 +142,11 @@ Window {
                         window.showMaximized()
                     }
                 }
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
+                    }
+                }
             }
 
             QWKButton {
@@ -148,7 +168,11 @@ Window {
                     }
                 }
                 onClicked: window.close()
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Close, closeButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Close, closeButton)
+                    }
+                }
             }
         }
     }
