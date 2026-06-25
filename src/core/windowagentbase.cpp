@@ -128,7 +128,7 @@ namespace QWK {
             \li \c glass-effect: Specify a string value, "regular" or "clear" to enable the
                    Liquid Glass effect, "none" to disable. You can also specify a boolean value,
                    \c true to enable regular glass, \c false to disable. This attribute is only
-                   available on macOS 26 and later.
+                   available on macOS 26 and later; enabling it returns \c false when unavailable.
             \li \c glass-corner-radius: Specify a real value to set the Liquid Glass corner radius.
                    This attribute is only available on macOS 26 and later.
             \li \c glass-tint-color: Specify a \c QColor to set the Liquid Glass tint color, or

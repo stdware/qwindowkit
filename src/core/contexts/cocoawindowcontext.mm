@@ -369,8 +369,18 @@ namespace QWK {
         }
 
         // Glass effect
+        static Class glassEffectViewClass() {
+            if (@available(macOS 26.0, *)) {
+                static Class glassEffectViewClass = NSClassFromString(@"NSGlassEffectView");
+                return glassEffectViewClass;
+            }
+            return nil;
+        }
+
+        static bool isGlassEffectAvailable() { return glassEffectViewClass() != nil; }
+
         NSView *findGlassEffectView(bool create) {
-            static Class glassEffectViewClass = NSClassFromString(@"NSGlassEffectView");
+            const auto glassEffectViewClass = NSWindowProxy::glassEffectViewClass();
             if (!glassEffectViewClass) {
                 return nil;
             }
@@ -429,6 +439,11 @@ namespace QWK {
                 return true;
             }
 
+            const auto glassEffectViewClass = NSWindowProxy::glassEffectViewClass();
+            if (!glassEffectViewClass || ![glassView isKindOfClass:glassEffectViewClass]) {
+                return false;
+            }
+
             auto nswindow = [nsview window];
             if (!nswindow) {
                 return false;
@@ -448,15 +463,19 @@ namespace QWK {
         }
 
         bool setGlassEffect(GlassMode mode) {
-            glassMode = mode;
-
             if (mode == GlassMode::None) {
+                glassMode = mode;
                 if (auto glassView = findGlassEffectView(false)) {
                     return applyGlassEffectSettings(glassView);
                 }
                 return true;
             }
 
+            if (!isGlassEffectAvailable()) {
+                return false;
+            }
+
+            glassMode = mode;
             return applyGlassEffectSettings(findGlassEffectView(true));
         }
 
