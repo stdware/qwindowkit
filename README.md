@@ -36,11 +36,23 @@ You can share your findings, thoughts and ideas on improving / implementing QWin
 
 ![image](./docs/images/win10.png)
 
-### macOS & Linux
+### macOS
 
-|              macOS              |       Linux (Ubuntu 20.04)        |
-|:-------------------------------:|:---------------------------------:|
-| ![image](./docs/images/mac.png) | ![image](./docs/images/linux.png) |
+![image](./docs/images/mac.png)
+
+|                                default                                |                                  glass - regular                                  |
+|:---------------------------------------------------------------------:|:---------------------------------------------------------------------------------:|
+| ![default](./docs/images/macos/01%20default.png)                      | ![glass - regular](./docs/images/macos/02%20glass%20-%20regular.png)              |
+|                              glass - clear                            |                         glass - regular, rounded                                  |
+| ![glass - clear](./docs/images/macos/03%20glass%20-%20clear.png)      | ![glass - regular, rounded](./docs/images/macos/04%20glass%20-%20regular,%20rounded.png) |
+|                       glass - regular, dark tint                      |                         glass - regular, light tint                               |
+| ![glass - regular, dark tint](./docs/images/macos/05%20glass%20-%20regular,%20dark%20tint.png) | ![glass - regular, light tint](./docs/images/macos/06%20glass%20-%20regular,%20light%20tint.png) |
+|                           legacy - dark blur                          |                              legacy - light blur                                  |
+| ![legacy - dark blur](./docs/images/macos/07%20legacy%20-%20dark%20blur.png) | ![legacy - light blur](./docs/images/macos/08%20legacy%20-%20light%20blur.png) |
+
+### Linux
+
+![image](./docs/images/linux.png)
 
 ## Requirements
 

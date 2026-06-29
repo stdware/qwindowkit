@@ -8,6 +8,8 @@
 #include <QtCore/QFile>
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
+#include <QtCore/QVariant>
+#include <QtGui/QColor>
 #include <QtGui/QPainter>
 #include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
@@ -227,46 +229,108 @@ void MainWindow::installWindowAgent() {
         // - false: Show native system buttons (default behavior)
         windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), false);
 
-        auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);
-        darkBlurAction->setCheckable(true);
-        connect(darkBlurAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "dark")) {
+        auto polishMacStyle = [this](bool customStyle) {
+            setProperty("custom-style", customStyle);
+            style()->polish(this);
+        };
+
+        auto applyMacBlurEffect = [this, polishMacStyle](const QString &effect) {
+            windowAgent->setWindowAttribute(QStringLiteral("glass-effect"), QStringLiteral("none"));
+            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), effect)) {
                 return;
             }
+            polishMacStyle(effect != QStringLiteral("none"));
+        };
+
+        auto applyMacGlassEffect = [this, polishMacStyle](const QString &effect,
+                                                          qreal radius = 0,
+                                                          const QVariant &tintColor = {}) {
+            windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), QStringLiteral("none"));
+            windowAgent->setWindowAttribute(QStringLiteral("glass-corner-radius"), radius);
+            windowAgent->setWindowAttribute(QStringLiteral("glass-tint-color"),
+                                            tintColor.isValid() ? tintColor : QVariant(QStringLiteral("none")));
+            if (!windowAgent->setWindowAttribute(QStringLiteral("glass-effect"), effect)) {
+                return;
+            }
+            polishMacStyle(effect != QStringLiteral("none"));
+        };
+
+        auto glassRegularAction = new QAction(tr("Glass: regular"), menuBar);
+        glassRegularAction->setCheckable(true);
+        connect(glassRegularAction, &QAction::toggled, this, [applyMacGlassEffect](bool checked) {
             if (checked) {
-                setProperty("custom-style", true);
-                style()->polish(this);
+                applyMacGlassEffect(QStringLiteral("regular"));
+            }
+        });
+
+        auto glassClearAction = new QAction(tr("Glass: clear"), menuBar);
+        glassClearAction->setCheckable(true);
+        connect(glassClearAction, &QAction::toggled, this, [applyMacGlassEffect](bool checked) {
+            if (checked) {
+                applyMacGlassEffect(QStringLiteral("clear"));
+            }
+        });
+
+        auto glassRegularRoundedAction = new QAction(tr("Glass: regular, rounded"), menuBar);
+        glassRegularRoundedAction->setCheckable(true);
+        connect(glassRegularRoundedAction, &QAction::toggled, this,
+                [applyMacGlassEffect](bool checked) {
+                    if (checked) {
+                        applyMacGlassEffect(QStringLiteral("regular"), 24);
+                    }
+                });
+
+        auto glassRegularDarkTintAction = new QAction(tr("Glass: regular, dark tint"), menuBar);
+        glassRegularDarkTintAction->setCheckable(true);
+        connect(glassRegularDarkTintAction, &QAction::toggled, this,
+                [applyMacGlassEffect](bool checked) {
+                    if (checked) {
+                        applyMacGlassEffect(QStringLiteral("regular"), 0, QColor(0, 0, 0, 46));
+                    }
+                });
+
+        auto glassRegularLightTintAction = new QAction(tr("Glass: regular, light tint"), menuBar);
+        glassRegularLightTintAction->setCheckable(true);
+        connect(glassRegularLightTintAction, &QAction::toggled, this,
+                [applyMacGlassEffect](bool checked) {
+                    if (checked) {
+                        applyMacGlassEffect(QStringLiteral("regular"), 0, QColor(255, 255, 255, 46));
+                    }
+                });
+
+        auto darkBlurAction = new QAction(tr("Dark blur"), menuBar);
+        darkBlurAction->setCheckable(true);
+        connect(darkBlurAction, &QAction::toggled, this, [applyMacBlurEffect](bool checked) {
+            if (checked) {
+                applyMacBlurEffect(QStringLiteral("dark"));
             }
         });
 
         auto lightBlurAction = new QAction(tr("Light blur"), menuBar);
         lightBlurAction->setCheckable(true);
-        connect(lightBlurAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "light")) {
-                return;
-            }
+        connect(lightBlurAction, &QAction::toggled, this, [applyMacBlurEffect](bool checked) {
             if (checked) {
-                setProperty("custom-style", true);
-                style()->polish(this);
+                applyMacBlurEffect(QStringLiteral("light"));
             }
         });
 
-        auto noBlurAction = new QAction(tr("No blur"), menuBar);
-        noBlurAction->setCheckable(true);
-        connect(noBlurAction, &QAction::toggled, this, [this](bool checked) {
-            if (!windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), "none")) {
-                return;
-            }
+        auto noEffectAction = new QAction(tr("No effect"), menuBar);
+        noEffectAction->setCheckable(true);
+        connect(noEffectAction, &QAction::toggled, this, [applyMacGlassEffect](bool checked) {
             if (checked) {
-                setProperty("custom-style", false);
-                style()->polish(this);
+                applyMacGlassEffect(QStringLiteral("none"));
             }
         });
 
         auto macStyleGroup = new QActionGroup(menuBar);
+        macStyleGroup->addAction(glassRegularAction);
+        macStyleGroup->addAction(glassClearAction);
+        macStyleGroup->addAction(glassRegularRoundedAction);
+        macStyleGroup->addAction(glassRegularDarkTintAction);
+        macStyleGroup->addAction(glassRegularLightTintAction);
         macStyleGroup->addAction(darkBlurAction);
         macStyleGroup->addAction(lightBlurAction);
-        macStyleGroup->addAction(noBlurAction);
+        macStyleGroup->addAction(noEffectAction);
 #endif
 
         // Real menu
@@ -283,9 +347,15 @@ void MainWindow::installWindowAgent() {
         settings->addSeparator();
         settings->addAction(borderColorAction);
 #elif defined(Q_OS_MAC)
+        settings->addAction(glassRegularAction);
+        settings->addAction(glassClearAction);
+        settings->addAction(glassRegularRoundedAction);
+        settings->addAction(glassRegularDarkTintAction);
+        settings->addAction(glassRegularLightTintAction);
+        settings->addSeparator();
         settings->addAction(darkBlurAction);
         settings->addAction(lightBlurAction);
-        settings->addAction(noBlurAction);
+        settings->addAction(noEffectAction);
 #endif
 
         menuBar->addMenu(file);

@@ -7,6 +7,7 @@ import QWindowKit 1.0
 Window {
     property bool showWhenReady: true
     property alias titleBar: titleBar
+    readonly property bool isMacOS: Qt.platform.os === "osx"
 
     id: window
     width: 800
@@ -28,6 +29,20 @@ Window {
     QtObject {
         id: darkStyle
         readonly property color windowBackgroundColor: "#1E1E1E"
+    }
+
+    function applyMacBlurEffect(effect) {
+        window.color = effect === "none" ? darkStyle.windowBackgroundColor : "transparent"
+        windowAgent.setWindowAttribute("glass-effect", "none")
+        windowAgent.setWindowAttribute("blur-effect", effect)
+    }
+
+    function applyMacGlassEffect(effect, tintColor, radius) {
+        window.color = effect === "none" ? darkStyle.windowBackgroundColor : "transparent"
+        windowAgent.setWindowAttribute("blur-effect", "none")
+        windowAgent.setWindowAttribute("glass-corner-radius", radius === undefined ? 0 : radius)
+        windowAgent.setWindowAttribute("glass-tint-color", tintColor === undefined ? "none" : tintColor)
+        windowAgent.setWindowAttribute("glass-effect", effect)
     }
 
     Timer {
@@ -63,30 +78,41 @@ Window {
             anchors {
                 verticalCenter: parent.verticalCenter
                 left: parent.left
-                leftMargin: 10
+                leftMargin: window.isMacOS ? 0 : 10
             }
-            width: 18
-            height: 18
+            visible: !window.isMacOS
+            width: window.isMacOS ? 0 : 18
+            height: width
             mipmap: true
             source: "qrc:///app/example.png"
             fillMode: Image.PreserveAspectFit
-            Component.onCompleted: windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
+            Component.onCompleted: {
+                if (!window.isMacOS) {
+                    windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
+                }
+            }
         }
 
         Text {
             anchors {
                 verticalCenter: parent.verticalCenter
                 left: iconButton.right
-                leftMargin: 10
+                leftMargin: window.isMacOS ? 0 : 10
+                right: captionButtonRow.left
+                rightMargin: 10
             }
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
             text: window.title
             font.pixelSize: 14
             color: "#ECECEC"
         }
 
         Row {
+            id: captionButtonRow
+            visible: !window.isMacOS
+            width: visible ? implicitWidth : 0
             anchors {
                 top: parent.top
                 right: parent.right
@@ -98,7 +124,11 @@ Window {
                 height: parent.height
                 source: "qrc:///window-bar/minimize.svg"
                 onClicked: window.showMinimized()
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
+                    }
+                }
             }
 
             QWKButton {
@@ -112,7 +142,11 @@ Window {
                         window.showMaximized()
                     }
                 }
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
+                    }
+                }
             }
 
             QWKButton {
@@ -134,7 +168,11 @@ Window {
                     }
                 }
                 onClicked: window.close()
-                Component.onCompleted: windowAgent.setSystemButton(WindowAgent.Close, closeButton)
+                Component.onCompleted: {
+                    if (!window.isMacOS) {
+                        windowAgent.setSystemButton(WindowAgent.Close, closeButton)
+                    }
+                }
             }
         }
     }
@@ -254,6 +292,66 @@ Window {
                     windowAgent.setWindowAttribute("mica", false)
                     windowAgent.setWindowAttribute("mica-alt", true)
                 }
+            }
+
+            MenuSeparator {
+                visible: Qt.platform.os === "osx"
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: clear")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("clear")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, rounded")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", undefined, 24)
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, dark tint")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", Qt.rgba(0, 0, 0, 0.18))
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Glass: regular, light tint")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("regular", Qt.rgba(1, 1, 1, 0.18))
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Dark blur")
+                checkable: true
+                onTriggered: window.applyMacBlurEffect("dark")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("Light blur")
+                checkable: true
+                onTriggered: window.applyMacBlurEffect("light")
+            }
+
+            MenuItem {
+                enabled: Qt.platform.os === "osx"
+                text: qsTr("No effect")
+                checkable: true
+                onTriggered: window.applyMacGlassEffect("none")
             }
         }
     }

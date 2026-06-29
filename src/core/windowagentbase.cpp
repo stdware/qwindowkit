@@ -125,6 +125,15 @@ namespace QWK {
             \li \c blur-effect: You can specify a string value, "dark" to enable dark mode, "light"
                    to set enable mode, "none" to disable. You can also specify a boolean value,
                    \c true to enable current theme mode, \c false to disable.
+            \li \c glass-effect: Specify a string value, "regular" or "clear" to enable the
+                   Liquid Glass effect, "none" to disable. You can also specify a boolean value,
+                   \c true to enable regular glass, \c false to disable. This attribute is only
+                   available on macOS 26 and later; enabling it returns \c false when unavailable.
+            \li \c glass-corner-radius: Specify a real value to set the Liquid Glass corner radius.
+                   This attribute is only available on macOS 26 and later.
+            \li \c glass-tint-color: Specify a \c QColor to set the Liquid Glass tint color, or
+                   an invalid value to clear the tint. This attribute is only available on macOS
+                   26 and later.
             \li \c title-bar-height: Returns the system title bar height, the system button display
                    area will be limited to this height. (Readonly)
     */
