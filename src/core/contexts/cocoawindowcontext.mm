@@ -5,6 +5,8 @@
 #include "cocoawindowcontext_p.h"
 
 #include <algorithm>
+#include <atomic>
+#include <memory>
 
 #include <objc/runtime.h>
 #include <AppKit/AppKit.h>
@@ -176,6 +178,8 @@ namespace QWK {
         }
 
         ~NSWindowProxy() override {
+            lifetimeToken->store(false, std::memory_order_release);
+            
             [buttonObserver release];
 
             [nsview removeObserver:observer forKeyPath:@"window"];
@@ -588,7 +592,12 @@ namespace QWK {
                                    // become fullscreen.
 
             NSWindowProxy *self_ = this;
+            const auto lifetimeToken_ = lifetimeToken;
             dispatch_async(dispatch_get_main_queue(), ^{
+                if (!lifetimeToken_->load(std::memory_order_acquire)) {
+                    return;
+                }
+                
                 NSMutableArray<NSButton *> *array = [NSMutableArray arrayWithCapacity:3];
                 for (NSButton *button : self_->systemButtons()) {
                     button.hidden = !self_->systemButtonVisible;
@@ -739,7 +748,9 @@ namespace QWK {
         NSView *nsview = nil;
         QWK_NSViewObserver* observer = nil;
         QWK_NSButtonObserver* buttonObserver = nil;
-
+        
+        std::shared_ptr<std::atomic_bool> lifetimeToken = std::make_shared<std::atomic_bool>(true);
+        
         bool systemButtonVisible = true;
         bool checkButton = true;
         ScreenRectCallback screenRectCallback;
