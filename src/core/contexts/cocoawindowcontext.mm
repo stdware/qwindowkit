@@ -588,8 +588,9 @@ namespace QWK {
             nswindow.hasShadow = YES;
             // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
-            nswindow.movable = NO; // This line causes the window in the wrong position when
-                                   // become fullscreen.
+            // Keep Fill/Center enabled; Qt's event filter owns title-bar dragging.
+            // See https://developer.apple.com/documentation/appkit/nswindow/ismovable?language=objc
+            nswindow.movable = YES;
 
             NSWindowProxy *self_ = this;
             const auto lifetimeToken_ = lifetimeToken;
@@ -609,7 +610,7 @@ namespace QWK {
             });
         }
 
-        static void replaceImplementations() {
+        static void replaceImplementations(Class nativeViewClass) {
             Method method = class_getInstanceMethod(windowClass, @selector(setStyleMask:));
             oldSetStyleMask = reinterpret_cast<setStyleMaskPtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(setStyleMask)));
@@ -631,6 +632,12 @@ namespace QWK {
             method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
             oldSendEvent = reinterpret_cast<sendEventPtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
+
+            viewClass = nativeViewClass;
+            method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
+            oldMouseDownCanMoveWindow = reinterpret_cast<mouseDownCanMoveWindowPtr>(method_getImplementation(method));
+            class_replaceMethod(viewClass, @selector(mouseDownCanMoveWindow), reinterpret_cast<IMP>(mouseDownCanMoveWindow),
+                                method_getTypeEncoding(method));
 
             // Alloc
             windowObserver = [[QWK_NSWindowObserver alloc] init];
@@ -661,14 +668,30 @@ namespace QWK {
             method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
             oldSendEvent = nil;
 
+            method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
+            class_replaceMethod(viewClass, @selector(mouseDownCanMoveWindow),
+                                reinterpret_cast<IMP>(oldMouseDownCanMoveWindow),
+                                method_getTypeEncoding(method));
+            oldMouseDownCanMoveWindow = nil;
+            viewClass = Nil;
+
             // Delete
             [windowObserver release];
             windowObserver = nil;
         }
 
         static inline const Class windowClass = [NSWindow class];
+        static inline Class viewClass = Nil;
 
     protected:
+        static BOOL mouseDownCanMoveWindow(id obj, SEL sel) {
+            if (g_proxyList->contains(reinterpret_cast<WId>(obj))) {
+                return NO;
+            }
+
+            return oldMouseDownCanMoveWindow(obj, sel);
+        }
+
         static BOOL canBecomeKeyWindow(id obj, SEL sel) {
             auto nswindow = reinterpret_cast<NSWindow *>(obj);
             auto nsview = [nswindow contentView];
@@ -781,6 +804,9 @@ namespace QWK {
 
         using sendEventPtr = void (*)(id, SEL, NSEvent *);
         static inline sendEventPtr oldSendEvent = nil;
+
+        using mouseDownCanMoveWindowPtr = BOOL (*)(id, SEL);
+        static inline mouseDownCanMoveWindowPtr oldMouseDownCanMoveWindow = nil;
     };
 
     static inline NSWindow *mac_getNSWindow(const WId windowId) {
@@ -789,13 +815,13 @@ namespace QWK {
     }
 
     static inline NSWindowProxy *ensureWindowProxy(const WId windowId) {
+        NSView *nsview = reinterpret_cast<NSView *>(windowId);
         if (g_proxyList->isEmpty()) {
-            NSWindowProxy::replaceImplementations();
+            NSWindowProxy::replaceImplementations([nsview class]);
         }
 
         auto it = g_proxyList->find(windowId);
         if (it == g_proxyList->end()) {
-            NSView *nsview = reinterpret_cast<NSView *>(windowId);
             const auto proxy = new NSWindowProxy(nsview);
             it = g_proxyList->insert(windowId, proxy);
         }
