@@ -1366,9 +1366,11 @@ namespace QWK {
                 const auto xButtonMask = GET_XBUTTON_WPARAM(wParam);
                 return MAKEWPARAM(keyState, xButtonMask);
             }
+#if(WINVER >= _WIN32_WINNT_WIN8)
             if (myMsg == WM_NCPOINTERDOWN) {
                 return keyState | MK_LBUTTON;
             }
+#endif
             return keyState;
         }();
         const auto lParamNew = [myMsg, lParam, hWnd]() -> LPARAM {
@@ -1427,6 +1429,7 @@ namespace QWK {
             case WM_NCXBUTTONDBLCLK:
                 SEND_MESSAGE(hWnd, WM_XBUTTONDBLCLK, wParamNew, lParamNew);
                 break;
+#if(WINVER >= _WIN32_WINNT_WIN8)
             case WM_NCPOINTERUPDATE:
                 SEND_MESSAGE(hWnd, WM_MOUSEMOVE, wParamNew, lParamNew);
                 break;
@@ -1436,6 +1439,7 @@ namespace QWK {
             case WM_NCPOINTERUP:
                 SEND_MESSAGE(hWnd, WM_LBUTTONUP, wParamNew, lParamNew);
                 break;
+#endif
             case WM_NCMOUSEHOVER:
                 SEND_MESSAGE(hWnd, WM_MOUSEHOVER, wParamNew, lParamNew);
                 break;
@@ -1521,9 +1525,11 @@ namespace QWK {
             case WM_NCXBUTTONDOWN:
             case WM_NCXBUTTONUP:
             case WM_NCXBUTTONDBLCLK:
+#if(_WIN32_WINNT >= _WIN32_WINNT_WIN8)
             case WM_NCPOINTERUPDATE:
             case WM_NCPOINTERDOWN:
             case WM_NCPOINTERUP:
+#endif
             case WM_NCMOUSEHOVER: {
                 if (message == WM_NCMOUSEMOVE) {
                     if (lastHitTestResult != WindowPart::ChromeButton) {
