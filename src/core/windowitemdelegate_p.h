@@ -34,6 +34,7 @@ namespace QWK {
         virtual bool isEnabled(const QObject *obj) const = 0;
         virtual bool isVisible(const QObject *obj) const = 0;
         virtual QRect mapGeometryToScene(const QObject *obj) const = 0;
+        bool isSameOrAncestorOf(const QObject *ancestor, const QObject *child) const;
 
         // Host property query
         virtual QWindow *hostWindow(const QObject *host) const = 0;

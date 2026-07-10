@@ -48,14 +48,19 @@ namespace QWK {
         inline WId windowId() const;
         inline WindowItemDelegate *delegate() const;
 
-        inline bool isHitTestVisible(const QObject *obj) const;
-        bool setHitTestVisible(QObject *obj, bool visible);
+        bool isHitTestVisible(QObject *titleBar, const QObject *obj) const;
+        bool setHitTestVisible(QObject *titleBar, QObject *obj, bool visible);
 
         inline QObject *systemButton(WindowAgentBase::SystemButton button) const;
         bool setSystemButton(WindowAgentBase::SystemButton button, QObject *obj);
 
-        inline QObject *titleBar() const;
-        bool setTitleBar(QObject *obj);
+        QList<QObject *> titleBars() const;
+
+        bool addTitleBar(QObject *titleBar);
+        bool removeTitleBar(QObject *titleBar);
+        void clearTitleBars();
+
+        bool isTitleBarRegistered(const QObject *titleBar) const;
 
 #ifdef Q_OS_MAC
         inline ScreenRectCallback systemButtonAreaCallback() const;
@@ -102,12 +107,22 @@ namespace QWK {
         QPointer<QWindow> m_windowHandle;
         WId m_windowId{};
 
-        QVector<QPointer<QObject>> m_hitTestVisibleItems;
+        struct TitleBarRecord {
+            QPointer<QObject> titleBar;
+            QVector<QPointer<QObject>> hitTestVisibleItems;
+        };
+
+        /*
+            A hit-test-visible item is meaningful only inside the title bar that owns it.
+
+             Keeping hit-test items together with their owner title bar avoids stale global
+             state and makes title bar removal deterministic: removing a title bar removes
+             all interactive exceptions registered for that title bar.
+         */
+        QVector<TitleBarRecord> m_titleBars;
 #ifdef Q_OS_MAC
         ScreenRectCallback m_systemButtonAreaCallback;
 #endif
-
-        QPointer<QObject> m_titleBar{};
         std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
 
         std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
@@ -115,7 +130,8 @@ namespace QWK {
 
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
 
-        void removeSystemButtonsAndHitTestItems();
+        TitleBarRecord *findTitleBarRecord(const QObject *titleBar);
+        const TitleBarRecord *findTitleBarRecord(const QObject *titleBar) const;
     };
 
     inline QObject *AbstractWindowContext::host() const {
@@ -134,17 +150,9 @@ namespace QWK {
         return m_delegate.get();
     }
 
-    inline bool AbstractWindowContext::isHitTestVisible(const QObject *obj) const {
-        return m_hitTestVisibleItems.contains(const_cast<QObject *>(obj));
-    }
-
     inline QObject *
         AbstractWindowContext::systemButton(WindowAgentBase::SystemButton button) const {
         return m_systemButtons[button];
-    }
-
-    inline QObject *AbstractWindowContext::titleBar() const {
-        return m_titleBar;
     }
 
 #ifdef Q_OS_MAC

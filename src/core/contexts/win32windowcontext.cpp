@@ -2453,11 +2453,12 @@ namespace QWK {
             // The menu is triggered by a click on icon button
             if (iconButtonClickTime > 0) {
                 POINT menuPos{0, static_cast<LONG>(getTitleBarHeight(hWnd))};
-                if (const auto tb = titleBar()) {
-                    auto titleBarHeight = qreal(m_delegate->mapGeometryToScene(tb).height());
-                    titleBarHeight *= m_windowHandle->devicePixelRatio();
-                    menuPos.y = qRound(titleBarHeight);
-                }
+                // TODO: support multi-titlebar
+                // if (const auto tb = titleBar()) {
+                //     auto titleBarHeight = qreal(m_delegate->mapGeometryToScene(tb).height());
+                //     titleBarHeight *= m_windowHandle->devicePixelRatio();
+                //     menuPos.y = qRound(titleBarHeight);
+                // }
                 ::ClientToScreen(hWnd, &menuPos);
                 nativeGlobalPos = menuPos;
 

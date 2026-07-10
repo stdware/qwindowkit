@@ -79,27 +79,36 @@ namespace QWK {
         return true;
     }
 
-    /*!
-        Returns the title bar widget.
-    */
-    QWidget *WidgetWindowAgent::titleBar() const {
+    QList<QWidget*> WidgetWindowAgent::titleBars() const
+    {
         Q_D(const WidgetWindowAgent);
-        return static_cast<QWidget *>(d->context->titleBar());
+        QList<QWidget*> ret;
+        const auto bars = d->context->titleBars();
+        for (auto* bar : bars) {
+            ret.append(qobject_cast<QWidget*>(bar));
+        }
+
+        return ret;
     }
 
-    /*!
-        Sets the title bar widget, all system button and hit-test visible widget references that
-        have been set will be removed.
-    */
-    void WidgetWindowAgent::setTitleBar(QWidget *w) {
+    bool WidgetWindowAgent::addTitleBar(QWidget *titleBar)
+    {
         Q_D(WidgetWindowAgent);
-        if (!d->context->setTitleBar(w)) {
-            return;
+        if (!d->context->addTitleBar(titleBar)) {
+            return false;
         }
-#ifdef Q_OS_MAC
-        setSystemButtonArea(nullptr);
-#endif
-        Q_EMIT titleBarChanged(w);
+
+        Q_EMIT titleBarAdded(titleBar);
+    }
+
+    bool WidgetWindowAgent::removeTitleBar(QWidget *titleBar)
+    {
+        Q_D(WidgetWindowAgent);
+        if (!d->context->removeTitleBar(titleBar)) {
+            return false;
+        }
+
+        Q_EMIT titleBarRemoved(titleBar);
     }
 
     /*!
@@ -125,9 +134,10 @@ namespace QWK {
     /*!
         Returns \a true if the widget can receive mouse events on title bar.
     */
-    bool WidgetWindowAgent::isHitTestVisible(const QWidget *w) const {
+    bool WidgetWindowAgent::isHitTestVisible(QWidget *titleBar, const QWidget *w) const
+    {
         Q_D(const WidgetWindowAgent);
-        return d->context->isHitTestVisible(w);
+        return d->context->isHitTestVisible(titleBar, w);
     }
 
     /*!
@@ -135,9 +145,10 @@ namespace QWK {
         You're supposed to make sure that the specified widget \a w is a child or descendant
         of the title bar widget.
     */
-    void WidgetWindowAgent::setHitTestVisible(QWidget *w, bool visible) {
+    bool WidgetWindowAgent::setHitTestVisible(QWidget *titleBar, QWidget *w, bool visible)
+    {
         Q_D(WidgetWindowAgent);
-        d->context->setHitTestVisible(w, visible);
+        return d->context->setHitTestVisible(titleBar, w, visible);
     }
 
     /*!
@@ -161,3 +172,13 @@ namespace QWK {
     */
 
 }
+
+
+void QWK::WidgetWindowAgent::clearTitleBars()
+{
+    Q_D(WidgetWindowAgent);
+    d->context->clearTitleBars();
+
+    Q_EMIT titleBarsCleared();
+}
+

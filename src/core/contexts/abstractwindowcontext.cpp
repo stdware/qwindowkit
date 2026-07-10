@@ -26,23 +26,48 @@ namespace QWK {
         notifyWinIdChange();
     }
 
-    bool AbstractWindowContext::setHitTestVisible(QObject *obj, bool visible) {
-        Q_ASSERT(obj);
-        if (!obj) {
+    bool AbstractWindowContext::isHitTestVisible(QObject *titleBar, const QObject *obj) const
+    {
+        if (!titleBar || !obj) {
             return false;
         }
 
-        if (visible) {
-            m_hitTestVisibleItems.removeAll(nullptr);
-            m_hitTestVisibleItems.removeAll(obj);
-            m_hitTestVisibleItems.append(obj);
-        } else {
-            for (auto &item : m_hitTestVisibleItems) {
-                if (item == obj) {
-                    item = nullptr;
-                }
-            }
+        const auto* record = findTitleBarRecord(titleBar);
+        if (!record) {
+            return false;
         }
+
+        return record->hitTestVisibleItems.contains(obj);
+    }
+
+    bool AbstractWindowContext::setHitTestVisible(QObject *titleBar, QObject *obj, bool visible)
+    {
+        if (!titleBar || !obj) {
+            return false;
+        }
+
+        auto *record = findTitleBarRecord(titleBar);
+        if (!record) {
+            return false;
+        }
+
+        /*
+                Hit-test-visible items must belong to their title bar.
+
+             This check prevents registering a widget from another pane into the
+             wrong title bar. Without it, overlapping title bars can produce
+             confusing native hit-test results.
+         */
+        if (!m_delegate->isSameOrAncestorOf(titleBar, obj)) {
+            return false;
+        }
+
+        if (!visible) {
+            record->hitTestVisibleItems.removeAll(obj);
+        } else if (!record->hitTestVisibleItems.contains(obj)) {
+            record->hitTestVisibleItems.append(obj);
+        }
+
         return true;
     }
 
@@ -58,21 +83,6 @@ namespace QWK {
             return false;
         }
         m_systemButtons[button] = obj;
-        return true;
-    }
-
-    bool AbstractWindowContext::setTitleBar(QObject *item) {
-        Q_ASSERT(item);
-        auto org = m_titleBar;
-        if (org == item) {
-            return false;
-        }
-
-        if (org) {
-            // Since the title bar is changed, all items inside it should be dereferenced right away
-            removeSystemButtonsAndHitTestItems();
-        }
-        m_titleBar = item;
         return true;
     }
 
@@ -100,24 +110,12 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::isInTitleBarDraggableArea(const QPoint &pos) const {
-        if (!m_titleBar) {
-            // There's no title bar at all, the mouse will always be in the client area.
-            return false;
-        }
-        if (!m_delegate->isVisible(m_titleBar) || !m_delegate->isEnabled(m_titleBar)) {
-            // The title bar is hidden or disabled for some reason, treat it as there's
-            // no title bar.
-            return false;
-        }
-        QRect windowRect = {QPoint(0, 0), m_windowHandle->size()};
-        QRect titleBarRect = m_delegate->mapGeometryToScene(m_titleBar);
-        if (!titleBarRect.intersects(windowRect)) {
-            // The title bar is totally outside the window for some reason,
-            // also treat it as there's no title bar.
+        if (!m_windowHandle) {
             return false;
         }
 
-        if (!titleBarRect.contains(pos)) {
+        if (m_titleBars.empty()) {
+            // There's no title bar at all, the mouse will always be in the client area.
             return false;
         }
 
@@ -126,13 +124,37 @@ namespace QWK {
             return false;
         }
 
-        for (auto &&item : std::as_const(m_hitTestVisibleItems)) {
-            if (item && m_delegate->isVisible(item) &&
-                m_delegate->mapGeometryToScene(item).contains(pos)) {
-                return false;
+        QRect windowRect = {QPoint(0, 0), m_windowHandle->size()};
+        for (const auto& record : m_titleBars) {
+            if (!m_delegate->isVisible(record.titleBar) || !m_delegate->isEnabled(record.titleBar)) {
+                // The title bar is hidden or disabled for some reason, treat it as there's
+                // no title bar.
+                continue;
             }
+
+            QRect titleBarRect = m_delegate->mapGeometryToScene(record.titleBar);
+            // TODO: 这个判断是否有必要？
+            if (!titleBarRect.intersects(windowRect)) {
+                // The title bar is totally outside the window for some reason,
+                // also treat it as there's no title bar.
+                continue;
+            }
+
+            if (!titleBarRect.contains(pos)) {
+                continue;
+            }
+
+            for (auto &&item : std::as_const(record.hitTestVisibleItems)) {
+                if (item && m_delegate->isVisible(item) &&
+                    m_delegate->mapGeometryToScene(item).contains(pos)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     QString AbstractWindowContext::key() const {
@@ -285,14 +307,77 @@ namespace QWK {
         return false;
     }
 
-    void AbstractWindowContext::removeSystemButtonsAndHitTestItems() {
-        for (auto &button : m_systemButtons) {
-            if (!button) {
-                continue;
+    const AbstractWindowContext::TitleBarRecord *AbstractWindowContext::findTitleBarRecord(const QObject *titleBar) const
+    {
+        for (const auto& item : m_titleBars) {
+            if (item.titleBar == titleBar) {
+                return &item;
             }
-            button = nullptr;
         }
-        m_hitTestVisibleItems.clear();
+
+        return nullptr;
+    }
+
+    AbstractWindowContext::TitleBarRecord *AbstractWindowContext::findTitleBarRecord(const QObject *titleBar)
+    {
+        for (auto& item : m_titleBars) {
+            if (item.titleBar == titleBar) {
+                return &item;
+            }
+        }
+
+        return nullptr;
     }
 
 }
+
+bool QWK::AbstractWindowContext::addTitleBar(QObject *titleBar)
+{
+    Q_ASSERT(titleBar);
+    if (!titleBar || findTitleBarRecord(titleBar)) {
+        return false;
+    }
+
+    m_titleBars.append(TitleBarRecord{.titleBar = titleBar});
+    return true;
+}
+
+
+
+QList<QObject *> QWK::AbstractWindowContext::titleBars() const
+{
+    QList<QObject *> titleBars;
+    titleBars.reserve(m_titleBars.size());
+
+    for (const auto& record : m_titleBars) {
+        titleBars.append(record.titleBar);
+    }
+
+    return titleBars;
+}
+
+
+
+bool QWK::AbstractWindowContext::removeTitleBar(QObject *titleBar)
+{
+    if (!titleBar) {
+        return false;
+    }
+
+    return erase_if(m_titleBars, [titleBar](const auto& record) {
+               return record.titleBar == titleBar;
+           }) > 0;
+}
+
+
+
+void QWK::AbstractWindowContext::clearTitleBars()
+{
+    m_titleBars.clear();
+}
+
+bool QWK::AbstractWindowContext::isTitleBarRegistered(const QObject *titleBar) const
+{
+    return findTitleBarRecord(titleBar);
+}
+

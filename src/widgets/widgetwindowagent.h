@@ -24,8 +24,11 @@ namespace QWK {
     public:
         bool setup(QWidget *w);
 
-        QWidget *titleBar() const;
-        void setTitleBar(QWidget *w);
+        QList<QWidget *> titleBars() const;
+
+        bool addTitleBar(QWidget *titleBar);
+        bool removeTitleBar(QWidget *titleBar);
+        void clearTitleBars();
 
         QWidget *systemButton(SystemButton button) const;
         void setSystemButton(SystemButton button, QWidget *w);
@@ -39,11 +42,13 @@ namespace QWK {
         void setSystemButtonAreaCallback(const ScreenRectCallback &callback);
 #endif
 
-        bool isHitTestVisible(const QWidget *w) const;
-        void setHitTestVisible(QWidget *w, bool visible = true);
+        bool isHitTestVisible(QWidget *titleBar, const QWidget *w) const;
+        bool setHitTestVisible(QWidget *titleBar, QWidget *w, bool visible = true);
 
     Q_SIGNALS:
-        void titleBarChanged(QWidget *w);
+        void titleBarAdded(QWidget *w);
+        void titleBarRemoved(QWidget *w);
+        void titleBarsCleared();
         void systemButtonChanged(SystemButton button, QWidget *w);
 
     protected:

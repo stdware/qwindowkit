@@ -7,6 +7,9 @@ project(QWindowKit
     DESCRIPTION "Cross-platform window customization framework"
 )
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # ----------------------------------
 # Build Options
 # ----------------------------------
@@ -142,5 +145,5 @@ set(QT_NO_PRIVATE_MODULE_WARNING ON)
 add_subdirectory(src)
 
 if(QWINDOWKIT_BUILD_EXAMPLES)
-    add_subdirectory(examples)
+    add_subdirectory(notes-multi-titlebar-demo)
 endif()
