@@ -27,6 +27,14 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
     QApplication a(argc, argv);
 
+#ifdef Q_OS_LINUX
+    // KDE Breeze calls QMainWindow::menuBar() while polishing the window. When a custom title bar
+    // is installed through QMainWindow::setMenuWidget(), that call replaces it with an empty
+    // QMenuBar and schedules the custom widget for deletion. Use Fusion on Linux so the WindowBar
+    // remains installed and visible without changing the native styles on other platforms.
+    QApplication::setStyle(QStringLiteral("Fusion"));
+#endif
+
     MainWindow w;
     w.show();
 
