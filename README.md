@@ -104,20 +104,6 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-Common build options:
-
-| Option | Default | Description |
-|:--|:--|:--|
-| `QWINDOWKIT_BUILD_STATIC` | `OFF` | Build static libraries instead of shared libraries. |
-| `QWINDOWKIT_BUILD_WIDGETS` | `ON` | Build the Widgets module. |
-| `QWINDOWKIT_BUILD_QUICK` | `OFF` | Build the Quick module. |
-| `QWINDOWKIT_BUILD_EXAMPLES` | `OFF` | Build examples. |
-| `QWINDOWKIT_BUILD_DOCUMENTATIONS` | `OFF` | Build Doxygen documentation. |
-| `QWINDOWKIT_INSTALL` | `ON` | Generate install targets and package files. |
-| `QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT` | `OFF` | Force the pure Qt fallback implementation. |
-| `QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS` | `ON` | Enable Windows system border workarounds. |
-| `QWINDOWKIT_ENABLE_STYLE_AGENT` | `ON` | Build the style/theme helper. |
-
 `qmsetup` is required. If CMake cannot find an installed `qmsetup` package, the bundled submodule is used automatically.
 
 ## Integrate With Your Project

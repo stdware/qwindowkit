@@ -104,20 +104,6 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-常用构建选项：
-
-| 选项 | 默认值 | 说明 |
-|:--|:--|:--|
-| `QWINDOWKIT_BUILD_STATIC` | `OFF` | 构建静态库而不是动态库。 |
-| `QWINDOWKIT_BUILD_WIDGETS` | `ON` | 构建 Widgets 模块。 |
-| `QWINDOWKIT_BUILD_QUICK` | `OFF` | 构建 Quick 模块。 |
-| `QWINDOWKIT_BUILD_EXAMPLES` | `OFF` | 构建示例。 |
-| `QWINDOWKIT_BUILD_DOCUMENTATIONS` | `OFF` | 构建 Doxygen 文档。 |
-| `QWINDOWKIT_INSTALL` | `ON` | 生成安装目标和 package 文件。 |
-| `QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT` | `OFF` | 强制使用纯 Qt fallback 实现。 |
-| `QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS` | `ON` | 启用 Windows 系统边框 workaround。 |
-| `QWINDOWKIT_ENABLE_STYLE_AGENT` | `ON` | 构建样式和主题辅助组件。 |
-
 项目依赖 `qmsetup`。如果 CMake 找不到已安装的 `qmsetup` package，会自动使用仓库中的 submodule。
 
 ## 集成到你的项目
