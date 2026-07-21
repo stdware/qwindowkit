@@ -124,11 +124,11 @@ if(NOT TARGET qmsetup::library)
         RESULT_PATH _package_path
     )
 
-    # Find package again
-    find_package(qmsetup REQUIRED PATHS ${_package_path})
-
     # Update import path
     set(qmsetup_DIR ${_package_path} CACHE PATH "" FORCE)
+
+    # Find package again
+    find_package(qmsetup REQUIRED PATHS ${_package_path})
 endif()
 
 qm_import(Filesystem)
