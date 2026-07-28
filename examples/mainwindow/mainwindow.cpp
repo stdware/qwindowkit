@@ -26,6 +26,10 @@
 
 #include <QWKWidgets/widgetwindowagent.h>
 
+#ifdef Q_OS_WINDOWS
+#  include <QtCore/qt_windows.h>
+#endif
+
 #include <widgetframe/windowbar.h>
 #include <widgetframe/windowbutton.h>
 
@@ -127,6 +131,14 @@ bool MainWindow::event(QEvent *event) {
             }
             break;
         }
+
+#ifdef Q_OS_WINDOWS
+        case QEvent::WinIdChange:
+            if (!applyingStayOnTop) {
+                setStayOnTop(stayOnTop);
+            }
+            break;
+#endif
 
         default:
             break;
@@ -432,11 +444,14 @@ void MainWindow::installWindowAgent() {
 #ifndef Q_OS_MAC
     connect(windowBar, &QWK::WindowBar::pinRequested, this, [this, pinButton](bool pin) {
         if (isHidden() || isMinimized() || isMaximized() || isFullScreen()) {
+            pinButton->setChecked(stayOnTop);
             return;
         }
-        setWindowFlag(Qt::WindowStaysOnTopHint, pin);
-        show();
-        pinButton->setChecked(pin);
+        if (setStayOnTop(pin)) {
+            pinButton->setChecked(pin);
+        } else {
+            pinButton->setChecked(stayOnTop);
+        }
     });
     connect(windowBar, &QWK::WindowBar::minimizeRequested, this, &QWidget::showMinimized);
     connect(windowBar, &QWK::WindowBar::maximizeRequested, this, [this, maxButton](bool max) {
@@ -452,6 +467,46 @@ void MainWindow::installWindowAgent() {
         emulateLeaveEvent(maxButton);
     });
     connect(windowBar, &QWK::WindowBar::closeRequested, this, &QWidget::close);
+#endif
+}
+
+bool MainWindow::setStayOnTop(bool enabled) {
+#ifdef Q_OS_WINDOWS
+    if (applyingStayOnTop) {
+        return false;
+    }
+
+    const auto hwnd = reinterpret_cast<HWND>(internalWinId());
+    if (!hwnd) {
+        return false;
+    }
+
+    applyingStayOnTop = true;
+    const bool success = ::SetWindowPos(hwnd, enabled ? HWND_TOPMOST : HWND_NOTOPMOST,
+                                        0, 0, 0, 0,
+                                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE |
+                                            SWP_NOOWNERZORDER) != FALSE;
+    applyingStayOnTop = false;
+    if (success) {
+        stayOnTop = enabled;
+    }
+    return success;
+#else
+    if (windowFlags().testFlag(Qt::WindowStaysOnTopHint) == enabled) {
+        stayOnTop = enabled;
+        return true;
+    }
+
+    const bool visible = isVisible();
+    const QPoint frameTopLeft = frameGeometry().topLeft();
+    setWindowFlag(Qt::WindowStaysOnTopHint, enabled);
+    if (visible) {
+        show();
+        const QPoint clientOffset = geometry().topLeft() - frameGeometry().topLeft();
+        move(frameTopLeft + clientOffset);
+    }
+    stayOnTop = enabled;
+    return true;
 #endif
 }
 

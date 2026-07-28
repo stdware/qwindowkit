@@ -33,8 +33,11 @@ protected:
 private:
     void installWindowAgent();
     void loadStyleSheet(Theme theme);
+    bool setStayOnTop(bool stayOnTop);
 
     Theme currentTheme{};
+    bool stayOnTop{false};
+    bool applyingStayOnTop{false};
 
     QWK::WidgetWindowAgent *windowAgent;
 };
