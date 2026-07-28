@@ -26,7 +26,7 @@
 
 #include <QWKWidgets/widgetwindowagent.h>
 
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
 #  include <QtCore/qt_windows.h>
 #endif
 
