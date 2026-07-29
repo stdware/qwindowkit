@@ -601,6 +601,9 @@ namespace QWK {
                 
                 NSMutableArray<NSButton *> *array = [NSMutableArray arrayWithCapacity:3];
                 for (NSButton *button : self_->systemButtons()) {
+                    if (!button) {
+                        continue;
+                    }
                     button.hidden = !self_->systemButtonVisible;
                     [array addObject:button];
                 }
