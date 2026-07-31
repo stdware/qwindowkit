@@ -4,6 +4,7 @@
 
 #include "win32windowcontext_p.h"
 
+#include <cstdlib>
 #include <optional>
 
 #include <QtCore/QAbstractEventDispatcher>
@@ -71,6 +72,20 @@ namespace QWK {
 
     // Original Qt window proc function
     static WNDPROC g_qtWindowProc = nullptr;
+
+    static bool isLikelyFrameDriftAfterWinIdChange(HWND hwnd, const RECT &expectedFrameRect,
+                                                   const RECT &candidateFrameRect) {
+        const int dx = candidateFrameRect.left - expectedFrameRect.left;
+        const int dy = candidateFrameRect.top - expectedFrameRect.top;
+        const int dw = RECT_WIDTH(candidateFrameRect) - RECT_WIDTH(expectedFrameRect);
+        const int dh = RECT_HEIGHT(candidateFrameRect) - RECT_HEIGHT(expectedFrameRect);
+        const int expectedDrift =
+            int(getTitleBarHeight(hwnd)) +
+            (isWin11OrGreater() ? int(getWindowFrameBorderThickness(hwnd)) : 0);
+
+        return std::abs(dx) <= 1 && std::abs(dw) <= 2 && std::abs(dh) <= 2 && dy > 0 &&
+               std::abs(dy - expectedDrift) <= 2;
+    }
 
     static inline bool
 #if !QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
@@ -879,9 +894,21 @@ namespace QWK {
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
-            removeManagedWindow(reinterpret_cast<HWND>(oldWinId));
+            const auto oldHWnd = reinterpret_cast<HWND>(oldWinId);
+            if (!restoringFrameRectAfterWinIdChange && isValidWindow(oldHWnd, false, true) &&
+                isWindowNoState(oldHWnd)) {
+                hasFrameRectBeforeWinIdChange =
+                    ::GetWindowRect(oldHWnd, &frameRectBeforeWinIdChange) != FALSE;
+            }
+            removeManagedWindow(oldHWnd);
         }
         if (!winId) {
+            QTimer::singleShot(0, this, [this]() {
+                if (!m_windowId) {
+                    hasFrameRectBeforeWinIdChange = false;
+                    hasPendingFrameRectAfterWinIdChange = false;
+                }
+            });
             return;
         }
 
@@ -910,6 +937,43 @@ namespace QWK {
 
         // Add managed window
         addManagedWindow(m_windowHandle, hWnd, this);
+
+        if (hasFrameRectBeforeWinIdChange && !restoringFrameRectAfterWinIdChange) {
+            pendingFrameRectAfterWinIdChange = frameRectBeforeWinIdChange;
+            hasPendingFrameRectAfterWinIdChange = true;
+            const RECT expectedFrameRect = pendingFrameRectAfterWinIdChange;
+            hasFrameRectBeforeWinIdChange = false;
+
+            QTimer::singleShot(0, this, [this, winId, expectedFrameRect]() {
+                if (m_windowId != winId || !m_windowHandle) {
+                    return;
+                }
+
+                const auto hWnd = reinterpret_cast<HWND>(m_windowId);
+                if (!isValidWindow(hWnd, false, true) || !isWindowNoState(hWnd)) {
+                    hasPendingFrameRectAfterWinIdChange = false;
+                    return;
+                }
+
+                RECT currentFrameRect{};
+                if (!::GetWindowRect(hWnd, &currentFrameRect)) {
+                    hasPendingFrameRectAfterWinIdChange = false;
+                    return;
+                }
+
+                if (!isLikelyFrameDriftAfterWinIdChange(hWnd, expectedFrameRect,
+                                                        currentFrameRect)) {
+                    hasPendingFrameRectAfterWinIdChange = false;
+                    return;
+                }
+
+                restoringFrameRectAfterWinIdChange = true;
+                ::SetWindowPos(hWnd, nullptr, expectedFrameRect.left, expectedFrameRect.top, 0, 0,
+                               SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+                restoringFrameRectAfterWinIdChange = false;
+                hasPendingFrameRectAfterWinIdChange = false;
+            });
+        }
     }
 
     bool Win32WindowContext::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam,
@@ -935,6 +999,36 @@ namespace QWK {
 
         if (!isValidWindow(hWnd, false, true)) {
             return false;
+        }
+
+        if (message == WM_WINDOWPOSCHANGING && hasPendingFrameRectAfterWinIdChange &&
+            !restoringFrameRectAfterWinIdChange) {
+            auto pos = reinterpret_cast<WINDOWPOS *>(lParam);
+            if (pos && !(pos->flags & SWP_NOMOVE)) {
+                RECT candidateFrameRect{};
+                candidateFrameRect.left = pos->x;
+                candidateFrameRect.top = pos->y;
+                if (pos->flags & SWP_NOSIZE) {
+                    RECT currentFrameRect{};
+                    if (::GetWindowRect(hWnd, &currentFrameRect)) {
+                        candidateFrameRect.right =
+                            candidateFrameRect.left + RECT_WIDTH(currentFrameRect);
+                        candidateFrameRect.bottom =
+                            candidateFrameRect.top + RECT_HEIGHT(currentFrameRect);
+                    }
+                } else {
+                    candidateFrameRect.right = candidateFrameRect.left + pos->cx;
+                    candidateFrameRect.bottom = candidateFrameRect.top + pos->cy;
+                }
+
+                if (candidateFrameRect.right > candidateFrameRect.left &&
+                    candidateFrameRect.bottom > candidateFrameRect.top &&
+                    isLikelyFrameDriftAfterWinIdChange(hWnd, pendingFrameRectAfterWinIdChange,
+                                                       candidateFrameRect)) {
+                    pos->x = pendingFrameRectAfterWinIdChange.left;
+                    pos->y = pendingFrameRectAfterWinIdChange.top;
+                }
+            }
         }
 
         // Test snap layout
