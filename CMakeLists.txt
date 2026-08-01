@@ -105,7 +105,8 @@ set(QWINDOWKIT_DESCRIPTION ${PROJECT_DESCRIPTION})
 # ----------------------------------
 # Find basic dependencies
 # ----------------------------------
-find_package(qmsetup QUIET)
+# `qmsetup` runs on the build machine, so it is never searched in the target sysroot
+find_package(qmsetup QUIET NO_CMAKE_FIND_ROOT_PATH)
 
 if(NOT TARGET qmsetup::library)
     # Modify this variable according to your project structure
@@ -116,7 +117,7 @@ if(NOT TARGET qmsetup::library)
 
     # Install package in place
     set(_package_path)
-    qm_install_package(qmsetup
+    qm_install_package(qmsetup HOST
         SOURCE_DIR ${_source_dir}
         CMAKE_PACKAGE_SUBDIR lib/cmake/qmsetup
         CONFIGURE_ARGS -DCMAKE_INSTALL_LIBDIR=lib
@@ -124,11 +125,13 @@ if(NOT TARGET qmsetup::library)
         RESULT_PATH _package_path
     )
 
+    # Find package again
+    find_package(qmsetup REQUIRED PATHS ${_package_path}
+        NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH
+    )
+
     # Update import path
     set(qmsetup_DIR ${_package_path} CACHE PATH "" FORCE)
-
-    # Find package again
-    find_package(qmsetup REQUIRED PATHS ${_package_path})
 endif()
 
 qm_import(Filesystem)
