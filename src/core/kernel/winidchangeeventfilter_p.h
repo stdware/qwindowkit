@@ -42,7 +42,6 @@ namespace QWK {
         WId winId() const override;
 
     protected:
-        QWindow *win;
         bool isAboutToBeDestroyed;
 
         bool eventFilter(QObject *obj, QEvent *event) override;

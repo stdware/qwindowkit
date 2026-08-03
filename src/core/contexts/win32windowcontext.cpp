@@ -80,8 +80,8 @@ namespace QWK {
         const int dw = RECT_WIDTH(candidateFrameRect) - RECT_WIDTH(expectedFrameRect);
         const int dh = RECT_HEIGHT(candidateFrameRect) - RECT_HEIGHT(expectedFrameRect);
         const int expectedDrift =
-            int(getTitleBarHeight(hwnd)) +
-            (isWin11OrGreater() ? int(getWindowFrameBorderThickness(hwnd)) : 0);
+            getTitleBarHeight(hwnd) +
+            (isWin11OrGreater() ? getWindowFrameBorderThickness(hwnd) : 0);
 
         return std::abs(dx) <= 1 && std::abs(dw) <= 2 && std::abs(dh) <= 2 && dy > 0 &&
                std::abs(dy - expectedDrift) <= 2;
@@ -681,7 +681,7 @@ namespace QWK {
 
         if (isSystemBorderEnabled()) {
             // Inform Qt we want and have set custom margins
-            setInternalWindowFrameMargins(window, QMargins(0, -int(getTitleBarHeight(hWnd)), 0, 0));
+            setInternalWindowFrameMargins(window, QMargins(0, -getTitleBarHeight(hWnd), 0, 0));
         }
 
         // Store original window proc
@@ -876,12 +876,12 @@ namespace QWK {
 
         if (key == QStringLiteral("border-thickness")) {
             return m_windowId
-                       ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
+                       ? getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId))
                        : 0;
         }
 
         if (key == QStringLiteral("title-bar-height")) {
-            return m_windowId ? int(getTitleBarHeight(reinterpret_cast<HWND>(m_windowId))) : 0;
+            return m_windowId ? getTitleBarHeight(reinterpret_cast<HWND>(m_windowId)) : 0;
         }
         return AbstractWindowContext::windowAttribute(key);
     }
@@ -2347,7 +2347,7 @@ namespace QWK {
             // then the window is clipped to the monitor so that the resize handle
             // do not appear because you don't need them (because you can't resize
             // a window when it's maximized unless you restore it).
-            const quint32 frameSize = getResizeBorderThickness(hWnd);
+            const LONG frameSize = getResizeBorderThickness(hWnd);
             clientRect->top += frameSize;
             if (!isSystemBorderEnabled()) {
                 clientRect->bottom -= frameSize;
@@ -2454,11 +2454,11 @@ namespace QWK {
         };
         const auto getNativeGlobalPosFromKeyboard = [hWnd]() -> POINT {
             const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
-            const quint32 frameSize = getResizeBorderThickness(hWnd);
-            const quint32 horizontalOffset =
+            const int frameSize = getResizeBorderThickness(hWnd);
+            const int horizontalOffset =
                 ((maxOrFull || !isSystemBorderEnabled()) ? 0 : frameSize);
-            const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> quint32 {
-                const quint32 titleBarHeight = getTitleBarHeight(hWnd);
+            const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> int {
+                const int titleBarHeight = getTitleBarHeight(hWnd);
                 if (!isSystemBorderEnabled()) {
                     return titleBarHeight;
                 }
@@ -2548,9 +2548,8 @@ namespace QWK {
             if (iconButtonClickTime > 0) {
                 POINT menuPos{0, static_cast<LONG>(getTitleBarHeight(hWnd))};
                 if (const auto tb = titleBar()) {
-                    auto titleBarHeight = qreal(m_delegate->mapGeometryToScene(tb).height());
-                    titleBarHeight *= m_windowHandle->devicePixelRatio();
-                    menuPos.y = qRound(titleBarHeight);
+                    const int titleBarHeight = m_delegate->mapGeometryToScene(tb).height();
+                    menuPos.y = QHighDpi::toNativeLocalPosition(QPoint(0, titleBarHeight), m_windowHandle.data()).y();
                 }
                 ::ClientToScreen(hWnd, &menuPos);
                 nativeGlobalPos = menuPos;

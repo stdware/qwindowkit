@@ -27,7 +27,7 @@ namespace QWK {
 
         void init();
 
-        WindowAgentBase *q_ptr; // no need to initialize
+        WindowAgentBase *q_ptr = nullptr;
 
         virtual AbstractWindowContext *createContext() const;
 
