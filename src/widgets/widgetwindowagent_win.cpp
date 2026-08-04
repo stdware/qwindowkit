@@ -124,7 +124,7 @@ namespace QWK {
                     bool exposeRegionValid = !ee->region().isNull();
 #endif
                     auto window = widget->windowHandle();
-                    if (window->isExposed() && isNormalWindow() && exposeRegionValid) {
+                    if (window && window->isExposed() && isNormalWindow() && exposeRegionValid) {
                         forwardEventToWindowAndDraw(window, event);
                         return true;
                     }

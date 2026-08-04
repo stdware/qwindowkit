@@ -203,7 +203,7 @@ namespace QWK {
         // QWidget is shown again, the whole things will be recreated again.
         // As a result, we must update our WindowContext each time the WinId changes.
         if (m_windowHandle) {
-            removeEventFilter(m_windowHandle);
+            m_windowHandle->removeEventFilter(this);
         }
         m_windowHandle = m_delegate->hostWindow(m_host);
         if (m_windowHandle) {

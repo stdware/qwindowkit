@@ -87,12 +87,16 @@ namespace QWK {
         setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above
                                                  // everything in the window.
 
+        // The item is parented to the window's content item, so there normally is a window
+        // here, but window() is nullable and the rest of this class already treats it as such.
+        if (auto win = window()) {
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        connect(window(), &QQuickWindow::afterSynchronizing, this,
-                &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
+            connect(win, &QQuickWindow::afterSynchronizing, this,
+                    &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
 #  endif
-        connect(window(), &QQuickWindow::activeChanged, this,
-                &BorderItem::_q_windowActivityChanged);
+            connect(win, &QQuickWindow::activeChanged, this,
+                    &BorderItem::_q_windowActivityChanged);
+        }
 
         // First update
         if (context->windowId()) {
@@ -149,6 +153,7 @@ namespace QWK {
         switch (event->type()) {
             case QEvent::WindowStateChange: {
                 updateGeometry();
+                break;
             }
             default:
                 break;

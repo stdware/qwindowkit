@@ -711,6 +711,17 @@ namespace QWK {
         if (!g_wndProcHash->remove(hWnd))
             return;
 
+        // Unhook the window procedure, but only when ours is still the one installed. Anybody
+        // is free to subclass the window after we did, and writing g_qtWindowProc back
+        // unconditionally would silently drop them out of the chain. When that happens we
+        // simply leave QWKHookedWndProc in place: with no context left in g_wndProcHash it
+        // forwards everything straight to g_qtWindowProc anyway.
+        if (g_qtWindowProc &&
+            reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
+                QWKHookedWndProc) {
+            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
+        }
+
         // Remove event filter if the all windows has been destroyed
         if (g_wndProcHash->empty()) {
             WindowsNativeEventFilter::uninstall();
@@ -2075,7 +2086,7 @@ namespace QWK {
                 static constexpr const auto kBadWindowPosFlag =
                     SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
                 const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
-                if (windowPos->flags == kBadWindowPosFlag) {
+                if (windowPos && windowPos->flags == kBadWindowPosFlag) {
                     windowPos->flags |= SWP_NOCOPYBITS;
                 }
                 break;
