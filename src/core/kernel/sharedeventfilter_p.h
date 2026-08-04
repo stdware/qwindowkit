@@ -35,6 +35,8 @@ namespace QWK {
     protected:
         QList<SharedEventFilter *> m_sharedEventFilters;
 
+        int m_sharedDispatchDepth = 0;
+
         friend class SharedEventFilter;
 
         Q_DISABLE_COPY(SharedEventDispatcher)

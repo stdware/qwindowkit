@@ -20,17 +20,34 @@ namespace QWK {
 
     NativeEventDispatcher::~NativeEventDispatcher() {
         for (const auto &observer : std::as_const(m_nativeEventFilters)) {
+            if (!observer)
+                continue;
             observer->m_nativeDispatcher = nullptr;
         }
     }
 
     bool NativeEventDispatcher::nativeDispatch(const QByteArray &eventType, void *message,
                                                QT_NATIVE_EVENT_RESULT_TYPE *result) {
-        for (const auto &ef : std::as_const(m_nativeEventFilters)) {
-            if (ef->nativeEventFilter(eventType, message, result))
-                return true;
+        // A callback is free to install or remove filters, including itself, and it may even
+        // re-enter this function because handling a native event can pump more native events.
+        // Iterate by index and re-read the size on every step, and rely on removals leaving a
+        // null tombstone behind so that the indexes of the outer dispatches stay valid. This
+        // mirrors how QObject's event filter list is walked.
+        ++m_nativeDispatchDepth;
+        bool filtered = false;
+        for (qsizetype i = 0; i < m_nativeEventFilters.size(); ++i) {
+            NativeEventFilter *ef = m_nativeEventFilters.at(i);
+            if (!ef)
+                continue;
+            if (ef->nativeEventFilter(eventType, message, result)) {
+                filtered = true;
+                break;
+            }
         }
-        return false;
+        if (--m_nativeDispatchDepth == 0) {
+            m_nativeEventFilters.removeAll(nullptr);
+        }
+        return filtered;
     }
 
     void NativeEventDispatcher::installNativeEventFilter(NativeEventFilter *filter) {
@@ -42,8 +59,14 @@ namespace QWK {
     }
 
     void NativeEventDispatcher::removeNativeEventFilter(NativeEventFilter *filter) {
-        if (!m_nativeEventFilters.removeOne(filter)) {
+        const qsizetype index = m_nativeEventFilters.indexOf(filter);
+        if (index < 0) {
             return;
+        }
+        if (m_nativeDispatchDepth > 0) {
+            m_nativeEventFilters[index] = nullptr;
+        } else {
+            m_nativeEventFilters.removeAt(index);
         }
         filter->m_nativeDispatcher = nullptr;
     }
@@ -79,8 +102,12 @@ namespace QWK {
     }
 
     AppNativeEventFilter::~AppNativeEventFilter() {
-        AppMasterNativeEventFilter::instance->removeNativeEventFilter(this);
-        if (AppMasterNativeEventFilter::instance->m_nativeEventFilters.isEmpty()) {
+        auto master = AppMasterNativeEventFilter::instance;
+        master->removeNativeEventFilter(this);
+        // Never destroy the master from inside its own dispatch, its stack frame is still
+        // alive. It stays registered with an empty filter list instead, and the next
+        // AppNativeEventFilter simply picks it up again.
+        if (master->m_nativeDispatchDepth == 0 && master->m_nativeEventFilters.isEmpty()) {
             delete std::exchange(AppMasterNativeEventFilter::instance, nullptr);
         }
     }

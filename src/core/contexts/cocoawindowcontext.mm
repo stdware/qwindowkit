@@ -257,16 +257,46 @@ namespace QWK {
                 return;
             }
             const auto &buttons = systemButtons();
-            const auto &leftButton = buttons[0];
-            const auto &midButton = buttons[1];
-            const auto &rightButton = buttons[2];
+            NSButton *leftButton = buttons[0];
+            NSButton *midButton = buttons[1];
+            NSButton *rightButton = buttons[2];
 
-            auto titlebar = rightButton.superview;
+            // standardWindowButton: returns nil for buttons the window does not have, and there
+            // is no NSWindow at all before the window is realized. Messaging nil yields a zeroed
+            // NSRect instead of crashing, so without these guards the whole layout would
+            // silently collapse onto a zero-height title bar. Anchor the geometry on a button
+            // that actually exists, preferring the middle one so that the common case where all
+            // three are present behaves exactly as before.
+            NSButton *refButton = midButton;
+            if (!refButton) {
+                refButton = leftButton;
+            }
+            if (!refButton) {
+                refButton = rightButton;
+            }
+            if (!refButton) {
+                return;
+            }
+
+            auto titlebar = refButton.superview;
+            if (!titlebar) {
+                return;
+            }
             int titlebarHeight = titlebar.frame.size.height;
 
-            auto spacing = midButton.frame.origin.x - leftButton.frame.origin.x;
-            auto width = midButton.frame.size.width;
-            auto height = midButton.frame.size.height;
+            // The gap between two adjacent buttons, which can only be measured when at least
+            // two of them are present. With fewer there is nothing to spread out anyway.
+            CGFloat spacing = 0;
+            if (leftButton && midButton) {
+                spacing = midButton.frame.origin.x - leftButton.frame.origin.x;
+            } else if (midButton && rightButton) {
+                spacing = rightButton.frame.origin.x - midButton.frame.origin.x;
+            } else if (leftButton && rightButton) {
+                spacing = (rightButton.frame.origin.x - leftButton.frame.origin.x) / 2;
+            }
+
+            auto width = refButton.frame.size.width;
+            auto height = refButton.frame.size.height;
 
             auto viewSize = nsview.frame.size;
             QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
@@ -280,21 +310,27 @@ namespace QWK {
                 center.x() - width / 2,
                 center.y() - height / 2,
             };
-            [midButton setFrameOrigin:centerOrigin];
+            if (midButton) {
+                [midButton setFrameOrigin:centerOrigin];
+            }
 
             // Left button
-            NSPoint leftOrigin = {
-                centerOrigin.x - spacing,
-                centerOrigin.y,
-            };
-            [leftButton setFrameOrigin:leftOrigin];
+            if (leftButton) {
+                NSPoint leftOrigin = {
+                    centerOrigin.x - spacing,
+                    centerOrigin.y,
+                };
+                [leftButton setFrameOrigin:leftOrigin];
+            }
 
             // Right button
-            NSPoint rightOrigin = {
-                centerOrigin.x + spacing,
-                centerOrigin.y,
-            };
-            [rightButton setFrameOrigin:rightOrigin];
+            if (rightButton) {
+                NSPoint rightOrigin = {
+                    centerOrigin.x + spacing,
+                    centerOrigin.y,
+                };
+                [rightButton setFrameOrigin:rightOrigin];
+            }
         }
 
         inline std::array<NSButton *, 3> systemButtons() {
@@ -994,6 +1030,15 @@ namespace QWK {
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case SystemButtonAreaChangedHook: {
+                // This hook fires whenever the callback is set or the system button area item
+                // moves or resizes, and both happen freely before the window has a native
+                // handle. Calling ensureWindowProxy() with a null WId would swizzle against a
+                // nil view class and park a bogus proxy in g_proxyList, which then never gets
+                // empty again and prevents the real window from ever being set up. The callback
+                // is kept in m_systemButtonAreaCallback and applied by winIdChanged() as soon as
+                // the window exists, so there is nothing to do here yet.
+                if (!m_windowId)
+                    return;
                 ensureWindowProxy(m_windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
                 return;
             }

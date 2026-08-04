@@ -135,6 +135,12 @@ namespace QWK {
 
     void LinuxX11Context::virtual_hook(int id, void *data) {
         if (id == ShowSystemMenuHook) {
+            // showSystemMenu() is public API and may be called before the window is created or
+            // after it has been destroyed.
+            if (!m_windowId || !m_windowHandle) {
+                return;
+            }
+
             auto *x11app = qApp->nativeInterface<QNativeInterface::QX11Application>();
             if (!x11app) {
                 return;

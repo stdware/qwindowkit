@@ -26,7 +26,7 @@ namespace QWK {
 
         void init();
 
-        StyleAgent *q_ptr;
+        StyleAgent *q_ptr = nullptr;
 
         StyleAgent::SystemTheme systemTheme = StyleAgent::Unknown;
         QColor systemAccentColor;

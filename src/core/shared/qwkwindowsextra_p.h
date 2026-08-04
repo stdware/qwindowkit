@@ -14,9 +14,10 @@
 // version without notice, or may even be removed.
 //
 
+#include <limits>
+
 #include <QWKCore/qwindowkit_windows.h>
 
-#include <QtCore/QtMath>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 #include <QtGui/QPalette>
@@ -50,6 +51,7 @@ typedef struct _DWM_BLURBEHIND
 
 extern "C" {
     UINT    WINAPI GetDpiForWindow(HWND);
+    UINT    WINAPI GetDpiForSystem();
     int     WINAPI GetSystemMetricsForDpi(int, UINT);
     BOOL    WINAPI AdjustWindowRectExForDpi(LPRECT, DWORD, BOOL, DWORD, UINT);
     HRESULT WINAPI GetDpiForMonitor(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *);
@@ -209,6 +211,7 @@ namespace QWK {
             DYNAMIC_API_DECLARE(DwmExtendFrameIntoClientArea);
             DYNAMIC_API_DECLARE(DwmEnableBlurBehindWindow);
             DYNAMIC_API_DECLARE(GetDpiForWindow);
+            DYNAMIC_API_DECLARE(GetDpiForSystem);
             DYNAMIC_API_DECLARE(GetSystemMetricsForDpi);
             DYNAMIC_API_DECLARE(AdjustWindowRectExForDpi);
             DYNAMIC_API_DECLARE(GetDpiForMonitor);
@@ -229,6 +232,7 @@ namespace QWK {
 
                 QSystemLibrary user32(QStringLiteral("user32"));
                 DYNAMIC_API_RESOLVE(user32, GetDpiForWindow);
+                DYNAMIC_API_RESOLVE(user32, GetDpiForSystem);
                 DYNAMIC_API_RESOLVE(user32, GetSystemMetricsForDpi);
                 DYNAMIC_API_RESOLVE(user32, SetWindowCompositionAttribute);
                 DYNAMIC_API_RESOLVE(user32, AdjustWindowRectExForDpi);
@@ -280,22 +284,6 @@ namespace QWK {
 
     inline constexpr bool operator!=(const SIZE &lhs, const SIZE &rhs) noexcept {
         return !operator==(lhs, rhs);
-    }
-
-    inline constexpr bool operator>(const SIZE &lhs, const SIZE &rhs) noexcept {
-        return ((lhs.cx * lhs.cy) > (rhs.cx * rhs.cy));
-    }
-
-    inline constexpr bool operator>=(const SIZE &lhs, const SIZE &rhs) noexcept {
-        return (operator>(lhs, rhs) || operator==(lhs, rhs));
-    }
-
-    inline constexpr bool operator<(const SIZE &lhs, const SIZE &rhs) noexcept {
-        return (operator!=(lhs, rhs) && !operator>(lhs, rhs));
-    }
-
-    inline constexpr bool operator<=(const SIZE &lhs, const SIZE &rhs) noexcept {
-        return (operator<(lhs, rhs) || operator==(lhs, rhs));
     }
 
     inline constexpr bool operator==(const RECT &lhs, const RECT &rhs) noexcept {
@@ -443,49 +431,61 @@ namespace QWK {
 #endif
     }
 
+    inline quint32 getSystemDpi() {
+        const DynamicApis &apis = DynamicApis::instance();
+        if (apis.pGetDpiForSystem)
+            return apis.pGetDpiForSystem();
+
+        HDC hdc = ::GetDC(nullptr);
+        if (!hdc)
+            return USER_DEFAULT_SCREEN_DPI;
+        const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
+        ::ReleaseDC(nullptr, hdc);
+        return dpiX > 0 ? quint32(dpiX) : quint32(USER_DEFAULT_SCREEN_DPI);
+    }
+
     inline quint32 getDpiForWindow(HWND hwnd) {
         Q_ASSERT(hwnd);
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetDpiForWindow) { // Win10
-            return apis.pGetDpiForWindow(hwnd);
-        } else if (apis.pGetDpiForMonitor) { // Win8.1
+            const UINT dpi = apis.pGetDpiForWindow(hwnd);
+            if (dpi != 0)
+                return dpi;
+        }
+        if (apis.pGetDpiForMonitor) { // Win8.1
             HMONITOR monitor = ::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
             UINT dpiX{0};
             UINT dpiY{0};
-            apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-            return dpiX;
-        } else { // Win2K
-            HDC hdc = ::GetDC(nullptr);
-            const int dpiX = ::GetDeviceCaps(hdc, LOGPIXELSX);
-            // const int dpiY = ::GetDeviceCaps(hdc, LOGPIXELSY);
-            ::ReleaseDC(nullptr, hdc);
-            return quint32(dpiX);
+            const HRESULT hr = apis.pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+            if (SUCCEEDED(hr) && dpiX != 0)
+                return dpiX;
         }
+        return getSystemDpi(); // Win2K, or a failed modern API call
     }
 
-    inline quint32 getSystemMetricsForDpi(int index, quint32 dpi) {
+    inline int getSystemMetricsForDpi(int index, quint32 dpi) {
+        Q_ASSERT(dpi);
+        if (!dpi)
+            return 0;
+
         const DynamicApis &apis = DynamicApis::instance();
         if (apis.pGetSystemMetricsForDpi) {
             return apis.pGetSystemMetricsForDpi(index, dpi);
         }
-        const int result = ::GetSystemMetrics(index);
-        // GetSystemMetrics() always give you scaled value.
-        if (dpi != USER_DEFAULT_SCREEN_DPI) {
-            return result;
-        }
-        const qreal dpr = qreal(dpi) / qreal(USER_DEFAULT_SCREEN_DPI);
-        // ### Not sure how Windows itself rounds non-integer value.
-        return qFloor(qreal(result) / dpr);
+        // GetSystemMetrics() is scaled for the system DPI. Rescale that value to the requested
+        // DPI, using the same integer rounding primitive as Windows.
+        return ::MulDiv(::GetSystemMetrics(index), int(dpi), int(getSystemDpi()));
     }
 
-    inline quint32 getWindowFrameBorderThickness(HWND hwnd) {
+    inline int getWindowFrameBorderThickness(HWND hwnd) {
         Q_ASSERT(hwnd);
         const DynamicApis &apis = DynamicApis::instance();
         if (isWin11OrGreater()) {
             UINT result = 0;
             if (SUCCEEDED(apis.pDwmGetWindowAttribute(hwnd, _DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
-                                                      &result, sizeof(result)))) {
-                return result;
+                                                      &result, sizeof(result))) &&
+                result <= static_cast<UINT>((std::numeric_limits<int>::max)())) {
+                return static_cast<int>(result);
             }
         }
         if (isWin10OrGreater()) {
@@ -497,7 +497,7 @@ namespace QWK {
         return 0;
     }
 
-    inline quint32 getResizeBorderThickness(HWND hwnd) {
+    inline int getResizeBorderThickness(HWND hwnd) {
         Q_ASSERT(hwnd);
         const quint32 dpi = getDpiForWindow(hwnd);
         // When DPI is 96, SM_CXSIZEFRAME is 4px, SM_CXPADDEDBORDER is also 4px,
@@ -507,7 +507,7 @@ namespace QWK {
                getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     }
 
-    inline quint32 getTitleBarHeight(HWND hwnd) {
+    inline int getTitleBarHeight(HWND hwnd) {
         Q_ASSERT(hwnd);
         const quint32 dpi = getDpiForWindow(hwnd);
         // When DPI is 96, SM_CYCAPTION is 23px, so the result should be 31px.

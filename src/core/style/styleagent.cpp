@@ -36,7 +36,8 @@ namespace QWK {
     }
 
     void StyleAgentPrivate::notifyAccentColorChanged(const QColor &color) {
-        Q_ASSERT(color.isValid());
+        // An invalid color is not a programming error: the platform code legitimately reports
+        // one when it cannot determine the accent color (a failed registry read, for example).
         if (color == systemAccentColor)
             return;
         systemAccentColor = color;

@@ -80,8 +80,8 @@ namespace QWK {
         const int dw = RECT_WIDTH(candidateFrameRect) - RECT_WIDTH(expectedFrameRect);
         const int dh = RECT_HEIGHT(candidateFrameRect) - RECT_HEIGHT(expectedFrameRect);
         const int expectedDrift =
-            int(getTitleBarHeight(hwnd)) +
-            (isWin11OrGreater() ? int(getWindowFrameBorderThickness(hwnd)) : 0);
+            getTitleBarHeight(hwnd) +
+            (isWin11OrGreater() ? getWindowFrameBorderThickness(hwnd) : 0);
 
         return std::abs(dx) <= 1 && std::abs(dw) <= 2 && std::abs(dh) <= 2 && dy > 0 &&
                std::abs(dy - expectedDrift) <= 2;
@@ -681,7 +681,7 @@ namespace QWK {
 
         if (isSystemBorderEnabled()) {
             // Inform Qt we want and have set custom margins
-            setInternalWindowFrameMargins(window, QMargins(0, -int(getTitleBarHeight(hWnd)), 0, 0));
+            setInternalWindowFrameMargins(window, QMargins(0, -getTitleBarHeight(hWnd), 0, 0));
         }
 
         // Store original window proc
@@ -710,6 +710,17 @@ namespace QWK {
         // Remove window handle mapping
         if (!g_wndProcHash->remove(hWnd))
             return;
+
+        // Unhook the window procedure, but only when ours is still the one installed. Anybody
+        // is free to subclass the window after we did, and writing g_qtWindowProc back
+        // unconditionally would silently drop them out of the chain. When that happens we
+        // simply leave QWKHookedWndProc in place: with no context left in g_wndProcHash it
+        // forwards everything straight to g_qtWindowProc anyway.
+        if (g_qtWindowProc &&
+            reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
+                QWKHookedWndProc) {
+            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
+        }
 
         // Remove event filter if the all windows has been destroyed
         if (g_wndProcHash->empty()) {
@@ -876,12 +887,12 @@ namespace QWK {
 
         if (key == QStringLiteral("border-thickness")) {
             return m_windowId
-                       ? int(getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId)))
+                       ? getWindowFrameBorderThickness(reinterpret_cast<HWND>(m_windowId))
                        : 0;
         }
 
         if (key == QStringLiteral("title-bar-height")) {
-            return m_windowId ? int(getTitleBarHeight(reinterpret_cast<HWND>(m_windowId))) : 0;
+            return m_windowId ? getTitleBarHeight(reinterpret_cast<HWND>(m_windowId)) : 0;
         }
         return AbstractWindowContext::windowAttribute(key);
     }
@@ -2075,7 +2086,7 @@ namespace QWK {
                 static constexpr const auto kBadWindowPosFlag =
                     SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
                 const auto windowPos = reinterpret_cast<LPWINDOWPOS>(lParam);
-                if (windowPos->flags == kBadWindowPosFlag) {
+                if (windowPos && windowPos->flags == kBadWindowPosFlag) {
                     windowPos->flags |= SWP_NOCOPYBITS;
                 }
                 break;
@@ -2347,7 +2358,7 @@ namespace QWK {
             // then the window is clipped to the monitor so that the resize handle
             // do not appear because you don't need them (because you can't resize
             // a window when it's maximized unless you restore it).
-            const quint32 frameSize = getResizeBorderThickness(hWnd);
+            const LONG frameSize = getResizeBorderThickness(hWnd);
             clientRect->top += frameSize;
             if (!isSystemBorderEnabled()) {
                 clientRect->bottom -= frameSize;
@@ -2454,11 +2465,11 @@ namespace QWK {
         };
         const auto getNativeGlobalPosFromKeyboard = [hWnd]() -> POINT {
             const bool maxOrFull = isMaximized(hWnd) || isFullScreen(hWnd);
-            const quint32 frameSize = getResizeBorderThickness(hWnd);
-            const quint32 horizontalOffset =
+            const int frameSize = getResizeBorderThickness(hWnd);
+            const int horizontalOffset =
                 ((maxOrFull || !isSystemBorderEnabled()) ? 0 : frameSize);
-            const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> quint32 {
-                const quint32 titleBarHeight = getTitleBarHeight(hWnd);
+            const auto verticalOffset = [hWnd, maxOrFull, frameSize]() -> int {
+                const int titleBarHeight = getTitleBarHeight(hWnd);
                 if (!isSystemBorderEnabled()) {
                     return titleBarHeight;
                 }
@@ -2548,9 +2559,8 @@ namespace QWK {
             if (iconButtonClickTime > 0) {
                 POINT menuPos{0, static_cast<LONG>(getTitleBarHeight(hWnd))};
                 if (const auto tb = titleBar()) {
-                    auto titleBarHeight = qreal(m_delegate->mapGeometryToScene(tb).height());
-                    titleBarHeight *= m_windowHandle->devicePixelRatio();
-                    menuPos.y = qRound(titleBarHeight);
+                    const int titleBarHeight = m_delegate->mapGeometryToScene(tb).height();
+                    menuPos.y = QHighDpi::toNativeLocalPosition(QPoint(0, titleBarHeight), m_windowHandle.data()).y();
                 }
                 ::ClientToScreen(hWnd, &menuPos);
                 nativeGlobalPos = menuPos;
