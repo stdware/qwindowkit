@@ -994,6 +994,15 @@ namespace QWK {
     void CocoaWindowContext::virtual_hook(int id, void *data) {
         switch (id) {
             case SystemButtonAreaChangedHook: {
+                // This hook fires whenever the callback is set or the system button area item
+                // moves or resizes, and both happen freely before the window has a native
+                // handle. Calling ensureWindowProxy() with a null WId would swizzle against a
+                // nil view class and park a bogus proxy in g_proxyList, which then never gets
+                // empty again and prevents the real window from ever being set up. The callback
+                // is kept in m_systemButtonAreaCallback and applied by winIdChanged() as soon as
+                // the window exists, so there is nothing to do here yet.
+                if (!m_windowId)
+                    return;
                 ensureWindowProxy(m_windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
                 return;
             }
