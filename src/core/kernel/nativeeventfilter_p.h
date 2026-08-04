@@ -36,6 +36,8 @@ namespace QWK {
     protected:
         QList<NativeEventFilter *> m_nativeEventFilters;
 
+        int m_nativeDispatchDepth = 0;
+
         friend class NativeEventFilter;
 
         Q_DISABLE_COPY(NativeEventDispatcher)
