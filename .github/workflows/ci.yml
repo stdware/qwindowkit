@@ -23,31 +23,42 @@ jobs:
         include:
           # qt_arch is what aqt calls the build for this platform. clang-cl takes the MSVC one,
           # the two agreeing on an ABI.
+          #
+          # qt_version is the LTS everywhere it can be. macOS is on 6.9 because Apple removed the
+          # AGL framework from the SDK and Qt's FindWrapOpenGL, which Qt6::Gui links through, put
+          # the literal -framework AGL on the link line when it could not find one. Everything
+          # linking Qt Gui therefore fails to link on a current runner image until 6.9.2, where
+          # that is gone. QTBUG-137687.
           - platform: linux-gcc
             os: ubuntu-latest
             cc: gcc
             cxx: g++
             qt_arch: linux_gcc_64
+            qt_version: '6.8.1'
           - platform: linux-clang
             os: ubuntu-latest
             cc: clang
             cxx: clang++
             qt_arch: linux_gcc_64
+            qt_version: '6.8.1'
           - platform: macos
             os: macos-latest
             cc: clang
             cxx: clang++
             qt_arch: clang_64
+            qt_version: '6.9.*'
           - platform: windows-msvc
             os: windows-latest
             cc: cl
             cxx: cl
             qt_arch: win64_msvc2022_64
+            qt_version: '6.8.1'
           - platform: windows-clang-cl
             os: windows-latest
             cc: clang-cl
             cxx: clang-cl
             qt_arch: win64_msvc2022_64
+            qt_version: '6.8.1'
 
     steps:
       # qmsetup is a submodule, and the root CMakeLists falls back to building it in place when no
@@ -65,7 +76,7 @@ jobs:
       # not build.
       - uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.1'
+          version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
           cache: true
 
