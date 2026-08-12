@@ -1,0 +1,168 @@
+name: CI
+
+# Work happens on dev and lands on main with `git promote`, so main is the only branch worth
+# spending runners on. workflow_dispatch is there to repeat a run without pushing.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # One job per compiler rather than per configuration. What varies here is not what the code
+  # does, it is what the platform does underneath it: the window context is a different body of
+  # code on Windows, macOS, X11 and Wayland, and only the platform decides which one is compiled.
+  # Windows gets more than one compiler because it is the platform where the compiler decides
+  # what a binary looks like, and because the win32 context is the largest of the four.
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ linux-gcc, linux-clang, macos, windows-msvc, windows-clang-cl ]
+        include:
+          # qt_arch is what aqt calls the build for this platform. clang-cl takes the MSVC one,
+          # the two agreeing on an ABI.
+          - platform: linux-gcc
+            os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+            qt_arch: linux_gcc_64
+          - platform: linux-clang
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            qt_arch: linux_gcc_64
+          - platform: macos
+            os: macos-latest
+            cc: clang
+            cxx: clang++
+            qt_arch: clang_64
+          - platform: windows-msvc
+            os: windows-latest
+            cc: cl
+            cxx: cl
+            qt_arch: win64_msvc2022_64
+          - platform: windows-clang-cl
+            os: windows-latest
+            cc: clang-cl
+            cxx: clang-cl
+            qt_arch: win64_msvc2022_64
+
+    steps:
+      # qmsetup is a submodule, and the root CMakeLists falls back to building it in place when no
+      # installed copy is found. Without this the configure stops on a directory that is not there.
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: ./.github/actions/setup
+
+      # No modules asked for. Qt Quick comes with the base install for Qt 6, and naming something
+      # aqt does not know is a job that fails where something missing is only a target that does
+      # not build.
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.1'
+          arch: ${{ matrix.qt_arch }}
+          cache: true
+
+      # Everything on, so that each job compiles all three libraries and both examples. The
+      # examples are the only thing here that uses the public API the way a caller does.
+      - name: Configure
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_EXAMPLES=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON
+
+      # The build system tests register themselves only where the configure found the tool they
+      # drive, which is the one way this job could go green while covering less than it says. A
+      # missing qmake or nmake is meant to be a skip on a developer's machine and a failure here.
+      - name: Check that the consumer tests registered
+        shell: bash
+        run: |
+          expected="buildsystems.cmake buildsystems.qmake"
+
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            expected="$expected buildsystems.msbuild"
+          fi
+
+          for name in $expected; do
+            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
+              echo "$name did not register, so the tool it drives was not found here"
+              exit 1
+            fi
+          done
+
+      - name: Build
+        run: cmake --build build
+
+      # --no-tests=error is not optional. ctest exits 0 when it finds nothing to run, and every
+      # test in this suite registers itself conditionally.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --no-tests=error
+
+  # MinGW is a job of its own because it wants msys2 rather than the toolchain the matrix above
+  # sets up with an environment variable, and because Qt comes from the same place as the compiler
+  # here. What aqt ships for Windows is built by MSVC or by a MinGW of its own choosing, and a Qt
+  # built by a different MinGW than the one compiling against it is a link error.
+  #
+  # It is worth having because it is the one Windows compiler that is not Microsoft's. The win32
+  # context reaches for uxtheme, dwmapi and a good deal of the Windows SDK, and MinGW is where a
+  # header that Microsoft's SDK spells differently shows up.
+  mingw:
+    name: windows-mingw
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # mingw-w64-x86_64-make is what puts mingw32-make on the path, which is the tool the qmake
+      # consumer test drives. Ninja builds this project, that one builds the consumer.
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-declarative
+
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_EXAMPLES=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON
+
+      # The same question the matrix jobs ask. MSBuild is not part of this toolchain, so only the
+      # qmake half is expected here.
+      - name: Check that the consumer tests registered
+        shell: msys2 {0}
+        run: |
+          for name in buildsystems.cmake buildsystems.qmake; do
+            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
+              echo "$name did not register, so the tool it drives was not found here"
+              exit 1
+            fi
+          done
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build
+
+      - name: Test
+        shell: msys2 {0}
+        run: ctest --test-dir build --output-on-failure --no-tests=error

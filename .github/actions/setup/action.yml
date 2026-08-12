@@ -1,0 +1,32 @@
+name: Set up the build
+description: Ninja, the Qt platform dependencies and the compiler environment, so that a job only has to run cmake.
+
+runs:
+  using: composite
+  steps:
+    # Qt 6's own CMake package looks for OpenGL and xkbcommon before it will hand out Qt6::Gui,
+    # and this project compiles against the private headers of that module.
+    - name: Ninja and the Qt platform dependencies (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-dev
+
+    - name: Ninja (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install ninja
+
+    - name: Ninja (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: choco install ninja -y --no-progress
+
+    # More than the compiler. The build system tests look for nmake and MSBuild at configure time,
+    # and neither is on the path of a Windows runner until this has run, so without it those two
+    # tests do not register and the job goes green having built a consumer with nothing.
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: runner.os == 'Windows'
+      with:
+        arch: x64

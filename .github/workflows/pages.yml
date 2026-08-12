@@ -1,0 +1,80 @@
+name: GitHub Pages
+
+# Publishes the Doxygen documentation to https://stdware.github.io/qwindowkit
+#
+# Building the documentation as a check belongs in ci.yml. This one exists to publish it, which is
+# why it runs on main alone and asks for the permissions it does.
+#
+# The repository needs Pages turned on with "GitHub Actions" as its source, under
+# Settings -> Pages, before the deploy step has anywhere to put the result.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. A run already under way is left to finish rather than cancelled, so
+# that what ends up published is a complete build.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # qmsetup carries the Doxyfile and the CMake modules the build is driven by.
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build doxygen graphviz \
+            libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-dev
+
+      # No modules asked for, as in `ci.yml`. Qt Quick comes with the base install for Qt 6, and
+      # naming something aqt does not know is a job that fails.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.1'
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DQWINDOWKIT_BUILD_QUICK=ON
+          -DQWINDOWKIT_BUILD_DOCUMENTATIONS=ON
+
+      # Doxygen reads the include directories and the definitions off the library targets, so this
+      # builds them first.
+      - name: Build documentation
+        run: cmake --build build --target QWindowKit_RunDoxygen
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/out/share/doc/QWindowKit/html
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
