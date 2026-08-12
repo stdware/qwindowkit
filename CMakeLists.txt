@@ -134,6 +134,11 @@ if(NOT TARGET qmsetup::library)
 endif()
 
 qm_import(Filesystem)
+
+if(NOT DEFINED QMSETUP_BUILD_DIR)
+    set(QMSETUP_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
+endif()
+
 qm_init_directories()
 
 set(QT_NO_PRIVATE_MODULE_WARNING ON)

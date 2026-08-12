@@ -1,9 +1,9 @@
-set(_build_data_dir ${CMAKE_CURRENT_BINARY_DIR}/../etc/share)
+# Staged in the build output directory, under the same subdirectories they are installed into.
+set(_build_data_dir ${QWINDOWKIT_BUILD_DATA_DIR})
 
 # Install qmake files
 if(TRUE)
     set(_qmake_install_dir "${CMAKE_INSTALL_DATADIR}/QWindowKit/qmake")
-    set(_qmake_build_dir ${_build_data_dir}/${_qmake_install_dir})
     file(RELATIVE_PATH _qmake_install_prefix
         "${CMAKE_INSTALL_PREFIX}/${_qmake_install_dir}"
         "${CMAKE_INSTALL_PREFIX}"
@@ -29,7 +29,13 @@ if(TRUE)
         set(QMAKE_QWK_QUICK_STATIC_MACRO "DEFINES += QWK_QUICK_STATIC")
     endif()
 
-    file(GLOB _qmake_components "${CMAKE_CURRENT_LIST_DIR}/qmake/*.pri.in")
+    # Only the modules that were built. A `.pri` naming a library that was never installed sends
+    # the consumer's linker after a file that is not there.
+    set(_qmake_components)
+
+    foreach(_target IN LISTS QWINDOWKIT_ENABLED_TARGETS)
+        list(APPEND _qmake_components "${CMAKE_CURRENT_LIST_DIR}/qmake/${_target}.pri.in")
+    endforeach()
 
     foreach(_item IN LISTS _qmake_components)
         get_filename_component(_name ${_item} NAME_WLE)
@@ -48,7 +54,6 @@ if(MSVC)
     endmacro()
 
     set(_msbuild_install_dir "${CMAKE_INSTALL_DATADIR}/QWindowKit/msbuild")
-    set(_msbuild_build_dir ${_build_data_dir}/${_msbuild_install_dir})
     file(RELATIVE_PATH _msbuild_install_prefix
         "${CMAKE_INSTALL_PREFIX}/${_msbuild_install_dir}"
         "${CMAKE_INSTALL_PREFIX}"
@@ -60,17 +65,14 @@ if(MSVC)
     set(MSBUILD_QWK_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
     set(MSBUILD_QWK_INSTALL_INCDIR ${CMAKE_INSTALL_INCLUDEDIR})
 
-    set(MSBUILD_QWK_LIBRARY_LIST_DEBUG
-        QWKCore${CMAKE_DEBUG_POSTFIX}.lib
-        QWKWidgets${CMAKE_DEBUG_POSTFIX}.lib
-        QWKQuick${CMAKE_DEBUG_POSTFIX}.lib
-    )
+    # As with the qmake files, the modules that were built and no others.
+    set(MSBUILD_QWK_LIBRARY_LIST_DEBUG)
+    set(MSBUILD_QWK_LIBRARY_LIST_RELEASE)
 
-    set(MSBUILD_QWK_LIBRARY_LIST_RELEASE
-        QWKCore.lib
-        QWKWidgets.lib
-        QWKQuick.lib
-    )
+    foreach(_target IN LISTS QWINDOWKIT_ENABLED_TARGETS)
+        list(APPEND MSBUILD_QWK_LIBRARY_LIST_DEBUG ${_target}${CMAKE_DEBUG_POSTFIX}.lib)
+        list(APPEND MSBUILD_QWK_LIBRARY_LIST_RELEASE ${_target}.lib)
+    endforeach()
 
     to_dos_separator(MSBUILD_QWK_INSTALL_PREFIX)
     to_dos_separator(MSBUILD_QWK_INSTALL_BINDIR)
