@@ -15,14 +15,13 @@ namespace QWK {
         void updateSystemButtonArea();
 
     protected:
-        QQuickItem *item;
         AbstractWindowContext *ctx;
     };
 
     SystemButtonAreaItemHandler::SystemButtonAreaItemHandler(QQuickItem *item,
                                                              AbstractWindowContext *ctx,
                                                              QObject *parent)
-        : QObject(parent), item(item), ctx(ctx) {
+        : QObject(parent), ctx(ctx) {
         connect(item, &QQuickItem::xChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
         connect(item, &QQuickItem::yChanged, this,
@@ -32,8 +31,12 @@ namespace QWK {
         connect(item, &QQuickItem::heightChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
 
-        ctx->setSystemButtonAreaCallback([item](const QSize &) {
-            return QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect(); //
+        // Tie cleanup to this registration so replacing it disconnects the old area.
+        connect(item, &QObject::destroyed, this, [ctx] {
+            ctx->setSystemButtonAreaCallback({});
+        });
+        ctx->setSystemButtonAreaCallback([item = QPointer<QQuickItem>(item)](const QSize &) {
+            return item ? QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect() : QRect();
         });
     }
 
@@ -48,13 +51,15 @@ namespace QWK {
 
     void QuickWindowAgent::setSystemButtonArea(QQuickItem *item) {
         Q_D(QuickWindowAgent);
-        if (d->systemButtonAreaItem == item)
+        if (d->systemButtonAreaItem == item && (item || !d->systemButtonAreaItemHandler))
             return;
 
         auto ctx = d->context.get();
+        // QPointer is already null during destroyed(); still retire the old registration
+        // before installing another area or a custom callback.
+        d->systemButtonAreaItemHandler.reset();
         d->systemButtonAreaItem = item;
         if (!item) {
-            d->systemButtonAreaItemHandler.reset();
             ctx->setSystemButtonAreaCallback({});
             return;
         }

@@ -16,10 +16,14 @@ namespace QWK {
     public:
         SystemButtonAreaWidgetEventFilter(QWidget *widget, AbstractWindowContext *ctx,
                                           QObject *parent = nullptr)
-            : QObject(parent), widget(widget), ctx(ctx) {
+            : QObject(parent), ctx(ctx) {
             widget->installEventFilter(this);
-            ctx->setSystemButtonAreaCallback([widget](const QSize &) {
-                return getWidgetSceneRect(widget); //
+            // Tie cleanup to this registration so replacing it disconnects the old area.
+            connect(widget, &QObject::destroyed, this, [ctx] {
+                ctx->setSystemButtonAreaCallback({});
+            });
+            ctx->setSystemButtonAreaCallback([widget = QPointer<QWidget>(widget)](const QSize &) {
+                return widget ? getWidgetSceneRect(widget.data()) : QRect();
             });
         }
         ~SystemButtonAreaWidgetEventFilter() override = default;
@@ -41,7 +45,6 @@ namespace QWK {
         }
 
     protected:
-        QWidget *widget;
         AbstractWindowContext *ctx;
     };
 
@@ -61,14 +64,17 @@ namespace QWK {
     */
     void WidgetWindowAgent::setSystemButtonArea(QWidget *widget) {
         Q_D(WidgetWindowAgent);
-        if (d->systemButtonAreaWidget == widget)
+        if (d->systemButtonAreaWidget == widget &&
+            (widget || !d->systemButtonAreaWidgetEventFilter))
             return;
 
         auto ctx = d->context.get();
+        // QPointer is already null during destroyed(); still retire the old registration
+        // before installing another area or a custom callback.
+        d->systemButtonAreaWidgetEventFilter.reset();
         d->systemButtonAreaWidget = widget;
         if (!widget) {
-            d->context->setSystemButtonAreaCallback({});
-            d->systemButtonAreaWidgetEventFilter.reset();
+            ctx->setSystemButtonAreaCallback({});
             return;
         }
         d->systemButtonAreaWidgetEventFilter =
