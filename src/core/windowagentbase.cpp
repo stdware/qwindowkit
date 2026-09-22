@@ -60,9 +60,11 @@ namespace QWK {
 #  elif defined(Q_OS_MAC)
         return new CocoaWindowContext();
 #  elif defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#    ifdef QWK_HAS_WAYLAND_CONTEXT
         if (Private::isWaylandPlatform() && Private::waylandAPI().isValid()) {
             return new LinuxWaylandContext();
         }
+#    endif
         if (Private::isX11Platform() && Private::x11API().isValid()) {
             return new LinuxX11Context();
         }

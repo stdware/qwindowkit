@@ -19,7 +19,17 @@
 
 #include "qtwindowcontext_p.h"
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+// QWaylandApplication was introduced in Qt 6.5. Since Qt 6.7 its declaration
+// also depends on the wayland feature, which older Qt versions do not define.
+#if defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#  if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+#    define QWK_HAS_WAYLAND_CONTEXT
+#  elif QT_CONFIG(wayland)
+#    define QWK_HAS_WAYLAND_CONTEXT
+#  endif
+#endif
+
+#ifdef QWK_HAS_WAYLAND_CONTEXT
 namespace QWK {
 
     class LinuxWaylandContext : public QtWindowContext {
@@ -33,5 +43,5 @@ namespace QWK {
     };
 
 }
-#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#endif // QWK_HAS_WAYLAND_CONTEXT
 #endif // LINUXWAYLANDCONTEXT_P_H

@@ -5,9 +5,8 @@
 
 #include "linuxwaylandcontext_p.h"
 
+#ifdef QWK_HAS_WAYLAND_CONTEXT
 #include "qwindowkit_linux.h"
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QtGui/qpa/qplatformnativeinterface.h>
 
 namespace QWK {
@@ -63,4 +62,4 @@ namespace QWK {
         }
     }
 }
-#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#endif // QWK_HAS_WAYLAND_CONTEXT
