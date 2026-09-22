@@ -9,6 +9,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | Tests | CTest limit | Inner process limits |
 | --- | ---: | --- |
 | Fast unit suites, including Quick geometry | 10 s each | 8 s |
+| `widgetborder.lifetime` | 10 s | 8 s overall; each child: 2 s startup, 5 s execution, 1 s kill wait |
 | `buildsystems.install` | 15 s | Direct install process bounded by CTest |
 | `buildsystems.cmake` | 60 s | Configure 25 s, build 25 s |
 | `buildsystems.qmake` | 60 s | qmake 15 s, make 25 s |
@@ -40,7 +41,7 @@ select `-L fast`. To inspect the timeout policy alone, select
 `-R '^testpolicy.timeouts$'`. All helpers use the existing CMake/CTest tools;
 no external testing framework or network access is added.
 
-Local validation on Windows/MSVC and Qt 6.12.0: all 19 registered Release tests,
+Before the lifetime regression additions, local validation on Windows/MSVC and Qt 6.12.0: all 19 registered Release tests,
 including qmake and the expanded unit suites, passed in approximately 20.11 seconds
 under these limits.
 Negative probes confirmed rejection of absent/zero/61-second timeouts and

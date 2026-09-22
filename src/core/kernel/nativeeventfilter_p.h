@@ -15,6 +15,7 @@
 //
 
 #include <QWKCore/qwkglobal.h>
+#include <memory>
 
 namespace QWK {
 
@@ -37,6 +38,9 @@ namespace QWK {
         QList<NativeEventFilter *> m_nativeEventFilters;
 
         int m_nativeDispatchDepth = 0;
+
+        // Kept alive by every active frame, including nested dispatches.
+        std::shared_ptr<bool> m_nativeDispatchAlive = std::make_shared<bool>(true);
 
         friend class NativeEventFilter;
 

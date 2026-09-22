@@ -19,6 +19,7 @@ namespace QWK {
     NativeEventDispatcher::NativeEventDispatcher() = default;
 
     NativeEventDispatcher::~NativeEventDispatcher() {
+        *m_nativeDispatchAlive = false;
         for (const auto &observer : std::as_const(m_nativeEventFilters)) {
             if (!observer)
                 continue;
@@ -33,13 +34,18 @@ namespace QWK {
         // Iterate by index and re-read the size on every step, and rely on removals leaving a
         // null tombstone behind so that the indexes of the outer dispatches stay valid. This
         // mirrors how QObject's event filter list is walked.
+        const auto alive = m_nativeDispatchAlive;
         ++m_nativeDispatchDepth;
         bool filtered = false;
         for (qsizetype i = 0; i < m_nativeEventFilters.size(); ++i) {
             NativeEventFilter *ef = m_nativeEventFilters.at(i);
             if (!ef)
                 continue;
-            if (ef->nativeEventFilter(eventType, message, result)) {
+            const bool consumed = ef->nativeEventFilter(eventType, message, result);
+            if (!*alive) {
+                return true;
+            }
+            if (consumed) {
                 filtered = true;
                 break;
             }

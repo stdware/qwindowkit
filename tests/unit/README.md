@@ -31,7 +31,8 @@ each process also writes Qt Test text/XML reports inside its test build director
 
 Compilation time is separate from test execution time. Each test process has an
 8-second execution deadline, with a 10-second outer CTest timeout. There are no
-sleeps, polling loops or asynchronous GUI waits. The runner requires the expected
+sleeps, polling loops or asynchronous GUI waits. Destructive dispatch cases run in
+isolated child processes with bounded startup/completion waits. The runner requires the expected
 pass count and rejects skips/expected failures, including accidental loss of data
 rows. The expected counts include Qt Test initialization and cleanup; the business
 case counts below do not.
@@ -41,6 +42,7 @@ case counts below do not.
 | CTest name | Business cases | Checks |
 | --- | ---: | --- |
 | `core.eventdispatch.unit` | 22 | Shared/native dispatch arguments, result forwarding, ordering, short-circuit consumption, duplicate/foreign registration, transfer, removal and destruction during dispatch, appending filters, nested dispatch, dispatcher/filter destruction order, application-wide native filter cleanup/reinstallation |
+| `core.dispatchlifetime.unit` | 8 | Dispatcher destruction in shared/native callbacks, both callback results, direct/nested dispatch, immediate address reuse, suppression of stale/replacement filters and subsequent self-removal in the replacement dispatcher |
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
 | `core.windowcontext.unit` | 26 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
 | `core.qtwindowcontext.unit` | 22 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation |
@@ -48,8 +50,8 @@ case counts below do not.
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 106 business cases
-across seven test processes. The latest expansion adds 38 cases to the previous 68.
+With Widgets, Quick and StyleAgent enabled on Windows there are 114 business cases
+across eight CTest entries. The lifetime suite adds eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
 component is disabled. The existing geometry suite retains its Windows registration
@@ -75,7 +77,7 @@ dragging/resizing, compositor output or physical monitor/DPI changes. Those requ
 separate integration tests. In particular, a fake handle transition verifies the
 base context's replay contract, not a Win32/Cocoa/X11/Wayland implementation.
 
-## Local verification (2026-09-22)
+## Local verification before the lifetime fix (2026-09-22)
 
 On Windows with Qt 6.12.0/MSVC, all seven suites passed in Release (about 0.30 seconds
 total, including CTest/process startup) and Debug (about 0.33 seconds). Twenty

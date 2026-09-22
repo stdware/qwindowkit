@@ -16,6 +16,7 @@ namespace QWK {
     SharedEventDispatcher::SharedEventDispatcher() = default;
 
     SharedEventDispatcher::~SharedEventDispatcher() {
+        *m_sharedDispatchAlive = false;
         for (const auto &observer : std::as_const(m_sharedEventFilters)) {
             if (!observer)
                 continue;
@@ -29,13 +30,19 @@ namespace QWK {
         // index and re-read the size on every step, and rely on removals leaving a null
         // tombstone behind so that the indexes of the outer dispatches stay valid. This mirrors
         // how QObject's event filter list is walked.
+        const auto alive = m_sharedDispatchAlive;
         ++m_sharedDispatchDepth;
         bool filtered = false;
         for (qsizetype i = 0; i < m_sharedEventFilters.size(); ++i) {
             SharedEventFilter *ef = m_sharedEventFilters.at(i);
             if (!ef)
                 continue;
-            if (ef->sharedEventFilter(obj, event)) {
+            const bool consumed = ef->sharedEventFilter(obj, event);
+            if (!*alive) {
+                // Also stop the caller from forwarding through its deleted context.
+                return true;
+            }
+            if (consumed) {
                 filtered = true;
                 break;
             }
