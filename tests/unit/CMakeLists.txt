@@ -25,3 +25,4 @@ function(qwk_add_unit_test target name expected_passes)
 endfunction()
 
 qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
+qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 17)
