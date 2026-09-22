@@ -12,9 +12,11 @@ if(QWINDOWKIT_BUILD_WIDGETS)
     math(EXPR _expected_passes "${_expected_passes} + 6")
 endif()
 if(QWINDOWKIT_BUILD_QUICK)
+    set_target_properties(tst_windowhittest PROPERTIES AUTORCC ON)
+    target_sources(tst_windowhittest PRIVATE hittest.qrc)
     target_link_libraries(tst_windowhittest PRIVATE QWKQuick)
     target_compile_definitions(tst_windowhittest PRIVATE TEST_QUICK)
-    math(EXPR _expected_passes "${_expected_passes} + 6")
+    math(EXPR _expected_passes "${_expected_passes} + 36") # 6 existing + 30 QML transform rows.
 endif()
 
 add_test(NAME windows.hittest

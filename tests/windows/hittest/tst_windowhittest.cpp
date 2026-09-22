@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <cstdio>
+#include <memory>
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -19,6 +20,8 @@
 #  include <QWKWidgets/widgetwindowagent.h>
 #endif
 #ifdef TEST_QUICK
+#  include <QtQml/QQmlComponent>
+#  include <QtQml/QQmlEngine>
 #  include <QWKQuick/quickwindowagent.h>
 #endif
 
@@ -74,6 +77,41 @@ namespace {
         }
 #endif
 #ifdef TEST_QUICK
+        if (kind == QStringLiteral("quick-transform")) {
+            const auto parts = constraint.split(QLatin1Char('-'));
+            if (parts.size() != 3)
+                return 2;
+            QQuickWindow window;
+            window.setGeometry(200, 200, 640, 400);
+            QQmlEngine engine;
+            QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/hittest/TransformFixture.qml")));
+            std::unique_ptr<QObject> object(component.create());
+            auto *root = qobject_cast<QQuickItem *>(object.get());
+            if (!root) {
+                qWarning() << component.errors();
+                return 2;
+            }
+            root->setParentItem(window.contentItem());
+            root->setProperty("transformAncestor", parts.at(1) == QStringLiteral("ancestor"));
+            root->setProperty("mode", parts.at(2));
+            auto *target = root->findChild<QQuickItem *>(QStringLiteral("target"));
+            auto *background = root->findChild<QQuickItem *>(QStringLiteral("backgroundTitle"));
+            InspectableAgent<QWK::QuickWindowAgent> agent;
+            if (!target || !background || !agent.setup(&window))
+                return 2;
+            agent.setTitleBar(parts.at(0) == QStringLiteral("title") ? target : background);
+            if (parts.at(0) == QStringLiteral("excluded"))
+                agent.setHitTestVisible(target);
+            if (parts.at(0) == QStringLiteral("button"))
+                agent.setSystemButton(QWK::WindowAgentBase::Close, target);
+            window.show();
+            ::ShowWindow(reinterpret_cast<HWND>(window.winId()), SW_SHOWNOACTIVATE);
+            if (!QTest::qWaitForWindowExposed(&window))
+                return 2;
+            reportReady(&window, agent.contextKey(),
+                        agent.windowAttribute(QStringLiteral("windows-system-border-enabled")).toBool());
+            return QCoreApplication::exec();
+        }
         if (kind == QStringLiteral("quick")) {
             QQuickWindow window;
             window.setGeometry(200, 200, 640, 400);
@@ -254,6 +292,51 @@ private Q_SLOTS:
         checkHit({left, bottom}, fixedWidth ? HTBOTTOM : HTLEFT, "bottom left");
         checkHit({right, bottom}, fixedWidth ? HTBOTTOM : HTRIGHT, "bottom right");
     }
+
+#ifdef TEST_QUICK
+    void quickTransforms_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto *role : {"title", "excluded", "button"}) {
+            for (const auto *owner : {"item", "ancestor"}) {
+                for (const auto *mode : {"scale", "shrink", "rotation", "matrix", "zero"}) {
+                    const auto name = QStringLiteral("%1-%2-%3").arg(role, owner, mode);
+                    QTest::newRow(qPrintable(name)) << name;
+                }
+            }
+        }
+    }
+
+    void quickTransforms() {
+        QFETCH(QString, scenario);
+        startFixture(QStringLiteral("quick-transform"), scenario);
+        if (QTest::currentTestFailed())
+            return;
+        const auto parts = scenario.split(QLatin1Char('-'));
+        const auto role = parts.at(0);
+        const auto mode = parts.at(2);
+        const LRESULT inside = role == QStringLiteral("title") ? HTCAPTION
+                             : role == QStringLiteral("button") ? HTCLOSE : HTCLIENT;
+        const LRESULT outside = role == QStringLiteral("title") ? HTCLIENT : HTCAPTION;
+        // Coordinates are calculated from the fixture's simple geometry, independently
+        // of QQuickItem mapping or production hit-test helpers.
+        if (mode == QStringLiteral("scale")) {
+            checkClientPoint(450, 200, inside, "scaled interior");
+            checkClientPoint(520, 200, outside, "outside scaled item");
+        } else if (mode == QStringLiteral("shrink")) {
+            checkClientPoint(325, 170, inside, "shrunk interior");
+            checkClientPoint(375, 180, outside, "outside shrunk item");
+        } else if (mode == QStringLiteral("rotation")) {
+            checkClientPoint(350, 220, inside, "rotated interior");
+            checkClientPoint(305, 240, outside, "empty corner within rotated bounding box");
+            checkClientPoint(380, 170, outside, "old unrotated footprint");
+        } else if (mode == QStringLiteral("matrix")) {
+            checkClientPoint(450, 170, inside, "nonuniform transform interior");
+            checkClientPoint(350, 190, outside, "outside nonuniform transform");
+        } else {
+            checkClientPoint(310, 170, outside, "zero scale has no hit area");
+        }
+    }
+#endif
 };
 
 int main(int argc, char **argv) {
