@@ -22,6 +22,16 @@ add_test(NAME buildsystems.install
 )
 set_tests_properties(buildsystems.install PROPERTIES FIXTURES_SETUP qwk_install_tree TIMEOUT 15)
 
+# Configuration-only Qt-major matrix: isolated Qt package substitutes, no compiler or network.
+add_test(NAME buildsystems.qtmajor
+    COMMAND ${CMAKE_COMMAND}
+    "-DTEMPLATE=${PROJECT_SOURCE_DIR}/src/QWindowKitConfig.cmake.in"
+    "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/qtmajor-$<CONFIG>"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/package/CheckQtMajor.cmake")
+set_tests_properties(buildsystems.qtmajor PROPERTIES TIMEOUT 45 LABELS "cmake;configuration")
+
 set(_modules core)
 
 if(QWINDOWKIT_BUILD_WIDGETS)

@@ -7,23 +7,23 @@ endif()
 
 include(CMakeFindDependencyMacro)
 
-find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Core Gui REQUIRED)
-find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui REQUIRED)
+# The exported targets name the Qt major used to build this package. Do not
+# reselect it from the consumer's search order or ambient QT_VERSION_MAJOR.
+set(QWindowKit_QT_VERSION_MAJOR @QT_VERSION_MAJOR@)
+find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Core Gui REQUIRED)
 
 if ("Widgets" IN_LIST QWindowKit_FIND_COMPONENTS)
-    find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
-    find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+    find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Widgets REQUIRED)
 endif()
 
 if ("Quick" IN_LIST QWindowKit_FIND_COMPONENTS)
-    find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Quick REQUIRED)
-    find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
+    find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Quick REQUIRED)
 endif()
 
 # Static archives expose their private Qt link dependencies to consumers. Recent
 # Qt 6 releases put these targets in separate packages instead of loading them
 # with the public components.
-if("@QWINDOWKIT_BUILD_STATIC@" AND QT_VERSION_MAJOR EQUAL 6)
+if("@QWINDOWKIT_BUILD_STATIC@" AND @QT_VERSION_MAJOR@ EQUAL 6)
     set(_qwk_private_modules Core Gui)
     foreach(_module Widgets Quick)
         if("${_module}" IN_LIST QWindowKit_FIND_COMPONENTS)

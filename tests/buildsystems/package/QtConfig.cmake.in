@@ -1,0 +1,11 @@
+# Deliberately small discovery substitute, not a Qt ABI or compile/link fixture.
+set(QT_VERSION_MAJOR @FAKE_MAJOR@)
+set(Qt@FAKE_MAJOR@_FOUND TRUE)
+set(QT_FOUND TRUE)
+set_property(GLOBAL APPEND PROPERTY QWK_TEST_QT_MAJORS @FAKE_MAJOR@)
+foreach(module IN LISTS ${CMAKE_FIND_PACKAGE_NAME}_FIND_COMPONENTS)
+    if(NOT TARGET Qt@FAKE_MAJOR@::${module})
+        add_library(Qt@FAKE_MAJOR@::${module} INTERFACE IMPORTED)
+    endif()
+    set(Qt@FAKE_MAJOR@${module}_FOUND TRUE)
+endforeach()
