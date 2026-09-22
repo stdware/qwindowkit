@@ -23,10 +23,16 @@ if(TRUE)
     set(QMAKE_QWK_WIDGETS_NAME_DEBUG QWKWidgets${CMAKE_DEBUG_POSTFIX})
     set(QMAKE_QWK_QUICK_NAME_DEBUG QWKQuick${CMAKE_DEBUG_POSTFIX})
 
+    set(QMAKE_QWK_CORE_STATIC_LIBS "")
     if(QWINDOWKIT_BUILD_STATIC)
         set(QMAKE_QWK_CORE_STATIC_MACRO "DEFINES += QWK_CORE_STATIC")
         set(QMAKE_QWK_WIDGETS_STATIC_MACRO "DEFINES += QWK_WIDGETS_STATIC")
         set(QMAKE_QWK_QUICK_STATIC_MACRO "DEFINES += QWK_QUICK_STATIC")
+        if(WIN32)
+            # Static consumers must resolve QWKCore's native calls themselves.
+            # Qt's shared import libraries do not propagate these system libraries.
+            set(QMAKE_QWK_CORE_STATIC_LIBS "LIBS += -luser32 -lgdi32 -lshell32 -luxtheme")
+        endif()
     endif()
 
     # Only the modules that were built. A `.pri` naming a library that was never installed sends

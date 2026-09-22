@@ -126,7 +126,7 @@ jobs:
         timeout-minutes: 3
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
-      - name: Configure static MSBuild consumer regression
+      - name: Configure static package consumer regressions
         if: matrix.platform == 'windows-msvc'
         shell: bash
         env:
@@ -139,10 +139,12 @@ jobs:
             -DQWINDOWKIT_BUILD_WIDGETS=ON \
             -DQWINDOWKIT_BUILD_QUICK=ON \
             -DQWINDOWKIT_BUILD_TESTS=ON
-          if ! ctest --test-dir build-static -N -R '^buildsystems.msbuild$' | grep -q 'buildsystems.msbuild'; then
-            echo 'The static MSBuild consumer test did not register'
-            exit 1
-          fi
+          for name in buildsystems.msbuild buildsystems.qmake; do
+            if ! ctest --test-dir build-static -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required static consumer test $name did not register"
+              exit 1
+            fi
+          done
 
       - name: Build static configuration
         if: matrix.platform == 'windows-msvc'
@@ -151,7 +153,7 @@ jobs:
       - name: Test static units and package consumers
         if: matrix.platform == 'windows-msvc'
         timeout-minutes: 2
-        run: ctest --test-dir build-static -R "(\.unit$|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
+        run: ctest --test-dir build-static -R "(\.unit$|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qmake$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
 
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
