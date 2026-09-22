@@ -8,9 +8,25 @@
 #include "windowcontextfixture.h"
 
 namespace {
+    class Delegate : public QwkTest::Delegate {
+    public:
+        using QwkTest::Delegate::Delegate;
+        mutable Qt::CursorShape cursor = Qt::CrossCursor;
+        mutable int restores = 0;
+        void setCursorShape(QObject *, Qt::CursorShape shape) const override { cursor = shape; }
+        void restoreCursorShape(QObject *) const override {
+            cursor = Qt::CrossCursor;
+            ++restores;
+        }
+    };
+
     class Context : public QWK::QtWindowContext {
     public:
         QList<QPoint> menus;
+        QList<Qt::Edges> resizes;
+        int moves = 0;
+        void systemMove() override { ++moves; }
+        void systemResize(Qt::Edges edges) override { resizes.append(edges); }
         void virtual_hook(int id, void *data) override {
             if (id == ShowSystemMenuHook) {
                 menus.append(*static_cast<QPoint *>(data));
@@ -23,7 +39,7 @@ namespace {
     struct Fixture {
         QWindow window;
         QwkTest::Item title, excluded;
-        QwkTest::Delegate *delegate = new QwkTest::Delegate(&window);
+        Delegate *delegate = new Delegate(&window);
         Context context;
         Fixture() {
             window.resize(300, 200);
@@ -48,6 +64,143 @@ namespace {
 class QtWindowContextTest : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void resizeConstraints_data() {
+        QTest::addColumn<int>("mode");
+        QTest::addColumn<int>("visibility");
+        QTest::addColumn<QPoint>("point");
+        QTest::addColumn<int>("edges");
+        QTest::addColumn<int>("cursor");
+        struct Hit {
+            const char *name;
+            QPoint point;
+            Qt::Edges free, width, height;
+            Qt::CursorShape freeCursor, widthCursor, heightCursor;
+        };
+        const Hit hits[] = {
+            {"left", {1, 100}, Qt::LeftEdge, {}, Qt::LeftEdge,
+             Qt::SizeHorCursor, Qt::CrossCursor, Qt::SizeHorCursor},
+            {"right", {298, 100}, Qt::RightEdge, {}, Qt::RightEdge,
+             Qt::SizeHorCursor, Qt::CrossCursor, Qt::SizeHorCursor},
+            {"top", {150, 1}, Qt::TopEdge, Qt::TopEdge, {},
+             Qt::SizeVerCursor, Qt::SizeVerCursor, Qt::CrossCursor},
+            {"bottom", {150, 198}, Qt::BottomEdge, Qt::BottomEdge, {},
+             Qt::SizeVerCursor, Qt::SizeVerCursor, Qt::CrossCursor},
+            {"top-left", {1, 1}, Qt::LeftEdge | Qt::TopEdge, Qt::TopEdge, Qt::LeftEdge,
+             Qt::SizeFDiagCursor, Qt::SizeVerCursor, Qt::SizeHorCursor},
+            {"top-right", {298, 1}, Qt::RightEdge | Qt::TopEdge, Qt::TopEdge, Qt::RightEdge,
+             Qt::SizeBDiagCursor, Qt::SizeVerCursor, Qt::SizeHorCursor},
+            {"bottom-left", {1, 198}, Qt::LeftEdge | Qt::BottomEdge, Qt::BottomEdge, Qt::LeftEdge,
+             Qt::SizeBDiagCursor, Qt::SizeVerCursor, Qt::SizeHorCursor},
+            {"bottom-right", {298, 198}, Qt::RightEdge | Qt::BottomEdge, Qt::BottomEdge, Qt::RightEdge,
+             Qt::SizeFDiagCursor, Qt::SizeVerCursor, Qt::SizeHorCursor},
+            {"title", {150, 20}, {}, {}, {}, Qt::CrossCursor, Qt::CrossCursor, Qt::CrossCursor},
+            {"client", {150, 100}, {}, {}, {}, Qt::CrossCursor, Qt::CrossCursor, Qt::CrossCursor},
+        };
+        for (int mode = 0; mode < 5; ++mode) {
+            for (auto visibility : {QWindow::Windowed, QWindow::Maximized, QWindow::FullScreen}) {
+                for (const auto &hit : hits) {
+                    Qt::Edges edges;
+                    auto cursor = Qt::CrossCursor;
+#ifndef Q_OS_MACOS
+                    if (visibility == QWindow::Windowed && mode < 3) {
+                        edges = mode == 0 ? hit.free : mode == 1 ? hit.width : hit.height;
+                        cursor = mode == 0 ? hit.freeCursor : mode == 1 ? hit.widthCursor : hit.heightCursor;
+                    }
+#endif
+                    const auto name = QByteArray::number(mode) + "-" + QByteArray::number(visibility)
+                                      + "-" + hit.name;
+                    QTest::newRow(name.constData()) << mode << int(visibility) << hit.point
+                                                    << int(edges) << int(cursor);
+                }
+            }
+        }
+    }
+
+    void resizeConstraints() {
+        QFETCH(int, mode);
+        QFETCH(int, visibility);
+        QFETCH(QPoint, point);
+        QFETCH(int, edges);
+        QFETCH(int, cursor);
+        Fixture f;
+        f.title.rect.setWidth(300);
+        f.window.setFlags(Qt::Window | Qt::FramelessWindowHint);
+        if (mode == 1 || mode == 3) {
+            f.window.setMinimumWidth(300);
+            f.window.setMaximumWidth(300);
+        }
+        if (mode == 2 || mode == 3) {
+            f.window.setMinimumHeight(200);
+            f.window.setMaximumHeight(200);
+        }
+        if (mode == 4)
+            f.window.setFlags(f.window.flags() | Qt::MSWindowsFixedSizeDialogHint);
+        f.window.setVisibility(QWindow::Visibility(visibility)); // Offscreen QPA only.
+        // Keep the hit-test geometry identical across visibility states.
+        f.window.resize(300, 200);
+        QCOMPARE(int(f.window.visibility()), visibility);
+        QVERIFY(!f.mouse(QEvent::MouseMove, point, Qt::NoButton));
+        QCOMPARE(int(f.delegate->cursor), cursor);
+        const bool title = point.y() < 40;
+        const bool consumed = edges != 0 || title;
+        QCOMPARE(f.mouse(QEvent::MouseButtonPress, point, Qt::LeftButton), consumed);
+        QCOMPARE(f.accepted, consumed);
+        QCOMPARE(f.context.resizes, edges ? QList<Qt::Edges>({Qt::Edges(edges)}) : QList<Qt::Edges>());
+        QCOMPARE(f.mouse(QEvent::MouseMove, point + QPoint(10, 0), Qt::LeftButton), consumed);
+        QCOMPARE(f.context.moves, edges == 0 && title ? 1 : 0);
+        QCOMPARE(f.mouse(QEvent::MouseButtonRelease, QPoint(150, 100), Qt::LeftButton), consumed);
+        QVERIFY(!f.mouse(QEvent::MouseButtonRelease, QPoint(150, 100), Qt::LeftButton));
+    }
+
+    void cursorAfterConstraintChange_data() {
+        QTest::addColumn<int>("mode");
+        QTest::addColumn<bool>("press");
+        for (int mode = 0; mode < 5; ++mode) {
+            for (bool press : {false, true}) {
+                const auto name = QByteArray::number(mode) + (press ? "-press" : "-hover");
+                QTest::newRow(name.constData()) << mode << press;
+            }
+        }
+    }
+
+    void cursorAfterConstraintChange() {
+        QFETCH(int, mode);
+        QFETCH(bool, press);
+        Fixture f;
+        f.window.setVisibility(QWindow::Windowed);
+        QVERIFY(!f.mouse(QEvent::MouseMove, {1, 1}, Qt::NoButton));
+#ifdef Q_OS_MACOS
+        QCOMPARE(f.delegate->cursor, Qt::CrossCursor);
+#else
+        QCOMPARE(f.delegate->cursor, Qt::SizeFDiagCursor);
+#endif
+        if (mode < 3) {
+            if (mode != 1) {
+                f.window.setMinimumWidth(300);
+                f.window.setMaximumWidth(300);
+            }
+            if (mode != 0) {
+                f.window.setMinimumHeight(200);
+                f.window.setMaximumHeight(200);
+            }
+        } else {
+            f.window.setVisibility(mode == 3 ? QWindow::Maximized : QWindow::FullScreen);
+        }
+        f.mouse(press ? QEvent::MouseButtonPress : QEvent::MouseMove, {1, 1},
+                press ? Qt::LeftButton : Qt::NoButton);
+#ifdef Q_OS_MACOS
+        QCOMPARE(f.delegate->cursor, Qt::CrossCursor);
+        QCOMPARE(f.delegate->restores, 0);
+#else
+        QCOMPARE(f.delegate->cursor, mode == 0 ? Qt::SizeVerCursor :
+                                     mode == 1 ? Qt::SizeHorCursor : Qt::CrossCursor);
+        QCOMPARE(f.delegate->restores, mode < 2 ? 0 : 1);
+#endif
+        f.mouse(QEvent::MouseButtonRelease, {150, 100}, Qt::LeftButton);
+        f.mouse(QEvent::MouseMove, {150, 100}, Qt::NoButton);
+        QCOMPARE(f.delegate->cursor, Qt::CrossCursor);
+    }
+
     void doubleClick_data() {
         QTest::addColumn<QString>("mode");
         QTest::addColumn<int>("initial");

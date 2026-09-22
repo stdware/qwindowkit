@@ -45,12 +45,12 @@ case counts below do not.
 | `core.dispatchlifetime.unit` | 8 | Dispatcher destruction in shared/native callbacks, both callback results, direct/nested dispatch, immediate address reuse, suppression of stale/replacement filters and subsequent self-removal in the replacement dispatcher |
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
 | `core.windowcontext.unit` | 26 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
-| `core.qtwindowcontext.unit` | 22 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation |
+| `core.qtwindowcontext.unit` | 182 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation; 150 resize/visibility rows and 10 dynamic cursor transitions |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 114 business cases
+With Widgets, Quick and StyleAgent enabled on Windows there are 274 business cases
 across eight CTest entries. The lifetime suite adds eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
@@ -66,8 +66,13 @@ private notifications are not exported, so its test compiles the unchanged produ
 it does not link a second copy of StyleAgent from QWKCore.
 
 The Qt fallback tests use the real `QtWindowContext` event filter with a recording
-delegate and system-menu hook. Events are dispatched synchronously to hidden windows;
-no native move, resize or menu operation is triggered. Shared-library builds compile
+delegate and recording system move/resize/menu boundaries. Events are dispatched
+synchronously; resize cases use windows shown only on the offscreen QPA. No desktop
+window, native move, resize or menu operation is triggered. The matrix covers free,
+fixed width, fixed height, both fixed and fixed-dialog flags across all edges/corners,
+title/client positions and normal/maximized/fullscreen states. It asserts exact
+resize edges, cursor, event consumption and title-drag fallthrough. Cursor changes
+are refreshed on the next hover or left press after a constraint/state change. Shared-library builds compile
 the unchanged private `qtwindowcontext.cpp` and its moc output into the test because
 that class is not exported; static builds link its existing library implementation.
 The base context and QObject filter forwarding always come from the production library.
