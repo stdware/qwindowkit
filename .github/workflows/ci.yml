@@ -121,6 +121,31 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
+      # Single-axis caption hit testing has a separate compile-time path without
+      # system borders. Exercise it with real Widgets and Quick HWNDs as well.
+      - name: Configure without system borders
+        if: matrix.platform == 'windows-msvc'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -G Ninja -S . -B build-no-system-borders \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DQWINDOWKIT_BUILD_WIDGETS=ON \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON \
+            -DQWINDOWKIT_INSTALL=OFF \
+            -DQWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS=OFF
+
+      - name: Build native hit-test regression without system borders
+        if: matrix.platform == 'windows-msvc'
+        run: cmake --build build-no-system-borders --target tst_windowhittest
+
+      - name: Test native hit testing without system borders
+        if: matrix.platform == 'windows-msvc'
+        run: ctest --test-dir build-no-system-borders -R "^windows.hittest$" --output-on-failure --no-tests=error
+
   # MinGW is a job of its own because it wants msys2 rather than the toolchain the matrix above
   # sets up with an environment variable, and because Qt comes from the same place as the compiler
   # here. What aqt ships for Windows is built by MSVC or by a MinGW of its own choosing, and a Qt
