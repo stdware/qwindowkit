@@ -29,4 +29,4 @@ add_test(NAME windows.hittest
     "-DEXPECTED_PASSES=${_expected_passes}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
 set_tests_properties(windows.hittest PROPERTIES
-    TIMEOUT 120 LABELS "windows;integration" RESOURCE_LOCK desktop)
+    TIMEOUT 45 LABELS "windows;integration" RESOURCE_LOCK desktop)

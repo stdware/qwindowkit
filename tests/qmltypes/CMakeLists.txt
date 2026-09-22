@@ -18,4 +18,4 @@ add_test(NAME qmltypes.installed
         "-DQT_QMLLINT=$<TARGET_FILE:Qt6::qmllint>"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/RunInstalled.cmake"
 )
-set_tests_properties(qmltypes.installed PROPERTIES TIMEOUT 180 LABELS "qml;install;windows")
+set_tests_properties(qmltypes.installed PROPERTIES TIMEOUT 60 LABELS "qml;install;windows")

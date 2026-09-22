@@ -1,6 +1,6 @@
 file(REMOVE "${RESULT_FILE}.txt" "${RESULT_FILE}.xml")
 execute_process(COMMAND "${TEST_EXE}" -o "${RESULT_FILE}.txt,txt" -o "${RESULT_FILE}.xml,xml"
-    RESULT_VARIABLE _result TIMEOUT 100)
+    RESULT_VARIABLE _result TIMEOUT 40)
 if(EXISTS "${RESULT_FILE}.txt")
     file(READ "${RESULT_FILE}.txt" _report)
     message("${_report}")

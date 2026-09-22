@@ -23,7 +23,7 @@ if(MAKE_PROGRAM)
     list(APPEND _toolchain_args "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}")
 endif()
 
-qwk_run_step("cmake configure" "${CMAKE_COMMAND}"
+qwk_run_step("cmake configure" 25 "${CMAKE_COMMAND}"
     -S "${SOURCE_DIR}"
     -B "${WORK_DIR}/build"
     ${_toolchain_args}
@@ -33,7 +33,7 @@ qwk_run_step("cmake configure" "${CMAKE_COMMAND}"
     "-DQWK_USE_WIDGETS=${USE_WIDGETS}"
 )
 
-qwk_run_step("cmake build" "${CMAKE_COMMAND}"
+qwk_run_step("cmake build" 25 "${CMAKE_COMMAND}"
     --build "${WORK_DIR}/build"
     --config "${BUILD_CONFIG}"
 )
