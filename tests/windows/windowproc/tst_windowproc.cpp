@@ -3,6 +3,8 @@
 
 #include <functional>
 #include <memory>
+#include <QtCore/QAbstractEventDispatcher>
+#include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QFile>
 #include <QtCore/QProcess>
 #include <QtCore/QTemporaryDir>
@@ -51,6 +53,32 @@ namespace {
         QString contextKey() const { return d_ptr->context->key(); }
     };
 
+    class ReenterFilter : public QAbstractNativeEventFilter {
+    public:
+        std::function<void(MSG *)> action;
+        bool nativeEventFilter(const QByteArray &, void *message,
+                               QT_NATIVE_EVENT_RESULT_TYPE *) override {
+            auto msg = static_cast<MSG *>(message);
+            if (msg && msg->message == WM_NCCALCSIZE && action)
+                action(msg);
+            return false;
+        }
+    };
+
+    struct Calculation {
+        RECT rect{200, 200, 840, 600};
+        LRESULT result = 0;
+        QRect geometry() const { return QRect(rect.left, rect.top,
+                                             rect.right - rect.left, rect.bottom - rect.top); }
+    };
+
+    Calculation calculate(HWND hwnd) {
+        Calculation value;
+        value.result = ::SendMessageW(hwnd, WM_NCCALCSIZE, FALSE,
+                                     reinterpret_cast<LPARAM>(&value.rect));
+        return value;
+    }
+
     WNDPROC procedure(HWND hwnd) {
         return reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hwnd, GWLP_WNDPROC));
     }
@@ -63,6 +91,30 @@ namespace {
 
 class WindowProcTest : public QObject {
     Q_OBJECT
+private:
+    void runChild() {
+        QTemporaryDir reports;
+        QVERIFY(reports.isValid());
+        const auto path = reports.filePath("child.txt");
+        QProcess child;
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        child.start(QCoreApplication::applicationFilePath(),
+                    {"--child", QString("%1:%2").arg(QTest::currentTestFunction(), QTest::currentDataTag()),
+                     "-o", path + ",txt"});
+        QVERIFY(child.waitForStarted(2000));
+        const bool finished = child.waitForFinished(5000);
+        if (!finished) {
+            child.kill();
+            child.waitForFinished(1000);
+        }
+        QFile report(path);
+        const auto output = child.readAll() + (report.open(QIODevice::ReadOnly)
+            ? report.readAll() : report.errorString().toUtf8());
+        QVERIFY2(finished, output.constData());
+        QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0,
+                 output.constData());
+    }
+
 private Q_SLOTS:
     void chains_data() {
         QTest::addColumn<QString>("scenario");
@@ -73,26 +125,7 @@ private Q_SLOTS:
 
     void chains() {
         if (!childProcess) {
-            QTemporaryDir reports;
-            QVERIFY(reports.isValid());
-            const auto path = reports.filePath("child.txt");
-            QProcess child;
-            child.setProcessChannelMode(QProcess::MergedChannels);
-            child.start(QCoreApplication::applicationFilePath(),
-                        {"--child", QString("chains:%1").arg(QTest::currentDataTag()),
-                         "-o", path + ",txt"});
-            QVERIFY(child.waitForStarted(2000));
-            const bool finished = child.waitForFinished(5000);
-            if (!finished) {
-                child.kill();
-                child.waitForFinished(1000);
-            }
-            QFile report(path);
-            const auto output = child.readAll() + (report.open(QIODevice::ReadOnly)
-                ? report.readAll() : report.errorString().toUtf8());
-            QVERIFY2(finished, output.constData());
-            QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0,
-                     output.constData());
+            runChild();
             return;
         }
         QFETCH(QString, scenario);
@@ -166,6 +199,127 @@ private Q_SLOTS:
         QCOMPARE(::SendMessageW(freshHwnd, probeMessage, 0, 0),
                  ::CallWindowProcW(freshProc, freshHwnd, probeMessage, 0, 0));
         QVERIFY(calls.isEmpty());
+    }
+
+    void reentrancy_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto name : {"same-window", "other-window", "unmanaged-window",
+                               "inactive-window", "two-level", "delete-outer-agent",
+                               "replace-outer-agent", "unrelated-message"})
+            QTest::newRow(name) << QString::fromLatin1(name);
+    }
+
+    void reentrancy() {
+        if (!childProcess) {
+            runChild();
+            return;
+        }
+        QFETCH(QString, scenario);
+        QCOMPARE(QGuiApplication::platformName(), QStringLiteral("windows"));
+        QWidget first, second, plain;
+        const auto hwndA = reinterpret_cast<HWND>(first.winId());
+        const auto hwndB = reinterpret_cast<HWND>(second.winId());
+        const auto hwndPlain = reinterpret_cast<HWND>(plain.winId());
+        auto agentA = std::make_unique<Agent>();
+        Agent agentB;
+        QVERIFY(agentA->setup(&first));
+        QVERIFY(agentB.setup(&second));
+        QCOMPARE(agentA->contextKey(), QStringLiteral("win32"));
+        QCOMPARE(agentB.contextKey(), QStringLiteral("win32"));
+        if (scenario == "inactive-window") {
+            Agent temporary;
+            QVERIFY(temporary.setup(&plain));
+            chainState[0].after = replace(hwndPlain, after<0>);
+            QVERIFY(chainState[0].after);
+        }
+        const auto baselineA = calculate(hwndA);
+        const auto baselineB = calculate(hwndB);
+        const auto baselinePlain = calculate(hwndPlain);
+        int depth = 0;
+        int visits = 0;
+        int deepest = 0;
+        bool enabled = true;
+        bool replacementSetup = false;
+        bool foreignConsumed = false;
+        Calculation inner, innermost, foreign;
+        QT_NATIVE_EVENT_RESULT_TYPE foreignResult = 12345;
+        ReenterFilter filter;
+        filter.action = [&](MSG *msg) {
+            if (!enabled)
+                return;
+            ++visits;
+            ++depth;
+            deepest = qMax(deepest, depth);
+            if (depth == 1) {
+                if (scenario == "unrelated-message") {
+                    // Explicit dispatcher probe: same HWND/type, different message payload.
+                    MSG different = *msg;
+                    different.lParam = reinterpret_cast<LPARAM>(&foreign.rect);
+                    enabled = false;
+                    foreignConsumed = QAbstractEventDispatcher::instance()->filterNativeEvent(
+                        "windows_generic_MSG", &different, &foreignResult);
+                    enabled = true;
+                } else {
+                    const auto target = scenario == "same-window" ? hwndA
+                        : (scenario == "unmanaged-window" || scenario == "inactive-window")
+                            ? hwndPlain : hwndB;
+                    inner = calculate(target);
+                }
+            } else if (depth == 2) {
+                if (scenario == "two-level") {
+                    innermost = calculate(hwndA);
+                } else if (scenario == "delete-outer-agent" || scenario == "replace-outer-agent") {
+                    enabled = false;
+                    agentA.reset();
+                    if (scenario == "replace-outer-agent") {
+                        agentA = std::make_unique<Agent>();
+                        replacementSetup = agentA->setup(&first);
+                    }
+                    enabled = true;
+                }
+            }
+            --depth;
+        };
+        QCoreApplication::instance()->installNativeEventFilter(&filter);
+        const auto outer = calculate(hwndA);
+        enabled = false;
+        QCOMPARE(depth, 0);
+        if (scenario == "unrelated-message") {
+            QCOMPARE(visits, 1);
+            QVERIFY(!foreignConsumed);
+            QCOMPARE(foreign.geometry(), Calculation{}.geometry());
+            QCOMPARE(foreignResult, QT_NATIVE_EVENT_RESULT_TYPE(12345));
+        } else {
+            QCOMPARE(visits, scenario == "two-level" ? 3 : 2);
+            QCOMPARE(deepest, scenario == "two-level" ? 3 : 2);
+            const auto expected = scenario == "same-window" ? baselineA
+                : (scenario == "unmanaged-window" || scenario == "inactive-window")
+                    ? baselinePlain : baselineB;
+            QCOMPARE(inner.geometry(), expected.geometry());
+            QCOMPARE(inner.result, expected.result);
+        }
+        if (scenario == "two-level") {
+            QCOMPARE(innermost.geometry(), baselineA.geometry());
+            QCOMPARE(innermost.result, baselineA.result);
+        }
+        if (scenario == "delete-outer-agent" || scenario == "replace-outer-agent") {
+            if (scenario == "replace-outer-agent")
+                QVERIFY(replacementSetup);
+            else
+                QVERIFY(!agentA);
+            agentA.reset();
+            // The old frame must not use either a deleted or replacement context.
+            const auto detached = calculate(hwndA);
+            QCOMPARE(outer.geometry(), detached.geometry());
+            QCOMPARE(outer.result, detached.result);
+            QVERIFY(outer.geometry() != baselineA.geometry());
+        } else {
+            QCOMPARE(outer.geometry(), baselineA.geometry());
+            QCOMPARE(outer.result, baselineA.result);
+        }
+        QCoreApplication::instance()->removeNativeEventFilter(&filter);
+        // No stale frame may remain after the outermost dispatch.
+        QCOMPARE(calculate(hwndPlain).geometry(), baselinePlain.geometry());
     }
 };
 

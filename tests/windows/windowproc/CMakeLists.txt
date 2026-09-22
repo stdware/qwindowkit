@@ -11,7 +11,7 @@ add_test(NAME windows.windowproc
     ${CMAKE_COMMAND}
     "-DTEST_EXE=$<TARGET_FILE:tst_windowproc>"
     "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/windowproc-$<CONFIG>"
-    "-DEXPECTED_PASSES=7"
+    "-DEXPECTED_PASSES=15"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
 set_tests_properties(windows.windowproc PROPERTIES
     TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)

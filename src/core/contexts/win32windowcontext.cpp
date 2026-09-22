@@ -524,6 +524,14 @@ namespace QWK {
     // handles Windows window messages in the main thread, it is safe to do so.
     class WindowsNativeEventFilter : public AppNativeEventFilter {
     public:
+        struct MessageContext {
+            QPointer<Win32WindowContext> context;
+            HWND hwnd;
+            UINT message;
+            WPARAM wParam;
+            LPARAM lParam;
+        };
+
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
@@ -540,9 +548,15 @@ namespace QWK {
                     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
                     // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been
                     // processed, so we have to process it after Qt acquires the initial data.
-                    if (lastMessageContext) {
+                    const auto frame = currentMessage;
+                    const auto ctx = frame ? frame->context.data() : nullptr;
+                    const auto entry = g_wndProcHash->value(msg->hwnd);
+                    if (ctx && frame->hwnd == msg->hwnd && frame->message == msg->message &&
+                        frame->wParam == msg->wParam && frame->lParam == msg->lParam &&
+                        entry && !entry->destroying && entry->context == ctx && ctx->window() &&
+                        ctx->windowId() == reinterpret_cast<WId>(msg->hwnd)) {
                         LRESULT res;
-                        if (lastMessageContext->nonClientCalcSizeHandler(
+                        if (ctx->nonClientCalcSizeHandler(
                                 msg->hwnd, msg->message, msg->wParam, msg->lParam, &res)) {
                             *result = decltype(*result)(res);
                             return true;
@@ -554,7 +568,7 @@ namespace QWK {
                     // case WM_NCHITTEST: {
                     //     // The child window must return HTTRANSPARENT when processing WM_NCHITTEST for
                     //     // the parent window to receive WM_NCHITTEST.
-                    //     if (!lastMessageContext) {
+                    //     if (!currentMessage || !currentMessage->context) {
                     //         auto rootHWnd = ::GetAncestor(msg->hwnd, GA_ROOT);
                     //         if (rootHWnd != msg->hwnd) {
                     //             if (auto ctx = g_wndProcHash->value(rootHWnd)) {
@@ -570,7 +584,9 @@ namespace QWK {
         }
 
         static inline WindowsNativeEventFilter *instance = nullptr;
-        static inline Win32WindowContext *lastMessageContext = nullptr;
+        // Points into the synchronous WndProc stack. Each frame has its own guarded
+        // context, so nested messages cannot overwrite or resurrect an outer owner.
+        static inline const MessageContext *currentMessage = nullptr;
 
         static inline void install() {
             if (instance) {
@@ -647,6 +663,15 @@ namespace QWK {
         }
 
         const auto entry = g_wndProcHash->value(hWnd);
+        const WindowsNativeEventFilter::MessageContext frame{
+            entry && !entry->destroying && message != WM_NCDESTROY
+                ? entry->context : QPointer<Win32WindowContext>{},
+            hWnd, message, wParam, lParam};
+        const auto previousMessage = WindowsNativeEventFilter::currentMessage;
+        WindowsNativeEventFilter::currentMessage = &frame;
+        const auto contextCleaner = qScopeGuard([previousMessage] {
+            WindowsNativeEventFilter::currentMessage = previousMessage;
+        });
         if (!entry) {
             return ::DefWindowProcW(hWnd, message, wParam, lParam);
         }
@@ -670,11 +695,6 @@ namespace QWK {
         if (!ctx || !ctx->window()) {
             return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
         }
-
-        WindowsNativeEventFilter::lastMessageContext = ctx;
-        const auto &contextCleaner = qScopeGuard([]() {
-            WindowsNativeEventFilter::lastMessageContext = nullptr; //
-        });
 
         // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
         // forward it right away and process it in our native event filter.
