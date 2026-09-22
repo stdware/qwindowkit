@@ -40,6 +40,7 @@ namespace QWK {
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         void setupWindows10BorderWorkaround();
+        QPointer<QQuickItem> borderItem;
 #endif
     };
 

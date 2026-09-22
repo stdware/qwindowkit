@@ -778,6 +778,25 @@ namespace QWK {
             }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+            case Windows10BorderColorHook: {
+                auto &color = *static_cast<QColor *>(data);
+                color = {};
+                if (!m_windowId || !m_windowHandle)
+                    return;
+                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
+                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
+                if (m_delegate->isWindowActive(m_host)) {
+                    color = isWindowFrameBorderColorized()
+                                ? getAccentColor()
+                                : QColor(dark ? kWindowsColorSet.activeDark
+                                              : kWindowsColorSet.activeLight);
+                } else {
+                    color = QColor(dark ? kWindowsColorSet.inactiveDark
+                                        : kWindowsColorSet.inactiveLight);
+                }
+                return;
+            }
+
             // ### FIXME: May be deprecated
             case DrawWindows10BorderHook_Emulated: {
                 if (!m_windowId)
@@ -787,8 +806,6 @@ namespace QWK {
                 auto &painter = *static_cast<QPainter *>(args[0]);
                 const auto &rect = *static_cast<const QRect *>(args[1]);
                 const auto &region = *static_cast<const QRegion *>(args[2]);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-
                 QPen pen;
 #  if QT_VERSION_MAJOR < 6
                 pen.setWidth(1);
@@ -796,22 +813,9 @@ namespace QWK {
                 pen.setWidthF(1 / m_windowHandle->devicePixelRatio()); // why 0.25?
 #  endif
 
-                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
-                if (m_delegate->isWindowActive(m_host)) {
-                    if (isWindowFrameBorderColorized()) {
-                        pen.setColor(getAccentColor());
-                    } else {
-                        static QColor frameBorderActiveColorLight(kWindowsColorSet.activeLight);
-                        static QColor frameBorderActiveColorDark(kWindowsColorSet.activeDark);
-                        pen.setColor(dark ? frameBorderActiveColorDark
-                                          : frameBorderActiveColorLight);
-                    }
-                } else {
-                    static QColor frameBorderInactiveColorLight(kWindowsColorSet.inactiveLight);
-                    static QColor frameBorderInactiveColorDark(kWindowsColorSet.inactiveDark);
-                    pen.setColor(dark ? frameBorderInactiveColorDark
-                                      : frameBorderInactiveColorLight);
-                }
+                QColor color;
+                virtual_hook(Windows10BorderColorHook, &color);
+                pen.setColor(color);
                 painter.save();
 
                 // We need antialiasing to give us better result.
@@ -834,19 +838,7 @@ namespace QWK {
                 // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe#extending-the-client-frame
                 // Draw a black rectangle to make Windows native top border show
 
-                auto hWnd = reinterpret_cast<HWND>(m_windowId);
-                HDC hdc = ::GetDC(hWnd);
-                RECT windowRect{};
-                ::GetClientRect(hWnd, &windowRect);
-                RECT rcTopBorder = {
-                    0,
-                    0,
-                    RECT_WIDTH(windowRect),
-                    1,
-                };
-                ::FillRect(hdc, &rcTopBorder,
-                           reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
-                ::ReleaseDC(hWnd, hdc);
+                drawWindows10BorderNative(reinterpret_cast<HWND>(m_windowId));
                 return;
             }
 #endif

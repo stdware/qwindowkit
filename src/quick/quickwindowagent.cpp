@@ -22,7 +22,13 @@ namespace QWK {
 
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() = default;
 
-    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() = default;
+    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() {
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+        // The window may have deleted the item already. Otherwise retire its filters and
+        // render callbacks before the base class destroys the context they depend on.
+        delete borderItem.data();
+#endif
+    }
 
     void QuickWindowAgentPrivate::init() {
     }

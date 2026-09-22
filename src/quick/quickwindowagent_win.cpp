@@ -5,202 +5,215 @@
 #include "quickwindowagent_p.h"
 
 #include <QtQuick/QQuickPaintedItem>
-#include <QtQuick/private/qquickitem_p.h>
+#include <QtQuick/QSGRectangleNode>
+#include <QtQuick/QSGRendererInterface>
 
-#include <QWKCore/qwindowkit_windows.h>
+#include <QWKCore/private/qwkwindowsextra_p.h>
 #include <QWKCore/private/windows10borderhandler_p.h>
 
 namespace QWK {
 
-    static inline bool isWindows1022H2OrGreater() {
-        QWK_OSVERSIONINFOW rovi = Private::GetRealOSVersion();
-        return (rovi.dwMajorVersion > 10) ||
-               (rovi.dwMajorVersion == 10 &&
-                (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19045));
-    }
-
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
 
-    class BorderItem : public QQuickPaintedItem, public Windows10BorderHandler {
+    // Retain the native path's transparent painted surface and subpixel offset until its
+    // DWM seam workaround can be validated on Windows 10. Emulated borders do not use it.
+    class NativeBorderSurface : public QQuickPaintedItem {
+    public:
+        explicit NativeBorderSurface(QQuickItem *parent) : QQuickPaintedItem(parent) {
+            setAntialiasing(true);
+            setFillColor(Qt::transparent);
+            setOpaquePainting(true);
+            setAcceptedMouseButtons(Qt::NoButton);
+            setAcceptTouchEvents(false);
+            setAcceptHoverEvents(false);
+        }
+
+        void paint(QPainter *) override {}
+    };
+
+    class BorderItem : public QQuickItem, public Windows10BorderHandler {
     public:
         explicit BorderItem(QQuickItem *parent, AbstractWindowContext *context);
         ~BorderItem() override;
 
-        bool shouldEnableEmulatedPainter() const;
         void updateGeometry() override;
 
-    public:
-        void paint(QPainter *painter) override;
-        void itemChange(ItemChange change, const ItemChangeData &data) override;
-
     protected:
+        QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *) override;
+        void itemChange(ItemChange change, const ItemChangeData &data) override;
         bool sharedEventFilter(QObject *obj, QEvent *event) override;
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override;
 
     private:
-        bool needNativePaint = false;
+        bool shouldEnableNativePainter() const;
+        void afterSynchronizing();
 
-        void _q_afterSynchronizing();
-        void _q_windowActivityChanged();
+        // Written on the GUI thread; read only during synchronization while it is blocked.
+        QColor borderColor;
+        WId nativeWindowId = 0;
+        bool nativePainting = false;
+        std::unique_ptr<NativeBorderSurface> nativeSurface;
     };
 
-    bool BorderItem::shouldEnableEmulatedPainter() const {
+    bool BorderItem::shouldEnableNativePainter() const {
 #  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const QQuickWindow *win = window();
-        if (!win) {
-            return true;
-        }
-        auto api = win->rendererInterface()->graphicsApi();
-        switch (api) {
-            case QSGRendererInterface::OpenGL:
-                // FIXME: may be wrong in earlier Windows 10.
-                return false;
-            case QSGRendererInterface::Direct3D11:
+        if (auto win = window()) {
+            switch (win->rendererInterface()->graphicsApi()) {
+                case QSGRendererInterface::OpenGL:
+                case QSGRendererInterface::Direct3D11:
 #    if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-            case QSGRendererInterface::Direct3D12:
+                case QSGRendererInterface::Direct3D12:
 #    endif
-                return false;
-            default:
-                break;
+                    return true;
+                default:
+                    break;
+            }
         }
 #  endif
-        return true;
+        return false;
     }
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
-        : QQuickPaintedItem(parent), Windows10BorderHandler(context) {
-        setAntialiasing(true);         // We need anti-aliasing to give us better result.
-        setFillColor(Qt::transparent); // Will improve the performance a little bit.
-        setOpaquePainting(true);       // Will also improve the performance, we don't draw
-                                       // semi-transparent borders of course.
+        : QQuickItem(parent), Windows10BorderHandler(context) {
+        setFlag(ItemHasContents);
+        setAntialiasing(false);
+        setAcceptedMouseButtons(Qt::NoButton);
+        setAcceptTouchEvents(false);
+        setAcceptHoverEvents(false);
+        setActiveFocusOnTab(false);
+        setEnabled(false);
+        // A decoration above ordinary sibling content, not above other native windows.
+        setZ(std::numeric_limits<qreal>::max());
 
-        auto parentPri = QQuickItemPrivate::get(parent);
-        auto anchors = QQuickItemPrivate::get(this)->anchors();
-
-        // Workaround for top border
-        // anchors->setTop(parentPri->top());
-
-        anchors->setLeft(parentPri->left());
-        anchors->setRight(parentPri->right());
-
-        setZ(std::numeric_limits<qreal>::max()); // Make sure our fake border always above
-                                                 // everything in the window.
-
-        // The item is parented to the window's content item, so there normally is a window
-        // here, but window() is nullable and the rest of this class already treats it as such.
+        connect(parent, &QQuickItem::widthChanged, this, &BorderItem::updateGeometry);
         if (auto win = window()) {
-#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            connect(win, &QQuickWindow::activeChanged, this, &BorderItem::updateGeometry);
+            connect(win, &QQuickWindow::screenChanged, this, &BorderItem::updateGeometry);
+            // Backend selection may not be final before the first scene graph is initialized.
+            connect(win, &QQuickWindow::sceneGraphInitialized, this,
+                    &BorderItem::updateGeometry, Qt::QueuedConnection);
             connect(win, &QQuickWindow::afterSynchronizing, this,
-                    &BorderItem::_q_afterSynchronizing, Qt::DirectConnection);
-#  endif
-            connect(win, &QQuickWindow::activeChanged, this,
-                    &BorderItem::_q_windowActivityChanged);
+                    &BorderItem::afterSynchronizing, Qt::DirectConnection);
         }
 
-        // First update
         if (context->windowId()) {
             setupNecessaryAttributes();
         }
-        BorderItem::updateGeometry();
+        updateGeometry();
     }
 
-    BorderItem::~BorderItem() = default;
+    BorderItem::~BorderItem() {
+        // Stop render callbacks before destroying members and unregistering context filters.
+        if (auto win = window()) {
+            disconnect(win, nullptr, this, nullptr);
+        }
+        // Qt owns the node returned by updatePaintNode and releases it on the render thread.
+    }
 
     void BorderItem::updateGeometry() {
-        const QQuickWindow *win = window();
+        auto win = window();
         if (!win) {
+            nativeWindowId = 0;
+            setVisible(false);
             return;
         }
-#  if QT_VERSION_MAJOR < 6
-        setHeight(1);
-#  else
-        // Workaround for top border
-        // When the height is less than 0.5, it will be regarded as invisible, we apply this
-        // workaround to make it slightly exposed. When the height is too big, a transparent gap
-        // will appear on the upper frame.
-        setHeight(0.5);
-        setY(-0.49);
-#  endif
-        setVisible(isNormalWindow());
+
+        nativePainting = shouldEnableNativePainter();
+        nativeWindowId = ctx->windowId();
+        borderColor = {};
+        if (!nativePainting) {
+            ctx->virtual_hook(AbstractWindowContext::Windows10BorderColorHook, &borderColor);
+        }
+
+        setX(0);
+        setWidth(parentItem() ? parentItem()->width() : 0);
+        if (nativePainting) {
+            // Preserve the original native workaround's surface geometry and opacity setup.
+            setY(-0.49);
+            setHeight(0.5);
+            if (!nativeSurface) {
+                nativeSurface = std::make_unique<NativeBorderSurface>(this);
+            }
+            nativeSurface->setSize(size());
+            nativeSurface->update();
+        } else {
+            nativeSurface.reset();
+            setY(0);
+            const qreal dpr = win->effectiveDevicePixelRatio();
+            setHeight(dpr > 0 ? 1 / dpr : 1);
+        }
+        setVisible(!(win->windowStates() &
+                     (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen)));
+        update();
     }
 
-    void BorderItem::paint(QPainter *painter) {
-        Q_UNUSED(painter)
-        if (shouldEnableEmulatedPainter()) {
-            drawBorderEmulated(painter, QRect({0, 0}, size().toSize()));
-        } else {
-            needNativePaint = true;
+    QSGNode *BorderItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *) {
+        if (nativePainting || !borderColor.isValid() || width() <= 0 || height() <= 0) {
+            delete oldNode;
+            return nullptr;
         }
+        auto node = static_cast<QSGRectangleNode *>(oldNode);
+        if (!node) {
+            node = window()->createRectangleNode();
+            if (!node)
+                return nullptr;
+        }
+        node->setRect(QRectF(0, 0, width(), height()));
+        node->setColor(borderColor);
+        return node;
     }
 
     void BorderItem::itemChange(ItemChange change, const ItemChangeData &data) {
-        QQuickPaintedItem::itemChange(change, data);
-        switch (change) {
-            case ItemVisibleHasChanged:
-            case ItemDevicePixelRatioHasChanged: {
-                updateGeometry();
-                break;
-            }
-            default:
-                break;
+        QQuickItem::itemChange(change, data);
+        if (change == ItemDevicePixelRatioHasChanged || change == ItemSceneChange) {
+            updateGeometry();
         }
     }
 
     bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
-        Q_UNUSED(obj)
-
-        switch (event->type()) {
-            case QEvent::WindowStateChange: {
-                updateGeometry();
-                break;
-            }
-            default:
-                break;
+        const bool filtered = Windows10BorderHandler::sharedEventFilter(obj, event);
+        if (event->type() == QEvent::WindowStateChange || event->type() == QEvent::WinIdChange) {
+            updateGeometry();
         }
-        return Windows10BorderHandler::sharedEventFilter(obj, event);
+        return filtered;
     }
 
     bool BorderItem::nativeEventFilter(const QByteArray &eventType, void *message,
                                        QT_NATIVE_EVENT_RESULT_TYPE *result) {
+        if (!message)
+            return false;
+        const bool filtered = Windows10BorderHandler::nativeEventFilter(eventType, message, result);
         const auto msg = static_cast<const MSG *>(message);
         switch (msg->message) {
             case WM_THEMECHANGED:
             case WM_SYSCOLORCHANGE:
-            case WM_DWMCOLORIZATIONCOLORCHANGED: {
-                update();
+            case WM_DWMCOLORIZATIONCOLORCHANGED:
+                updateGeometry();
                 break;
-            }
-
-            case WM_SETTINGCHANGE: {
+            case WM_SETTINGCHANGE:
                 if (isImmersiveColorSetChange(msg->wParam, msg->lParam)) {
-                    update();
+                    updateGeometry();
                 }
                 break;
-            }
-
             default:
                 break;
         }
-        return Windows10BorderHandler::nativeEventFilter(eventType, message, result);
+        return filtered;
     }
 
-    void BorderItem::_q_afterSynchronizing() {
-        if (needNativePaint) {
-            needNativePaint = false;
-            drawBorderNative();
+    void BorderItem::afterSynchronizing() {
+        // The GUI thread is still blocked here. Paint independently of item dirtiness,
+        // retaining the native timing without querying ctx or its host from the render thread.
+        if (nativePainting && isVisible()) {
+            drawWindows10BorderNative(reinterpret_cast<HWND>(nativeWindowId));
         }
     }
 
-    void BorderItem::_q_windowActivityChanged() {
-        update();
-    }
-
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
-        // Install painting hook
         auto ctx = context.get();
         if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
-            std::ignore = new BorderItem(hostWindow->contentItem(), ctx);
+            borderItem = new BorderItem(hostWindow->contentItem(), ctx);
         }
     }
 #endif
