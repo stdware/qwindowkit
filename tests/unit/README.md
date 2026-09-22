@@ -29,7 +29,8 @@ consumer-build, native-window or rendering tests. Normal unfiltered CTest runs a
 include the fast tests. Use `--output-junit fast-unit.xml` for a combined report;
 each process also writes Qt Test text/XML reports inside its test build directory.
 
-Compilation time is separate from test execution time. Each test process has an
+Compilation time is separate from test execution time. The manual-drag suite is
+labeled `component;fast`; geometry is labeled `unit;fast`. Each test process has an
 8-second execution deadline, with a 10-second outer CTest timeout. There are no
 sleeps, polling loops or asynchronous GUI waits. Destructive dispatch cases run in
 isolated child processes with bounded startup/completion waits. The runner requires the expected
@@ -46,12 +47,15 @@ case counts below do not.
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
 | `core.windowcontext.unit` | 26 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
 | `core.qtwindowcontext.unit` | 182 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation; 150 resize/visibility rows and 10 dynamic cursor transitions |
+| `core.windowmovegeometry.unit` | 22 | Production release-position geometry: negative screen coordinates, gaps, nearest correction, ties, reserved areas, tiny/invalid/missing screens, oversized windows and custom title offsets |
+| `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 274 business cases
-across eight CTest entries. The lifetime suite adds eight cases, each in a child process.
+With Widgets, Quick and StyleAgent enabled on Windows there are 304 business cases
+across ten CTest entries (nine unit suites and one component suite). The lifetime
+suite contributes eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
 component is disabled. The existing geometry suite retains its Windows registration
@@ -76,6 +80,25 @@ are refreshed on the next hover or left press after a constraint/state change. S
 the unchanged private `qtwindowcontext.cpp` and its moc output into the test because
 that class is not exported; static builds link its existing library implementation.
 The base context and QObject filter forwarding always come from the production library.
+
+The manual-drag component sends synthetic events through the real QObject event
+filter installed by `WindowMoveManipulator` on a hidden QWindow. Tests provide a
+fixed initial mouse position and controlled screen rectangles; a separate case
+uses the production QScreen provider on the offscreen QPA. Release positions are
+checked against explicit expectations, not a duplicate algorithm. No physical
+monitor, OS input, or compositor drag is exercised.
+
+The release policy preserves a point known to be draggable (the original grab
+point, bounded to the window). It moves that point into an individual screen's
+available rectangle with a 16-DIP inset, reduced for tiny screens, using the
+smallest squared translation. A reachable point causes no correction; this also
+supports oversized windows and custom title bars below the top edge. Ties prefer
+the current screen, then Qt's sibling order. Areas are refreshed at release;
+missing/invalid data preserves the position. This cannot recover a title area
+that the application removes or disables during the drag. QScreen work-area
+accuracy depends on the platform; in particular X11 may report full screen
+geometry instead of reserved areas in multi-monitor configurations (see
+[QScreen::availableGeometry](https://doc.qt.io/qt-6/qscreen.html#availableGeometry-prop)).
 
 These suites do not verify real native handle recreation, OS theme subscription,
 dragging/resizing, compositor output or physical monitor/DPI changes. Those require
