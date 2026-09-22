@@ -97,18 +97,19 @@ jobs:
       # The build system tests register themselves only where the configure found the tool they
       # drive, which is the one way this job could go green while covering less than it says. A
       # missing qmake or nmake is meant to be a skip on a developer's machine and a failure here.
-      - name: Check that the consumer tests registered
+      # The fast unit suites are also required, so accidental conditional exclusions fail CI.
+      - name: Check that the required tests registered
         shell: bash
         run: |
-          expected="buildsystems.cmake buildsystems.qmake"
+          expected="buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.windowcontext.unit core.styleagent.unit agents.unit"
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            expected="$expected buildsystems.msbuild"
+            expected="$expected buildsystems.msbuild quickgeometry.unit"
           fi
 
           for name in $expected; do
-            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
-              echo "$name did not register, so the tool it drives was not found here"
+            if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required test $name did not register"
               exit 1
             fi
           done
@@ -213,12 +214,12 @@ jobs:
 
       # The same question the matrix jobs ask. MSBuild is not part of this toolchain, so only the
       # qmake half is expected here.
-      - name: Check that the consumer tests registered
+      - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          for name in buildsystems.cmake buildsystems.qmake; do
-            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
-              echo "$name did not register, so the tool it drives was not found here"
+          for name in buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.windowcontext.unit core.styleagent.unit agents.unit quickgeometry.unit; do
+            if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required test $name did not register"
               exit 1
             fi
           done
