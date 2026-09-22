@@ -4,6 +4,12 @@
 
 #include "styleagent_p.h"
 
+#include <utility>
+
+#include <QtCore/QPointer>
+#include <QtCore/QSet>
+#include <QtCore/QVector>
+
 #include <Cocoa/Cocoa.h>
 
 namespace QWK {
@@ -82,9 +88,28 @@ namespace QWK {
     void notifyAllStyleAgents() {
         auto theme = getSystemTheme();
         auto color = getAccentColor();
+
+        struct AgentEntry {
+            StyleAgentPrivate *agent;
+            QPointer<StyleAgent> owner;
+        };
+        QVector<AgentEntry> agents;
+        agents.reserve(g_styleAgentSet->size());
         for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-            ap->notifyThemeChanged(theme);
-            ap->notifyAccentColorChanged(color);
+            agents.append(AgentEntry{ap, QPointer<StyleAgent>(ap->q_ptr)});
+        }
+
+        // Signals can create or destroy agents. Snapshot all owners before calling user code;
+        // a guard also distinguishes a destroyed agent from a new one reusing its address.
+        // Check membership too: the private object unregisters before QObject clears its guards.
+        for (const auto &entry : std::as_const(agents)) {
+            if (!entry.owner || !g_styleAgentSet->contains(entry.agent))
+                continue;
+            entry.agent->notifyThemeChanged(theme);
+
+            if (!entry.owner || !g_styleAgentSet->contains(entry.agent))
+                continue;
+            entry.agent->notifyAccentColorChanged(color);
         }
     }
 
