@@ -1,0 +1,25 @@
+qm_find_qt(Core Gui Test)
+
+add_custom_target(qwk_fast_unit_tests)
+
+# Only Qt and the production libraries: no downloads, external test runner or desktop.
+function(qwk_register_fast_test target name expected_passes)
+    add_dependencies(qwk_fast_unit_tests ${target})
+    add_test(NAME ${name}
+        COMMAND ${CMAKE_COMMAND}
+        "-DTEST_EXE=$<TARGET_FILE:${target}>"
+        "-DQWK_BIN_DIR=$<TARGET_FILE_DIR:QWKCore>"
+        "-DQT_BIN_DIR=$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+        "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/${name}-$<CONFIG>"
+        "-DEXPECTED_PASSES=${expected_passes}"
+        -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/RunTest.cmake")
+    set_tests_properties(${name} PROPERTIES TIMEOUT 10 LABELS "unit;fast")
+endfunction()
+
+function(qwk_add_unit_test target name expected_passes)
+    add_executable(${target} ${target}.cpp)
+    set_target_properties(${target} PROPERTIES AUTOMOC ON)
+    target_compile_features(${target} PRIVATE cxx_std_17)
+    target_link_libraries(${target} PRIVATE QWKCore Qt${QT_VERSION_MAJOR}::Test)
+    qwk_register_fast_test(${target} ${name} ${expected_passes})
+endfunction()

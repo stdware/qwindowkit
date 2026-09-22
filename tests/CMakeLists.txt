@@ -1,3 +1,4 @@
+add_subdirectory(unit)
 add_subdirectory(buildsystems)
 
 if(WIN32 AND QWINDOWKIT_BUILD_QUICK)
