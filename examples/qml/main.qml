@@ -1,18 +1,32 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
-import QWK.Demo 1.0
 
 FramelessWindow {
     property FramelessWindow childWindow: FramelessWindow {
         showWhenReady: false
     }
 
-    FPSCounter {
-        property int maxVal: 0
-
+    // Average actual frame intervals, as in Qt's CanvasView.qml fpsItem.
+    // FrameAnimation measures animation updates and keeps the animation loop running.
+    FrameAnimation {
         id: fps
+        property int ticks: 0
+        property real frameTimes: 0
+        property real frameRate: 0
+        readonly property int value: Math.round(frameRate)
+        property int maxVal: 0
+        running: true
         onValueChanged: fps.maxVal = Math.max(fps.value, fps.maxVal)
+        onTriggered: {
+            ++ticks
+            frameTimes += frameTime
+            if (frameTimes > 1.0) {
+                frameRate = ticks / frameTimes
+                ticks = 0
+                frameTimes = 0
+            }
+        }
     }
 
     Text {

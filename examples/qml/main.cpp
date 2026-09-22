@@ -2,7 +2,6 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "fpscounter.h"
 #include <QtCore/qloggingcategory.h>
 #include <QtGui/QGuiApplication>
 #include <QtQml/QQmlApplicationEngine>
@@ -59,7 +58,6 @@ int main(int argc, char *argv[]) {
 #endif
     engine.rootContext()->setContextProperty(QStringLiteral("$curveRenderingAvailable"), QVariant(curveRenderingAvailable));
     QWK::registerTypes(&engine);
-    qmlRegisterType<FPSCounter>("QWK.Demo", 1, 0, "FPSCounter");
     engine.load(QUrl(QStringLiteral("qrc:///main.qml")));
 
     return application.exec();
