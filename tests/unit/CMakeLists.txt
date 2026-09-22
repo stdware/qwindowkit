@@ -26,3 +26,18 @@ endfunction()
 
 qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
 qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 17)
+
+if(QWINDOWKIT_ENABLE_STYLE_AGENT)
+    # StyleAgentPrivate is not exported. Compile the real notification implementation into
+    # this test, with deterministic platform-hook substitutes, without linking QWKCore.
+    add_executable(tst_styleagent tst_styleagent.cpp
+        ../../src/core/style/styleagent.cpp ../../src/core/style/styleagent.h)
+    set_target_properties(tst_styleagent PROPERTIES AUTOMOC ON)
+    target_compile_features(tst_styleagent PRIVATE cxx_std_17)
+    target_compile_definitions(tst_styleagent PRIVATE QWK_CORE_STATIC)
+    target_include_directories(tst_styleagent PRIVATE
+        "$<TARGET_PROPERTY:QWKCore,INTERFACE_INCLUDE_DIRECTORIES>")
+    target_link_libraries(tst_styleagent PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Test)
+    add_dependencies(tst_styleagent QWKCore)
+    qwk_register_fast_test(tst_styleagent core.styleagent.unit 11)
+endif()
