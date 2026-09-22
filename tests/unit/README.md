@@ -41,13 +41,16 @@ case counts below do not.
 | CTest name | Business cases | Checks |
 | --- | ---: | --- |
 | `core.eventdispatch.unit` | 22 | Shared/native dispatch arguments, result forwarding, ordering, short-circuit consumption, duplicate/foreign registration, transfer, removal and destruction during dispatch, appending filters, nested dispatch, dispatcher/filter destruction order, application-wide native filter cleanup/reinstallation |
-| `core.windowcontext.unit` | 15 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority and fixed-size constraints |
+| `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
+| `core.windowcontext.unit` | 26 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
+| `core.qtwindowcontext.unit` | 22 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 68 business cases,
-including 56 new cases, across five test processes. Core suites are available even
+With Widgets, Quick and StyleAgent enabled on Windows there are 106 business cases
+across seven test processes. The latest expansion adds 38 cases to the previous 68.
+Core suites are available even
 when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
 component is disabled. The existing geometry suite retains its Windows registration
 condition; the new platform-independent suites are registered on all platforms.
@@ -60,6 +63,13 @@ private notifications are not exported, so its test compiles the unchanged produ
 `styleagent.cpp` and moc output with deterministic platform subscription substitutes;
 it does not link a second copy of StyleAgent from QWKCore.
 
+The Qt fallback tests use the real `QtWindowContext` event filter with a recording
+delegate and system-menu hook. Events are dispatched synchronously to hidden windows;
+no native move, resize or menu operation is triggered. Shared-library builds compile
+the unchanged private `qtwindowcontext.cpp` and its moc output into the test because
+that class is not exported; static builds link its existing library implementation.
+The base context and QObject filter forwarding always come from the production library.
+
 These suites do not verify real native handle recreation, OS theme subscription,
 dragging/resizing, compositor output or physical monitor/DPI changes. Those require
 separate integration tests. In particular, a fake handle transition verifies the
@@ -67,16 +77,19 @@ base context's replay contract, not a Win32/Cocoa/X11/Wayland implementation.
 
 ## Local verification (2026-09-22)
 
-On Windows with Qt 6.12.0/MSVC, all five suites passed in Release (about 0.20 seconds
-total, including CTest/process startup) and Debug (about 0.28 seconds). Twenty
-consecutive runs per Release suite passed with no skips: 100 process runs in about
-3.46 seconds. A Core-only static build with Widgets, Quick and StyleAgent disabled,
-installation disabled and the Qt fallback selected also passed both applicable suites
-in about 0.08 seconds. The full existing plus new Release regression passed 15/15
-CTest entries. Other platforms and hosted CI have not been executed locally.
+On Windows with Qt 6.12.0/MSVC, all seven suites passed in Release (about 0.30 seconds
+total, including CTest/process startup) and Debug (about 0.33 seconds). Twenty
+consecutive runs per Release suite passed with no skips: 140 process runs in about
+4.72 seconds. A Core-only static build with Widgets, Quick and StyleAgent disabled,
+installation disabled and the Qt fallback selected also passed all four applicable
+suites plus the timeout policy check in about 0.19 seconds. The full Release regression
+passed 19/19 CTest entries in about 20.11 seconds. Other platforms and hosted CI have
+not been executed locally.
 
 These timings are observations, not hardware-independent guarantees. CI requires
-registration of the applicable fast suites before its normal test run.
+registration of the applicable fast suites before its normal test run. The Windows
+static CI configuration also runs the unit suites and timeout policy check alongside
+its MSBuild consumer test.
 
 The timeout policy for all project tests, including build consumers and native
 integration suites, is documented in [../README.md](../README.md).

@@ -23,7 +23,7 @@ it is never converted to a skip, success, or automatic retry. Test configuration
 qmake prefix query is also bounded to five seconds and fails if it cannot finish.
 
 Full CI test steps have a separate three-minute aggregate deadline. The static
-MSBuild consumer CI step is limited to two minutes and the no-system-borders
+unit/MSBuild consumer CI step is limited to two minutes and the no-system-borders
 hit-test step to one minute. These CI deadlines exclude dependency setup and
 building the main project. Local CTest runs enforce the per-test limits above;
 they do not inherit the CI step's aggregate deadline.
@@ -40,8 +40,9 @@ select `-L fast`. To inspect the timeout policy alone, select
 `-R '^testpolicy.timeouts$'`. All helpers use the existing CMake/CTest tools;
 no external testing framework or network access is added.
 
-Local validation on Windows/MSVC and Qt 6.12.0: all 17 registered Release tests,
-including qmake, passed in approximately 21.92 seconds under these limits.
+Local validation on Windows/MSVC and Qt 6.12.0: all 19 registered Release tests,
+including qmake and the expanded unit suites, passed in approximately 20.11 seconds
+under these limits.
 Negative probes confirmed rejection of absent/zero/61-second timeouts and
 acceptance of a ten-second timeout. A deliberately sleeping consumer process
 failed after approximately 1.03 seconds with a one-second step budget. Hosted

@@ -101,7 +101,7 @@ jobs:
       - name: Check that the required tests registered
         shell: bash
         run: |
-          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.windowcontext.unit core.styleagent.unit agents.unit"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.styleagent.unit agents.unit"
 
           if [ "$RUNNER_OS" = "Windows" ]; then
             expected="$expected buildsystems.msbuild quickgeometry.unit"
@@ -145,10 +145,10 @@ jobs:
         if: matrix.platform == 'windows-msvc'
         run: cmake --build build-static
 
-      - name: Test static MSBuild consumer
+      - name: Test static units and MSBuild consumer
         if: matrix.platform == 'windows-msvc'
         timeout-minutes: 2
-        run: ctest --test-dir build-static -R "^buildsystems.msbuild$" --output-on-failure --no-tests=error
+        run: ctest --test-dir build-static -R "(\.unit$|^testpolicy.timeouts$|^buildsystems.msbuild$)" --output-on-failure --no-tests=error
 
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
@@ -220,7 +220,7 @@ jobs:
       - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          for name in testpolicy.timeouts buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.windowcontext.unit core.styleagent.unit agents.unit quickgeometry.unit; do
+          for name in testpolicy.timeouts buildsystems.cmake buildsystems.qmake core.eventdispatch.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.styleagent.unit agents.unit quickgeometry.unit; do
             if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required test $name did not register"
               exit 1
