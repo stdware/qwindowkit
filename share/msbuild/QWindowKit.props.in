@@ -8,14 +8,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>@MSBUILD_QWK_STATIC_MACRO@%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies Condition="'$(Configuration)'=='Debug'">@MSBUILD_QWK_LIBRARY_LIST_DEBUG@;%(AdditionalDependencies);</AdditionalDependencies>
       <AdditionalDependencies Condition="'$(Configuration)'=='Release'">@MSBUILD_QWK_LIBRARY_LIST_RELEASE@;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <PropertyGroup>
-    @MSBUILD_QWK_STATIC_MACRO@
-  </PropertyGroup>
 </Project>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The MSBuild half of the build system regression tests. Built by `RunMSBuildBuild.cmake`, which
-  passes QWK_PREFIX, QTDIR, QtVersionMajor and QwkUseWidgets, and redirects OutDir and IntDir into
+  The MSBuild half of the build system regression tests. Built by `RunBuild.cmake`, which
+  passes the install prefixes, Qt version and module/linkage options, and redirects OutDir and IntDir into
   the build tree so that nothing is written next to this file.
 
   The include and library paths of QWindowKit itself are deliberately absent here: they are what
@@ -48,6 +48,11 @@
     <UseDebugLibraries Condition="'$(Configuration)' != 'Debug'">false</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>CONSUMER_INHERITED_DEFINITION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <!-- The file under test. -->
   <Import Project="$(QWK_PREFIX)\share\QWindowKit\msbuild\QWindowKit.props" />
   <PropertyGroup>
@@ -66,15 +71,21 @@
       <RuntimeLibrary Condition="'$(Configuration)' != 'Debug'">MultiThreadedDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(QtHeaderSearchPath);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(QwkUseWidgets)' == 'true'">CONSUMER_USE_WIDGETS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(QwkUseQuick)' == 'true'">CONSUMER_USE_QUICK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(QwkExpectStatic)' == 'true'">CONSUMER_EXPECT_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories Condition="'$(QwkUseQuick)' == 'true'">$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtQml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Qt$(QtVersionMajor)Core$(QtLibSuffix).lib;Qt$(QtVersionMajor)Gui$(QtLibSuffix).lib;Qt$(QtVersionMajor)Widgets$(QtLibSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(QwkUseQuick)' == 'true'">Qt$(QtVersionMajor)Quick$(QtLibSuffix).lib;Qt$(QtVersionMajor)Qml$(QtLibSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- Native dependency of the static Windows backend. -->
+      <AdditionalDependencies Condition="'$(QwkExpectStatic)' == 'true'">uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\consumer.cpp" />
+    <ClCompile Include="consumer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

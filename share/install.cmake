@@ -79,9 +79,10 @@ if(MSVC)
     to_dos_separator(MSBUILD_QWK_INSTALL_LIBDIR)
     to_dos_separator(MSBUILD_QWK_INSTALL_INCDIR)
 
+    set(MSBUILD_QWK_STATIC_MACRO "")
     if(QWINDOWKIT_BUILD_STATIC)
-        set(MSBUILD_QWK_STATIC_MACRO 
-            "<PreprocessorDefinitions>QWK_CORE_STATIC;QWK_WIDGETS_STATIC;QWK_QUICK_STATIC</PreprocessorDefinitions>"
+        set(MSBUILD_QWK_STATIC_MACRO
+            "QWK_CORE_STATIC;QWK_WIDGETS_STATIC;QWK_QUICK_STATIC;"
         )
     endif()
 

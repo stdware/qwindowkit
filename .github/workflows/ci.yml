@@ -121,6 +121,32 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
+      - name: Configure static MSBuild consumer regression
+        if: matrix.platform == 'windows-msvc'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -G Ninja -S . -B build-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQWINDOWKIT_BUILD_STATIC=ON \
+            -DQWINDOWKIT_BUILD_WIDGETS=ON \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON
+          if ! ctest --test-dir build-static -N -R '^buildsystems.msbuild$' | grep -q 'buildsystems.msbuild'; then
+            echo 'The static MSBuild consumer test did not register'
+            exit 1
+          fi
+
+      - name: Build static configuration
+        if: matrix.platform == 'windows-msvc'
+        run: cmake --build build-static
+
+      - name: Test static MSBuild consumer
+        if: matrix.platform == 'windows-msvc'
+        run: ctest --test-dir build-static -R "^buildsystems.msbuild$" --output-on-failure --no-tests=error
+
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
       - name: Configure without system borders

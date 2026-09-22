@@ -129,6 +129,8 @@ if(QWINDOWKIT_TEST_MSBUILD_EXECUTABLE AND _platform AND _qt_prefix)
         -D "QT_PREFIX=${_qt_prefix}"
         -D "QT_MAJOR_VERSION=${QT_VERSION_MAJOR}"
         -D "USE_WIDGETS=${_use_widgets}"
+        -D "USE_QUICK=${QWINDOWKIT_BUILD_QUICK}"
+        -D "EXPECT_STATIC=${QWINDOWKIT_BUILD_STATIC}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/msbuild/RunBuild.cmake"
     )
     set_tests_properties(buildsystems.msbuild PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
