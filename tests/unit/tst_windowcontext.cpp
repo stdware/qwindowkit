@@ -1,58 +1,18 @@
 // Copyright (C) 2023-present Stdware Collections (https://www.github.com/stdware)
 // SPDX-License-Identifier: Apache-2.0
 
+#include <functional>
 #include <memory>
 #include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 #include <QtTest/QTest>
-#include <QWKCore/private/abstractwindowcontext_p.h>
+#include "windowcontextfixture.h"
 
 namespace {
     using Button = QWK::WindowAgentBase;
 
-    class Item : public QObject {
-    public:
-        QRect rect{0, 0, 200, 40};
-        bool visible = true;
-        bool enabled = true;
-    };
-
-    class HandleFilter : public QWK::WinIdChangeEventFilter {
-    public:
-        HandleFilter(QObject *host, QWK::AbstractWindowContext *context, const WId &id)
-            : WinIdChangeEventFilter(host, context), id(id) {}
-        WId winId() const override { return id; }
-    private:
-        const WId &id;
-    };
-
-    // Supply deterministic platform inputs. Attribute storage, replay, registration and hit
-    // testing remain the production AbstractWindowContext implementation.
-    class Delegate : public QWK::WindowItemDelegate {
-    public:
-        explicit Delegate(QWindow *window) : host(window) {}
-        QWindow *host;
-        WId id = 0;
-        QWindow *window(const QObject *) const override { return host; }
-        QWindow *hostWindow(const QObject *) const override { return host; }
-        bool isEnabled(const QObject *obj) const override { return static_cast<const Item *>(obj)->enabled; }
-        bool isVisible(const QObject *obj) const override { return static_cast<const Item *>(obj)->visible; }
-        QRect mapGeometryToScene(const QObject *obj) const override { return static_cast<const Item *>(obj)->rect; }
-        bool isWindowActive(const QObject *) const override { return false; }
-        Qt::WindowStates getWindowState(const QObject *) const override { return {}; }
-        Qt::WindowFlags getWindowFlags(const QObject *) const override { return {}; }
-        QRect getGeometry(const QObject *) const override { return host->geometry(); }
-        void setWindowState(QObject *, Qt::WindowStates) const override {}
-        void setCursorShape(QObject *, Qt::CursorShape) const override {}
-        void restoreCursorShape(QObject *) const override {}
-        void setWindowFlags(QObject *, Qt::WindowFlags) const override {}
-        void setWindowVisible(QObject *, bool) const override {}
-        void setGeometry(QObject *, const QRect &) override {}
-        void bringWindowToTop(QObject *) const override {}
-        QWK::WinIdChangeEventFilter *createWinIdEventFilter(
-            QObject *host, QWK::AbstractWindowContext *context) const override {
-            return new HandleFilter(host, context, id);
-        }
-    };
+    using QwkTest::Item;
+    using QwkTest::Delegate;
 
     struct AttributeCall {
         QString key;
@@ -65,6 +25,7 @@ namespace {
         QList<AttributeCall> calls;
         QStringList rejectedKeys;
         QList<QPair<WId, WId>> handles;
+        QStringList sequence;
         QStringList keys() const {
             QStringList result;
             for (const auto &call : calls)
@@ -72,10 +33,14 @@ namespace {
             return result;
         }
     protected:
-        void winIdChanged(WId id, WId oldId) override { handles.append(qMakePair(id, oldId)); }
+        void winIdChanged(WId id, WId oldId) override {
+            handles.append(qMakePair(id, oldId));
+            sequence.append("handle");
+        }
         bool windowAttributeChanged(const QString &key, const QVariant &value,
                                     const QVariant &oldValue) override {
             calls.append({key, value, oldValue});
+            sequence.append("attribute:" + key);
             return !rejectedKeys.contains(key);
         }
     };
@@ -93,11 +58,163 @@ namespace {
             context.notifyWinIdChange();
         }
     };
+
+    class Observer : public QWK::SharedEventFilter {
+    public:
+        std::function<bool(QObject *, QEvent *)> callback;
+        bool sharedEventFilter(QObject *object, QEvent *event) override {
+            return callback(object, event);
+        }
+        bool attached() const { return m_sharedDispatcher != nullptr; }
+    };
 }
 
 class WindowContextTest : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void setupRejectsInvalidOrRepeatedHosts() {
+        QWindow first, second;
+        Context context;
+        Delegate rejected(&second);
+        context.setup(nullptr, &rejected);
+        context.setup(&first, nullptr);
+        QVERIFY(!context.host());
+        QVERIFY(!context.delegate());
+        auto delegate = new Delegate(&first);
+        context.setup(&first, delegate);
+        context.setup(&second, &rejected);
+        QCOMPARE(context.host(), &first);
+        QCOMPARE(context.window(), &first);
+        QCOMPARE(context.delegate(), delegate);
+    }
+
+    void raisePreservesOtherStateBits_data() {
+        QTest::addColumn<int>("initial");
+        QTest::addColumn<int>("expected");
+        QTest::addColumn<bool>("restored");
+        QTest::newRow("normal") << int(Qt::WindowNoState) << int(Qt::WindowNoState) << false;
+        QTest::newRow("minimized") << int(Qt::WindowMinimized) << int(Qt::WindowNoState) << true;
+        QTest::newRow("maximized") << int(Qt::WindowMaximized) << int(Qt::WindowMaximized) << false;
+        QTest::newRow("minimized-maximized-active")
+            << int(Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowActive)
+            << int(Qt::WindowMaximized | Qt::WindowActive) << true;
+        QTest::newRow("fullscreen") << int(Qt::WindowFullScreen) << int(Qt::WindowFullScreen) << false;
+    }
+
+    void raisePreservesOtherStateBits() {
+        QFETCH(int, initial);
+        QFETCH(int, expected);
+        QFETCH(bool, restored);
+        Fixture f;
+        f.changeHandle(1);
+        f.delegate->state = Qt::WindowStates(initial);
+        f.context.virtual_hook(Context::RaiseWindowHook, nullptr);
+        QCOMPARE(int(f.delegate->state), expected);
+        QCOMPARE(f.delegate->operations, restored ? QStringList({"show", "state", "raise"})
+                                                 : QStringList({"show", "raise"}));
+        QVERIFY(!f.window.isVisible()); // Only recorded delegate calls, no desktop actions.
+    }
+
+    void windowActionsWithoutHandleAreNoOps() {
+        Fixture f;
+        f.delegate->state = Qt::WindowMinimized;
+        const auto geometry = f.delegate->geometry;
+        f.context.virtual_hook(Context::RaiseWindowHook, nullptr);
+        f.context.virtual_hook(Context::CentralizeHook, nullptr);
+        QVERIFY(f.delegate->operations.isEmpty());
+        QCOMPARE(f.delegate->state, Qt::WindowStates(Qt::WindowMinimized));
+        QCOMPARE(f.delegate->geometry, geometry);
+    }
+
+    void centralizeKeepsWindowSize() {
+        Fixture f;
+        f.changeHandle(1);
+        QVERIFY(f.window.screen());
+        auto expected = f.delegate->geometry;
+        const auto screen = f.window.screen()->geometry();
+        expected.moveTopLeft(screen.topLeft() + QPoint((screen.width() - expected.width()) / 2,
+                                                      (screen.height() - expected.height()) / 2));
+        f.context.virtual_hook(Context::CentralizeHook, nullptr);
+        QCOMPARE(f.delegate->geometry, expected);
+        QCOMPARE(f.delegate->operations, QStringList({"geometry"}));
+        QVERIFY(!f.window.isVisible());
+    }
+
+    void handleNotificationFollowsAttributeReplay() {
+        Fixture f;
+        QVERIFY(f.context.setWindowAttribute("alpha", 4));
+        Observer observer;
+        QObject *notifiedHost = nullptr;
+        observer.callback = [&](QObject *object, QEvent *event) {
+            if (event->type() == QEvent::WinIdChange) {
+                notifiedHost = object;
+                f.context.sequence.append("notify");
+            }
+            return false;
+        };
+        f.context.installSharedEventFilter(&observer);
+        f.changeHandle(1);
+        QCOMPARE(notifiedHost, &f.window);
+        QCOMPARE(f.context.sequence, QStringList({"handle", "attribute:alpha", "notify"}));
+        f.context.sequence.clear();
+        f.changeHandle(1);
+        QVERIFY(f.context.sequence.isEmpty());
+        f.changeHandle(0);
+        QCOMPARE(f.context.sequence, QStringList({"handle", "notify"}));
+    }
+
+    void eventFilterFollowsHostWindowReplacement() {
+        QWindow replacement;
+        Fixture f;
+        Observer observer;
+        QList<QObject *> deliveries;
+        observer.callback = [&](QObject *object, QEvent *event) {
+            if (event->type() == QEvent::User) {
+                deliveries.append(object);
+                return true;
+            }
+            return false;
+        };
+        f.context.installSharedEventFilter(&observer);
+        QEvent event(QEvent::User);
+        QCoreApplication::sendEvent(&f.window, &event);
+        QCOMPARE(deliveries, QList<QObject *>({&f.window}));
+        deliveries.clear();
+        f.delegate->host = &replacement;
+        f.context.notifyWinIdChange(); // Even an unchanged ID must rebind the Qt event filter.
+        QCoreApplication::sendEvent(&f.window, &event);
+        QCoreApplication::sendEvent(&replacement, &event);
+        QCOMPARE(deliveries, QList<QObject *>({&replacement}));
+        deliveries.clear();
+        f.delegate->host = nullptr;
+        f.context.notifyWinIdChange();
+        QCoreApplication::sendEvent(&replacement, &event);
+        QVERIFY(deliveries.isEmpty());
+    }
+
+    void destructionUnregistersWindowObserver() {
+        QWindow window;
+        Observer observer;
+        int deliveries = 0;
+        observer.callback = [&](QObject *, QEvent *event) {
+            if (event->type() == QEvent::User)
+                ++deliveries;
+            return false;
+        };
+        QEvent event(QEvent::User);
+        {
+            Context context;
+            context.setup(&window, new Delegate(&window));
+            context.installSharedEventFilter(&observer);
+            QVERIFY(observer.attached());
+            QCoreApplication::sendEvent(&window, &event);
+            QCOMPARE(deliveries, 1);
+        }
+        QVERIFY(!observer.attached());
+        QCoreApplication::sendEvent(&window, &event);
+        QCOMPARE(deliveries, 1);
+    }
+
     void attributesWithoutHandle() {
         Fixture f;
         QVERIFY(!f.context.windowAttribute("missing").isValid());
