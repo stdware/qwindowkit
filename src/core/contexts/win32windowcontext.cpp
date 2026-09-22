@@ -5,6 +5,7 @@
 #include "win32windowcontext_p.h"
 
 #include <cstdlib>
+#include <memory>
 #include <optional>
 
 #include <QtCore/QAbstractEventDispatcher>
@@ -66,12 +67,15 @@ namespace QWK {
         const uint32_t inactiveDark = MAKE_RGBA_COLOR(61, 61, 62, 255);     // #3D3D3E
     } kWindowsColorSet;
 
-    // hWnd -> context
-    using WndProcHash = QHash<HWND, Win32WindowContext *>;
+    struct ManagedWindow {
+        QPointer<Win32WindowContext> context;
+        WNDPROC previousProc = nullptr;
+        bool destroying = false;
+    };
+    // Retain inactive entries when a later subclass still calls our procedure.
+    // Active dispatch frames also retain the entry across removal/reentrant messages.
+    using WndProcHash = QHash<HWND, std::shared_ptr<ManagedWindow>>;
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
-
-    // Original Qt window proc function
-    static WNDPROC g_qtWindowProc = nullptr;
 
     static bool isLikelyFrameDriftAfterWinIdChange(HWND hwnd, const RECT &expectedFrameRect,
                                                    const RECT &candidateFrameRect) {
@@ -642,10 +646,29 @@ namespace QWK {
             return FALSE;
         }
 
-        // QWindow may have been destroyed before WinIdChange event comes
-        auto ctx = g_wndProcHash->value(hWnd);
+        const auto entry = g_wndProcHash->value(hWnd);
+        if (!entry) {
+            return ::DefWindowProcW(hWnd, message, wParam, lParam);
+        }
+        const auto previousProc = entry->previousProc;
+        // Always deliver native teardown to the original chain, even after the agent is gone.
+        if (message == WM_NCDESTROY) {
+            entry->destroying = true;
+            const auto cleanup = qScopeGuard([hWnd, entry] {
+                if (g_wndProcHash->value(hWnd) == entry) {
+                    g_wndProcHash->remove(hWnd);
+                }
+                if (g_wndProcHash->isEmpty()) {
+                    WindowsNativeEventFilter::uninstall();
+                }
+            });
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
+        }
+
+        // QWindow may have been destroyed before WinIdChange event comes.
+        auto ctx = entry->context.data();
         if (!ctx || !ctx->window()) {
-            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
         }
 
         WindowsNativeEventFilter::lastMessageContext = ctx;
@@ -656,7 +679,7 @@ namespace QWK {
         // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
         // forward it right away and process it in our native event filter.
         if (message == WM_NCCALCSIZE) {
-            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
         }
 
         // Try hooked procedure and save result
@@ -676,7 +699,7 @@ namespace QWK {
         }
 
         // Continue dispatching.
-        return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+        return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
     }
 
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
@@ -689,19 +712,29 @@ namespace QWK {
             setInternalWindowFrameMargins(window, QMargins(0, -getTitleBarHeight(hWnd), 0, 0));
         }
 
-        // Store original window proc
-        if (!g_qtWindowProc) {
-            g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
+        auto entry = g_wndProcHash->value(hWnd);
+        if (entry) {
+            // Our procedure is already somewhere in this HWND's chain. Installing it
+            // again over a later subclass would introduce a cycle in that chain.
+            if (entry->destroying || (entry->context && entry->context != ctx)) {
+                qWarning("QWindowKit: window already managed or being destroyed");
+                return;
+            }
+        } else {
+            entry = std::make_shared<ManagedWindow>();
+            ::SetLastError(ERROR_SUCCESS);
+            entry->previousProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtrW(
+                hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc)));
+            if (!entry->previousProc) {
+                qWarning("QWindowKit: failed to subclass window (error %lu)", ::GetLastError());
+                return;
+            }
+            g_wndProcHash->insert(hWnd, entry);
         }
-
-        // Hook window proc
-        ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
+        entry->context = ctx;
 
         // Install global native event filter
         WindowsNativeEventFilter::install();
-
-        // Save window handle mapping
-        g_wndProcHash->insert(hWnd, ctx);
 
         // Force a WM_NCCALCSIZE message manually to avoid the title bar become visible
         // while Qt is re-creating the window (such as setWindowFlag(s) calls). It has
@@ -709,22 +742,30 @@ namespace QWK {
         triggerFrameChange(hWnd);
     }
 
-    static inline void removeManagedWindow(HWND hWnd) {
+    static inline void removeManagedWindow(HWND hWnd, Win32WindowContext *ctx) {
         Q_ASSERT(hWnd);
 
-        // Remove window handle mapping
-        if (!g_wndProcHash->remove(hWnd))
+        const auto entry = g_wndProcHash->value(hWnd);
+        // An old context must not remove a new registration for a reused HWND.
+        if (!entry || entry->context != ctx)
             return;
+        entry->context = nullptr;
 
-        // Unhook the window procedure, but only when ours is still the one installed. Anybody
-        // is free to subclass the window after we did, and writing g_qtWindowProc back
-        // unconditionally would silently drop them out of the chain. When that happens we
-        // simply leave QWKHookedWndProc in place: with no context left in g_wndProcHash it
-        // forwards everything straight to g_qtWindowProc anyway.
-        if (g_qtWindowProc &&
-            reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
-                QWKHookedWndProc) {
-            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
+        // Never unlink a later subclass. Keep the original procedure available until
+        // we can remove our hook, or until WM_NCDESTROY retires this HWND's entry.
+        if (!::IsWindow(hWnd)) {
+            g_wndProcHash->remove(hWnd);
+        } else if (!entry->destroying &&
+                   reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
+                       QWKHookedWndProc) {
+            ::SetLastError(ERROR_SUCCESS);
+            if (::SetWindowLongPtrW(hWnd, GWLP_WNDPROC,
+                                   reinterpret_cast<LONG_PTR>(entry->previousProc))) {
+                g_wndProcHash->remove(hWnd);
+            } else {
+                qWarning("QWindowKit: failed to restore window procedure (error %lu)",
+                         ::GetLastError());
+            }
         }
 
         // Remove event filter if the all windows has been destroyed
@@ -737,7 +778,7 @@ namespace QWK {
 
     Win32WindowContext::~Win32WindowContext() {
         if (m_windowId) {
-            removeManagedWindow(reinterpret_cast<HWND>(m_windowId));
+            removeManagedWindow(reinterpret_cast<HWND>(m_windowId), this);
         }
     }
 
@@ -908,7 +949,7 @@ namespace QWK {
                 hasFrameRectBeforeWinIdChange =
                     ::GetWindowRect(oldHWnd, &frameRectBeforeWinIdChange) != FALSE;
             }
-            removeManagedWindow(oldHWnd);
+            removeManagedWindow(oldHWnd, this);
         }
         if (!winId) {
             QTimer::singleShot(0, this, [this]() {
