@@ -10,4 +10,9 @@
     }
 
     @QMAKE_QWK_QUICK_STATIC_MACRO@
+
+    # Qt Creator's QML code model also needs the installed module metadata.
+    exists($$QMAKE_QWK_INSTALL_PREFIX/qml/QWindowKit/qmldir) {
+        QML_IMPORT_PATH += $$QMAKE_QWK_INSTALL_PREFIX/qml
+    }
 }
