@@ -5,6 +5,13 @@
 // linked, never run: what is under test is whether the include and library paths carried by the
 // generated qmake and MSBuild files lead to the installed headers and import libraries.
 
+// Qt 6.9's qyieldcpu.h uses __yield() without including its declaration. Recent Apple Clang
+// diagnoses this when qmake includes Qt headers as non-system headers. Include the ARM intrinsics
+// before any Qt headers, and only for ARM64 so Intel and universal macOS builds remain valid.
+#if defined(__APPLE__) && defined(__aarch64__) && defined(__clang__)
+#  include <arm_acle.h>
+#endif
+
 #include <QWKCore/qwkglobal.h>
 #include <QWKCore/windowagentbase.h>
 
