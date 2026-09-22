@@ -77,3 +77,6 @@ CTest entries. Other platforms and hosted CI have not been executed locally.
 
 These timings are observations, not hardware-independent guarantees. CI requires
 registration of the applicable fast suites before its normal test run.
+
+The timeout policy for all project tests, including build consumers and native
+integration suites, is documented in [../README.md](../README.md).
