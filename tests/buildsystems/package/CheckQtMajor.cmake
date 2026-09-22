@@ -44,7 +44,8 @@ foreach(QT_VERSION_MAJOR 5 6)
                 "-DWRONG_MAJOR=${wrong_major}" "-DSTATIC_PACKAGE=${QWINDOWKIT_BUILD_STATIC}"
                 RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error TIMEOUT 5)
             if(mode STREQUAL "wrong-only")
-                if("${result}" STREQUAL "0" OR NOT "${output}${error}" MATCHES "Qt${QT_VERSION_MAJOR}")
+                if(NOT "${result}" MATCHES "^[1-9][0-9]*$" OR
+                   NOT "${output}${error}" MATCHES "Qt${QT_VERSION_MAJOR}Config.cmake")
                     message(FATAL_ERROR "Wrong-only case did not reject missing Qt ${QT_VERSION_MAJOR}: ${result}\n${output}\n${error}")
                 endif()
             elseif(NOT "${result}" STREQUAL "0")

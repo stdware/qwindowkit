@@ -159,6 +159,21 @@ endif()
 # The package most callers use. It needs no tool of its own, only somewhere to find Qt, since that
 # is what `QWindowKitConfig.cmake` looks for before it hands out a target.
 if(_qt_prefix)
+    foreach(_case present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing)
+        add_test(NAME buildsystems.components.${_case}
+            COMMAND ${CMAKE_COMMAND}
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/package/component-consumer"
+            "-DINSTALL_PREFIX=${_prefix}"
+            "-DQT_PREFIX=${_qt_prefix}"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/components-${_case}-$<CONFIG>"
+            "-DBUILD_CONFIG=$<CONFIG>" "-DGENERATOR=${CMAKE_GENERATOR}"
+            "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}" "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DUSE_WIDGETS=${QWINDOWKIT_BUILD_WIDGETS}" "-DUSE_QUICK=${QWINDOWKIT_BUILD_QUICK}"
+            "-DQT_MAJOR=${QT_VERSION_MAJOR}" "-DCASE=${_case}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/package/RunComponentCase.cmake")
+        set_tests_properties(buildsystems.components.${_case} PROPERTIES
+            FIXTURES_REQUIRED qwk_install_tree TIMEOUT 35 LABELS "cmake;install;components")
+    endforeach()
     add_test(NAME buildsystems.cmake
         COMMAND ${CMAKE_COMMAND}
         -D "SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake/consumer"

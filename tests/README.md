@@ -13,6 +13,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | `buildsystems.install` | 15 s | Direct install process bounded by CTest |
 | `buildsystems.cmake` | 60 s | Configure 25 s, build 25 s |
 | `buildsystems.qtmajor` | 45 s | Each isolated configuration: 5 s |
+| `buildsystems.components.*` | 35 s each | Configure 15 s, build 15 s |
 | `buildsystems.qmake` | 60 s | qmake 15 s, make 25 s |
 | `buildsystems.msbuild` | 60 s | MSBuild 25 s |
 | `qmltypes.installed` | 60 s total | Install 10 s, configure/build 20 s each, runtime 8 s, each lint invocation 5 s |

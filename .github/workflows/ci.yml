@@ -102,6 +102,9 @@ jobs:
         shell: bash
         run: |
           expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.styleagent.unit agents.unit"
+          for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
+            expected="$expected buildsystems.components.$scenario"
+          done
 
           if [ "$RUNNER_OS" = "Windows" ]; then
             expected="$expected buildsystems.msbuild quickgeometry.unit widgetborder.lifetime windows.windowproc"
@@ -145,10 +148,10 @@ jobs:
         if: matrix.platform == 'windows-msvc'
         run: cmake --build build-static
 
-      - name: Test static units and MSBuild consumer
+      - name: Test static units and package consumers
         if: matrix.platform == 'windows-msvc'
         timeout-minutes: 2
-        run: ctest --test-dir build-static -R "(\.unit$|^testpolicy.timeouts$|^buildsystems.msbuild$)" --output-on-failure --no-tests=error
+        run: ctest --test-dir build-static -R "(\.unit$|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
 
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
@@ -220,7 +223,11 @@ jobs:
       - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          for name in testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.styleagent.unit agents.unit quickgeometry.unit widgetborder.lifetime windows.windowproc; do
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.styleagent.unit agents.unit quickgeometry.unit widgetborder.lifetime windows.windowproc"
+          for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
+            expected="$expected buildsystems.components.$scenario"
+          done
+          for name in $expected; do
             if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required test $name did not register"
               exit 1

@@ -1,5 +1,38 @@
 @PACKAGE_INIT@
 
+set(QWindowKit_FOUND TRUE)
+unset(QWindowKit_NOT_FOUND_MESSAGE)
+set(QWindowKit_AVAILABLE_COMPONENTS Core)
+set(QWindowKit_Core_FOUND TRUE)
+set(QWindowKit_Widgets_FOUND "@QWINDOWKIT_BUILD_WIDGETS@")
+set(QWindowKit_Quick_FOUND "@QWINDOWKIT_BUILD_QUICK@")
+foreach(_qwk_component Widgets Quick)
+    if(QWindowKit_${_qwk_component}_FOUND)
+        list(APPEND QWindowKit_AVAILABLE_COMPONENTS "${_qwk_component}")
+    endif()
+endforeach()
+
+# Reject missing QWindowKit components before looking for their Qt dependencies.
+# Optional components that were not installed must not make the package fail.
+set(_qwk_missing_components)
+foreach(_qwk_component IN LISTS QWindowKit_FIND_COMPONENTS)
+    if(NOT _qwk_component IN_LIST QWindowKit_AVAILABLE_COMPONENTS)
+        set(QWindowKit_${_qwk_component}_FOUND FALSE)
+        if(QWindowKit_FIND_REQUIRED_${_qwk_component})
+            list(APPEND _qwk_missing_components "${_qwk_component}")
+        endif()
+    endif()
+endforeach()
+check_required_components(QWindowKit)
+if(NOT QWindowKit_FOUND)
+    set(QWindowKit_NOT_FOUND_MESSAGE
+        "Unavailable QWindowKit components: ${_qwk_missing_components}. Installed components: ${QWindowKit_AVAILABLE_COMPONENTS}")
+    unset(_qwk_missing_components)
+    unset(_qwk_component)
+    return()
+endif()
+unset(_qwk_missing_components)
+
 # Resolve before find_dependency(), which can change PACKAGE_PREFIX_DIR on older CMake.
 if("@QWINDOWKIT_HAS_QML_MODULE@")
     set_and_check(QWindowKit_QML_IMPORT_PATH "${PACKAGE_PREFIX_DIR}/qml")
@@ -10,33 +43,55 @@ include(CMakeFindDependencyMacro)
 # The exported targets name the Qt major used to build this package. Do not
 # reselect it from the consumer's search order or ambient QT_VERSION_MAJOR.
 set(QWindowKit_QT_VERSION_MAJOR @QT_VERSION_MAJOR@)
-find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Core Gui REQUIRED)
-
-if ("Widgets" IN_LIST QWindowKit_FIND_COMPONENTS)
-    find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Widgets REQUIRED)
-endif()
-
-if ("Quick" IN_LIST QWindowKit_FIND_COMPONENTS)
-    find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Quick REQUIRED)
-endif()
+find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS Core Gui)
 
 # Static archives expose their private Qt link dependencies to consumers. Recent
 # Qt 6 releases put these targets in separate packages instead of loading them
 # with the public components.
 if("@QWINDOWKIT_BUILD_STATIC@" AND @QT_VERSION_MAJOR@ EQUAL 6)
-    set(_qwk_private_modules Core Gui)
-    foreach(_module Widgets Quick)
-        if("${_module}" IN_LIST QWindowKit_FIND_COMPONENTS)
-            list(APPEND _qwk_private_modules "${_module}")
-        endif()
-    endforeach()
-    foreach(_module IN LISTS _qwk_private_modules)
+    foreach(_module Core Gui)
         if(NOT TARGET Qt6::${_module}Private)
-            find_dependency(Qt6 COMPONENTS ${_module}Private REQUIRED)
+            find_dependency(Qt6 COMPONENTS ${_module}Private)
         endif()
     endforeach()
-    unset(_qwk_private_modules)
     unset(_module)
 endif()
 
+# With no explicit selection, make all installed exports usable. Otherwise resolve
+# only requested components; the monolithic export still declares all installed targets.
+set(_qwk_components "${QWindowKit_FIND_COMPONENTS}")
+if(NOT _qwk_components)
+    set(_qwk_components "${QWindowKit_AVAILABLE_COMPONENTS}")
+endif()
+foreach(_qwk_component Widgets Quick)
+    if(NOT _qwk_component IN_LIST _qwk_components OR NOT QWindowKit_${_qwk_component}_FOUND)
+        continue()
+    endif()
+    set(QWindowKit_${_qwk_component}_FOUND FALSE)
+    if(NOT QWindowKit_FIND_COMPONENTS OR QWindowKit_FIND_REQUIRED_${_qwk_component})
+        find_dependency(Qt@QT_VERSION_MAJOR@ COMPONENTS ${_qwk_component})
+        if("@QWINDOWKIT_BUILD_STATIC@" AND @QT_VERSION_MAJOR@ EQUAL 6 AND
+           NOT TARGET Qt6::${_qwk_component}Private)
+            find_dependency(Qt6 COMPONENTS ${_qwk_component}Private)
+        endif()
+    else()
+        # find_dependency would mark the whole package unavailable on an optional miss.
+        find_package(Qt@QT_VERSION_MAJOR@ QUIET COMPONENTS ${_qwk_component})
+        if(NOT Qt@QT_VERSION_MAJOR@_FOUND)
+            continue()
+        endif()
+        if("@QWINDOWKIT_BUILD_STATIC@" AND @QT_VERSION_MAJOR@ EQUAL 6 AND
+           NOT TARGET Qt6::${_qwk_component}Private)
+            find_package(Qt6 QUIET COMPONENTS ${_qwk_component}Private)
+            if(NOT Qt6_FOUND)
+                continue()
+            endif()
+        endif()
+    endif()
+    set(QWindowKit_${_qwk_component}_FOUND TRUE)
+endforeach()
+unset(_qwk_components)
+unset(_qwk_component)
+
 include("${CMAKE_CURRENT_LIST_DIR}/QWindowKitTargets.cmake")
+check_required_components(QWindowKit)

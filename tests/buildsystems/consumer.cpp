@@ -18,6 +18,9 @@
 #ifdef CONSUMER_USE_WIDGETS
 #  include <QWKWidgets/widgetwindowagent.h>
 #endif
+#ifdef CONSUMER_USE_QUICK
+#  include <QWKQuick/quickwindowagent.h>
+#endif
 
 int main(int argc, char *argv[]) {
     Q_UNUSED(argc)
@@ -33,5 +36,11 @@ int main(int argc, char *argv[]) {
     const QMetaObject *widgets = nullptr;
 #endif
 
-    return (core != nullptr && widgets != core) ? 0 : 1;
+#ifdef CONSUMER_USE_QUICK
+    const QMetaObject *quick = &QWK::QuickWindowAgent::staticMetaObject;
+#else
+    const QMetaObject *quick = nullptr;
+#endif
+
+    return (core != nullptr && widgets != core && quick != core) ? 0 : 1;
 }

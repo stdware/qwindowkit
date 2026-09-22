@@ -15,6 +15,17 @@ function(qwk_require_variables)
     endforeach()
 endfunction()
 
+function(qwk_find_installed_config _out _prefix)
+    file(GLOB_RECURSE _configs "${_prefix}/*QWindowKitConfig.cmake")
+    list(LENGTH _configs _count)
+    if(NOT _count EQUAL 1)
+        message(FATAL_ERROR "Expected one installed QWindowKit config in ${_prefix}, got ${_configs}")
+    endif()
+    list(GET _configs 0 _config)
+    get_filename_component(_directory "${_config}" DIRECTORY)
+    set(${_out} "${_directory}" PARENT_SCOPE)
+endfunction()
+
 #[[
     Run one step of a consumer build in WORK_DIR, and turn a non-zero exit into a test failure
     carrying the command and its output. The output is held back until then, since a passing test
