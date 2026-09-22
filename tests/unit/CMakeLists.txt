@@ -25,6 +25,7 @@ function(qwk_add_unit_test target name expected_passes)
 endfunction()
 
 qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
+qwk_add_unit_test(tst_objecteventfilters core.objecteventfilters.unit 7)
 qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 28)
 qwk_add_unit_test(tst_qtwindowcontext core.qtwindowcontext.unit 24)
 if(NOT QWINDOWKIT_BUILD_STATIC)
