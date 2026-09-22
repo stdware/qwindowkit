@@ -23,3 +23,5 @@ function(qwk_add_unit_test target name expected_passes)
     target_link_libraries(${target} PRIVATE QWKCore Qt${QT_VERSION_MAJOR}::Test)
     qwk_register_fast_test(${target} ${name} ${expected_passes})
 endfunction()
+
+qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
