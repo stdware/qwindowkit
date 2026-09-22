@@ -146,7 +146,8 @@ namespace QWK {
     }
 
     /*!
-        Shows the system menu, it's only implemented on Windows.
+        Shows the system menu at the global position \a pos, in Qt device-independent
+        coordinates, on supported platforms.
     */
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
         Q_D(WindowAgentBase);

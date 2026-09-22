@@ -7,6 +7,7 @@
 
 #ifdef QWK_HAS_WAYLAND_CONTEXT
 #include "qwindowkit_wayland.h"
+#include <QtGui/private/qhighdpiscaling_p.h>
 #include <QtGui/qpa/qplatformnativeinterface.h>
 
 namespace QWK {
@@ -32,6 +33,9 @@ namespace QWK {
 
     void WaylandContext::virtual_hook(int id, void *data) {
         if (id == ShowSystemMenuHook) {
+            if (!m_windowId || !m_windowHandle) {
+                return;
+            }
             auto *waylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
             if (!waylandApp) {
                 return;
@@ -48,8 +52,13 @@ namespace QWK {
             if (!toplevel) {
                 return;
             }
-            auto pos = static_cast<const QPoint *>(data);
-            xdg_toplevel_show_window_menu(toplevel, seat, serial, pos->x(), pos->y());
+            const auto &globalPos = *static_cast<const QPoint *>(data);
+            const QPointF localPos = m_windowHandle->mapFromGlobal(QPointF(globalPos));
+            // QtWindowContext uses FramelessWindowHint, so the content and surface origins
+            // coincide. Undo Qt's coordinate scaling, without applying Wayland's buffer scale.
+            const QPoint surfacePos =
+                QHighDpi::toNativeLocalPosition(localPos, m_windowHandle.data()).toPoint();
+            xdg_toplevel_show_window_menu(toplevel, seat, serial, surfacePos.x(), surfacePos.y());
 
             wl_display *d = waylandApp->display();
             if (d) {
