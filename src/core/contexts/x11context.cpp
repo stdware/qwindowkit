@@ -4,9 +4,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-#include "linuxx11context_p.h"
+#include "x11context_p.h"
 
-#include "qwindowkit_linux.h"
+#include "qwindowkit_x11.h"
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 // copy from X11 library and simplify it
@@ -125,15 +125,15 @@ union _XEvent {
 
 namespace QWK {
 
-    LinuxX11Context::LinuxX11Context() = default;
+    X11Context::X11Context() = default;
 
-    LinuxX11Context::~LinuxX11Context() = default;
+    X11Context::~X11Context() = default;
 
-    QString LinuxX11Context::key() const {
+    QString X11Context::key() const {
         return QStringLiteral("xcb");
     }
 
-    void LinuxX11Context::virtual_hook(int id, void *data) {
+    void X11Context::virtual_hook(int id, void *data) {
         if (id == ShowSystemMenuHook) {
             // showSystemMenu() is public API and may be called before the window is created or
             // after it has been destroyed.

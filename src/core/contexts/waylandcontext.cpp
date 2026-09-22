@@ -3,10 +3,10 @@
 // Copyright (C) 2025-2027 Wing-summer (wingsummer)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "linuxwaylandcontext_p.h"
+#include "waylandcontext_p.h"
 
 #ifdef QWK_HAS_WAYLAND_CONTEXT
-#include "qwindowkit_linux.h"
+#include "qwindowkit_wayland.h"
 #include <QtGui/qpa/qplatformnativeinterface.h>
 
 namespace QWK {
@@ -22,15 +22,15 @@ namespace QWK {
             seat, serial, x, y);
     }
 
-    LinuxWaylandContext::LinuxWaylandContext() = default;
+    WaylandContext::WaylandContext() = default;
 
-    LinuxWaylandContext::~LinuxWaylandContext() = default;
+    WaylandContext::~WaylandContext() = default;
 
-    QString LinuxWaylandContext::key() const {
+    QString WaylandContext::key() const {
         return QStringLiteral("wayland");
     }
 
-    void LinuxWaylandContext::virtual_hook(int id, void *data) {
+    void WaylandContext::virtual_hook(int id, void *data) {
         if (id == ShowSystemMenuHook) {
             auto *waylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
             if (!waylandApp) {

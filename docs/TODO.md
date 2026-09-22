@@ -2,11 +2,11 @@
 
 ## Wayland: `showSystemMenu()` may be passing the wrong coordinate space
 
-**File:** `src/core/contexts/linuxwaylandcontext.cpp`
+**File:** `src/core/contexts/waylandcontext.cpp`
 **Introduced by:** the Wayland/X11 backend contribution (Wing-summer), needs the original author's eyes.
 **Status:** unverified — reported from code reading only, no Wayland machine was available to test.
 
-`LinuxWaylandContext::virtual_hook()` forwards the incoming point straight to the
+`WaylandContext::virtual_hook()` forwards the incoming point straight to the
 xdg-shell request:
 
 ```cpp
@@ -25,7 +25,7 @@ window's own position on screen, and the error disappears only when the window h
 the origin.
 
 Circumstantial evidence that the two Linux backends disagree about what they are handed: the X11
-path in `linuxx11context.cpp` treats the same argument as global and converts it to root
+path in `x11context.cpp` treats the same argument as global and converts it to root
 coordinates,
 
 ```cpp

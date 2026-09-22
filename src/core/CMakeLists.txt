@@ -37,8 +37,10 @@ if(WIN32)
 elseif(APPLE)
 else()
     list(APPEND _src
-        qwindowkit_linux.h
-        qwindowkit_linux.cpp
+        qwindowkit_x11.h
+        qwindowkit_x11.cpp
+        qwindowkit_wayland.h
+        qwindowkit_wayland.cpp
     )
 endif()
 
@@ -60,10 +62,10 @@ elseif(APPLE)
     )
 else()
     list(APPEND _src
-        contexts/linuxx11context_p.h
-        contexts/linuxx11context.cpp
-        contexts/linuxwaylandcontext_p.h
-        contexts/linuxwaylandcontext.cpp
+        contexts/x11context_p.h
+        contexts/x11context.cpp
+        contexts/waylandcontext_p.h
+        contexts/waylandcontext.cpp
     )
 endif()
 

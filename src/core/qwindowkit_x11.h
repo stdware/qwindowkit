@@ -3,8 +3,8 @@
 // Copyright (C) 2025-2027 Wing-summer (wingsummer)
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef QWINDOWKIT_LINUX_H
-#define QWINDOWKIT_LINUX_H
+#ifndef QWINDOWKIT_X11_H
+#define QWINDOWKIT_X11_H
 
 //
 //  W A R N I N G !!!
@@ -29,14 +29,11 @@ using Window = XID;
 union _XEvent;
 using XEvent = union _XEvent;
 
-// for wayland
-struct wl_proxy;
-
 namespace QWK {
     namespace Private {
-        struct LinuxX11API {
-            LinuxX11API() = default;
-            Q_DISABLE_COPY(LinuxX11API)
+        struct X11API {
+            X11API() = default;
+            Q_DISABLE_COPY(X11API)
 
             using XInternAtomFn = Atom (*)(Display *, const char *, Bool);
             using XSendEventFn = int (*)(Display *, Window, Bool, long, XEvent *);
@@ -53,34 +50,10 @@ namespace QWK {
             }
         };
 
-        struct LinuxWaylandAPI {
-            LinuxWaylandAPI() = default;
-            Q_DISABLE_COPY(LinuxWaylandAPI)
-
-            using wl_display_flush_fn = int (*)(struct wl_display *);
-            using wl_proxy_marshal_flags_fn = void (*)(struct wl_proxy *, uint32_t,
-                                                       const struct wl_interface *, uint32_t,
-                                                       uint32_t, ...);
-            using wl_proxy_get_version_fn = int (*)(struct wl_proxy *);
-
-            wl_display_flush_fn wl_display_flush = nullptr;
-            wl_proxy_marshal_flags_fn wl_proxy_marshal_flags = nullptr;
-            wl_proxy_get_version_fn wl_proxy_get_version = nullptr;
-
-            inline bool isValid() const {
-                return wl_display_flush && wl_proxy_marshal_flags && wl_proxy_get_version;
-            }
-        };
-
-
-        bool isWaylandPlatform();
-
         bool isX11Platform();
 
-        const LinuxX11API &x11API();
-
-        const LinuxWaylandAPI &waylandAPI();
+        const X11API &x11API();
     }
 }
 #endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#endif // QWINDOWKIT_LINUX_H
+#endif // QWINDOWKIT_X11_H
