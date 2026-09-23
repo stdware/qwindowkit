@@ -44,7 +44,7 @@ namespace QWK {
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
                                      QObject *parent = nullptr)
-            : QObject(parent), Windows10BorderHandler(ctx), widget(widget) {
+            : QObject(parent), Windows10BorderHandler(ctx, this), widget(widget) {
             widget->installEventFilter(this);
 
             // First update

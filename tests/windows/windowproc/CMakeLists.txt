@@ -50,3 +50,37 @@ add_test(NAME windows.windowlifetime
     -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
 set_tests_properties(windows.windowlifetime PROPERTIES
     TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)
+
+if(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS)
+    add_executable(tst_borderattributes tst_borderattributes.cpp)
+    if(NOT QWINDOWKIT_BUILD_STATIC)
+        target_sources(tst_borderattributes PRIVATE
+            ../../../src/core/contexts/win32windowcontext.cpp
+            ../../../src/core/contexts/win32windowcontext_p.h)
+    endif()
+    set_target_properties(tst_borderattributes PROPERTIES AUTOMOC ON)
+    target_compile_features(tst_borderattributes PRIVATE cxx_std_17)
+    target_include_directories(tst_borderattributes PRIVATE
+        ../../../src/core ../../../src/core/contexts ../../../src/core/shared)
+    target_link_libraries(tst_borderattributes PRIVATE QWKWidgets Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::GuiPrivate
+        user32 gdi32 shell32 uxtheme)
+    set(_border_attribute_passes 22)
+    if(QWINDOWKIT_BUILD_QUICK)
+        target_compile_definitions(tst_borderattributes PRIVATE TEST_QUICK)
+        target_link_libraries(tst_borderattributes PRIVATE QWKQuick)
+        set(_border_attribute_passes 42)
+    endif()
+    add_test(NAME windows.borderattributes
+        COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:QWKCore>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        "QT_QPA_PLATFORM=windows" "QT_QUICK_BACKEND=software"
+        ${CMAKE_COMMAND}
+        "-DTEST_EXE=$<TARGET_FILE:tst_borderattributes>"
+        "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/borderattributes-$<CONFIG>"
+        "-DEXPECTED_PASSES=${_border_attribute_passes}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
+    set_tests_properties(windows.borderattributes PROPERTIES
+        TIMEOUT 20 LABELS "windows;integration;component" RESOURCE_LOCK desktop)
+    unset(_border_attribute_passes)
+endif()

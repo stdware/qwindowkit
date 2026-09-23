@@ -875,6 +875,15 @@ namespace QWK {
             }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+            case Windows10BorderActivationHook: {
+                if (!m_windowId || !data)
+                    return;
+                windows10BorderInactive = !*static_cast<const bool *>(data);
+                extendFrameMargins(effectiveExtraMargins(
+                    windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
+                return;
+            }
+
             case Windows10BorderColorHook: {
                 auto &color = *static_cast<QColor *>(data);
                 color = {};
@@ -998,6 +1007,7 @@ namespace QWK {
         lastHitTestResultRaw = HTNOWHERE;
         iconButtonClickTime = 0;
         iconButtonClickLevel = 0;
+        windows10BorderInactive = false;
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
@@ -1171,6 +1181,25 @@ namespace QWK {
         return false; // Not handled
     }
 
+    bool Win32WindowContext::extendFrameMargins(const QMargins &margins) {
+        const auto nativeMargins = qmargins2margins(margins);
+        return SUCCEEDED(DynamicApis::instance().pDwmExtendFrameIntoClientArea(
+            reinterpret_cast<HWND>(m_windowId), &nativeMargins));
+    }
+
+    QMargins Win32WindowContext::effectiveExtraMargins(QMargins margins) const {
+        // A negative margin requests full-client glass; do not narrow that request.
+        if (windows10BorderInactive && margins.left() >= 0 && margins.top() >= 0 &&
+            margins.right() >= 0 && margins.bottom() >= 0) {
+            const auto frame = windowAttribute(QStringLiteral("window-rect")).toRect();
+            // The inactive Windows 10 border needs the whole title bar extended to
+            // avoid a transparent seam. Preserve the application's other edges and
+            // any larger top extension, without storing this temporary correction.
+            margins.setTop(qMax(margins.top(), -frame.top()));
+        }
+        return margins;
+    }
+
     bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
                                                     const QVariant &oldAttribute) {
         Q_UNUSED(oldAttribute)
@@ -1205,10 +1234,9 @@ namespace QWK {
             static constexpr const MARGINS margins = {65536, 0, 0, 0};
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
-        const auto &restoreMargins = [this, &apis, hwnd]() {
-            auto margins = qmargins2margins(
-                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
-            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+        const auto &restoreMargins = [this]() {
+            extendFrameMargins(effectiveExtraMargins(
+                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
         };
 
         const auto &effectBugWorkaround = [this, hwnd, change]() {
@@ -1247,8 +1275,7 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("extra-margins")) {
-            auto margins = qmargins2margins(attribute.value<QMargins>());
-            return SUCCEEDED(apis.pDwmExtendFrameIntoClientArea(hwnd, &margins));
+            return extendFrameMargins(effectiveExtraMargins(attribute.value<QMargins>()));
         }
 
         if (key == QStringLiteral("dark-mode")) {

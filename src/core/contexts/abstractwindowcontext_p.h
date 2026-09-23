@@ -83,6 +83,7 @@ namespace QWK {
             DrawWindows10BorderHook_Native,   // Only works on Windows 10, native workaround
             SystemButtonAreaChangedHook,      // Only works on Mac
             Windows10BorderColorHook,         // QColor output; queried on the GUI thread
+            Windows10BorderActivationHook,    // bool input; temporary DWM margins, no cache update
         };
         virtual void virtual_hook(int id, void *data);
 
