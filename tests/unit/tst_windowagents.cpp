@@ -278,6 +278,53 @@ private Q_SLOTS:
             QVERIFY(!agent.isHitTestVisible(&replacement));
         });
     }
+
+    void survivingRegistrationsAfterTitleDestruction_data() { agentRows(); }
+    void survivingRegistrationsAfterTitleDestruction() {
+        QFETCH(bool, quick);
+        withAgent(quick, [](auto &window, auto &agent) {
+            using Item = std::remove_pointer_t<decltype(agent.titleBar())>;
+            QVERIFY(agent.setup(&window));
+            auto title = std::make_unique<Item>();
+            Item button, excluded, replacement, third;
+            QSignalSpy changed(&agent, titleSignal(agent));
+            agent.setTitleBar(title.get());
+            agent.setSystemButton(Button::Close, &button);
+            agent.setHitTestVisible(&excluded);
+            title.reset(); // Registrations deliberately survive their old title.
+            QVERIFY(!agent.titleBar());
+            QCOMPARE(changed.count(), 1); // Destruction is not a setter notification.
+            agent.setTitleBar(&replacement);
+            QCOMPARE(changed.count(), 2);
+            QVERIFY(!agent.systemButton(Button::Close));
+            QVERIFY(!agent.isHitTestVisible(&excluded));
+            agent.setSystemButton(Button::Close, &button);
+            agent.setHitTestVisible(&excluded);
+            agent.setTitleBar(&replacement);
+            QCOMPARE(changed.count(), 2);
+            QCOMPARE(agent.systemButton(Button::Close), &button);
+            QVERIFY(agent.isHitTestVisible(&excluded));
+            agent.setTitleBar(&third);
+            QCOMPARE(changed.count(), 3);
+            QVERIFY(!agent.systemButton(Button::Close));
+            QVERIFY(!agent.isHitTestVisible(&excluded));
+        });
+    }
+
+    void registrationsBeforeFirstTitle_data() { agentRows(); }
+    void registrationsBeforeFirstTitle() {
+        QFETCH(bool, quick);
+        withAgent(quick, [](auto &window, auto &agent) {
+            using Item = std::remove_pointer_t<decltype(agent.titleBar())>;
+            QVERIFY(agent.setup(&window));
+            Item title, button, excluded;
+            agent.setSystemButton(Button::Close, &button);
+            agent.setHitTestVisible(&excluded);
+            agent.setTitleBar(&title);
+            QCOMPARE(agent.systemButton(Button::Close), &button);
+            QVERIFY(agent.isHitTestVisible(&excluded));
+        });
+    }
 };
 
 int main(int argc, char **argv) {

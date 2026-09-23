@@ -113,6 +113,7 @@ namespace QWK {
 #endif
 
         QPointer<QObject> m_titleBar{};
+        bool m_titleBarAssigned = false;
         std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
 
         struct WindowAttribute {

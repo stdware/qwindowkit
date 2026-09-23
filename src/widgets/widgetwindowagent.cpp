@@ -88,8 +88,11 @@ namespace QWK {
     }
 
     /*!
-        Sets the title bar widget, all system button and hit-test visible widget references that
-        have been set will be removed.
+        Sets the title bar widget. Replacing a previously assigned title bar clears
+        system button and hit-test visible registrations even if the old title bar
+        has already been destroyed. The registered objects are not deleted.
+        Assigning the same title bar again does not clear registrations or emit a
+        change signal. Registrations made before the first title bar are preserved.
     */
     void WidgetWindowAgent::setTitleBar(QWidget *w) {
         Q_D(WidgetWindowAgent);

@@ -86,11 +86,13 @@ namespace QWK {
             return false;
         }
 
-        if (org) {
-            // Since the title bar is changed, all items inside it should be dereferenced right away
+        if (m_titleBarAssigned) {
+            // QPointer is already null after the old title is destroyed, but its
+            // registered buttons/exclusions may still live elsewhere in the window.
             removeSystemButtonsAndHitTestItems();
         }
         m_titleBar = item;
+        m_titleBarAssigned = true;
         return true;
     }
 

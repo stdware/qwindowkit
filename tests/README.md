@@ -23,6 +23,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | `windows.windowproc`, `windows.windowlifetime` | 20 s each | 15 s overall; each child: 2 s startup, 5 s execution, 1 s kill wait |
 | `windows.acrylic` | 20 s | 15 s; controlled API failures and native Widgets/Quick calls |
 | `windows.effects` | 20 s | 15 s; Mica, blur, dark mode and border color failures and native calls |
+| `windows.titlebar` | 20 s | 15 s; real Widgets/Quick registration lifecycle and native hit testing |
 
 Inner deadlines apply to individual operations. The outer CTest deadline caps
 the entire test even when several operations are slow. Timeout is a failure;
