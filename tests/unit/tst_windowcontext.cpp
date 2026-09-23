@@ -10,6 +10,7 @@
 #include <QtGui/QScreen>
 #include <QtTest/QTest>
 #include "windowcontextfixture.h"
+#include "systembuttoncases.h"
 #ifdef Q_OS_WIN
 #  include <QtCore/qt_windows.h>
 #endif
@@ -114,6 +115,44 @@ private:
                  output.constData());
     }
 private Q_SLOTS:
+    void systemButtonBoundaries_data() {
+        QTest::addColumn<int>("value");
+        QTest::addColumn<bool>("valid");
+        for (const auto &row : QwkTest::systemButtonCases)
+            QTest::newRow(row.name) << row.value << row.valid;
+    }
+
+    void systemButtonBoundaries() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(int, value);
+        QFETCH(bool, valid);
+        Fixture f;
+        Item original, replacement, title, excluded;
+        QVERIFY(f.context.setTitleBar(&title));
+        QVERIFY(f.context.setHitTestVisible(&excluded, true));
+        for (auto role : {Button::WindowIcon, Button::Help, Button::Minimize,
+                          Button::Maximize, Button::Close})
+            QVERIFY(f.context.setSystemButton(role, &original));
+        // SystemButton has a fixed int underlying type, so these conversions are
+        // defined even for negative values and the complete int range.
+        const auto role = static_cast<Button::SystemButton>(value);
+        QCOMPARE(f.context.systemButton(role), valid ? &original : nullptr);
+        QCOMPARE(f.context.setSystemButton(role, &replacement), valid);
+        QCOMPARE(f.context.systemButton(role), valid ? &replacement : nullptr);
+        QVERIFY(!f.context.setSystemButton(role, &replacement));
+        for (auto other : {Button::WindowIcon, Button::Help, Button::Minimize,
+                           Button::Maximize, Button::Close})
+            QCOMPARE(f.context.systemButton(other), other == role ? &replacement : &original);
+        QCOMPARE(f.context.setSystemButton(role, nullptr), valid);
+        QVERIFY(!f.context.systemButton(role));
+        QVERIFY(!f.context.setSystemButton(role, nullptr));
+        for (auto other : {Button::WindowIcon, Button::Help, Button::Minimize,
+                           Button::Maximize, Button::Close})
+            QCOMPARE(f.context.systemButton(other), other == role ? nullptr : &original);
+        QCOMPARE(f.context.titleBar(), &title);
+        QVERIFY(f.context.isHitTestVisible(&excluded));
+    }
+
     void reentrantWrites_data() {
         QTest::addColumn<QString>("scenario");
         for (const auto name : {"insert-replace", "insert-remove", "update-replace",

@@ -67,8 +67,7 @@ namespace QWK {
 
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
-        Q_ASSERT(button != WindowAgentBase::Unknown);
-        if (button == WindowAgentBase::Unknown) {
+        if (!isValidSystemButton(button)) {
             return false;
         }
 

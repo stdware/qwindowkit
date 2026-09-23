@@ -7,6 +7,10 @@
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 #include <QWKCore/private/windowagentbase_p.h>
+#include "systembuttoncases.h"
+#ifdef Q_OS_WIN
+#  include <QtCore/qt_windows.h>
+#endif
 #ifdef TEST_WIDGETS
 #  include <QtWidgets/QApplication>
 #  include <QWKWidgets/widgetwindowagent.h>
@@ -179,6 +183,53 @@ private Q_SLOTS:
         });
     }
 
+    void systemButtonBoundaries_data() {
+        QTest::addColumn<bool>("quick");
+        QTest::addColumn<int>("value");
+        QTest::addColumn<bool>("valid");
+        for (const auto &row : QwkTest::systemButtonCases) {
+#ifdef TEST_WIDGETS
+            QTest::newRow(qPrintable(QString("widgets-%1").arg(row.name))) << false << row.value << row.valid;
+#endif
+#ifdef TEST_QUICK
+            QTest::newRow(qPrintable(QString("quick-%1").arg(row.name))) << true << row.value << row.valid;
+#endif
+        }
+    }
+
+    void systemButtonBoundaries() {
+        QFETCH(bool, quick);
+        QFETCH(int, value);
+        QFETCH(bool, valid);
+        withAgent(quick, [=](auto &window, auto &agent) {
+            using Agent = std::decay_t<decltype(agent)>;
+            using Item = std::remove_pointer_t<decltype(agent.titleBar())>;
+            QVERIFY(agent.setup(&window));
+            Item original, replacement;
+            for (auto role : {Button::WindowIcon, Button::Help, Button::Minimize,
+                              Button::Maximize, Button::Close})
+                agent.setSystemButton(role, &original);
+            QSignalSpy changed(&agent, &Agent::systemButtonChanged);
+            QVERIFY(changed.isValid());
+            const auto role = static_cast<Button::SystemButton>(value);
+            QCOMPARE(agent.systemButton(role), valid ? &original : nullptr);
+            agent.setSystemButton(role, &replacement);
+            QCOMPARE(agent.systemButton(role), valid ? &replacement : nullptr);
+            agent.setSystemButton(role, &replacement);
+            QCOMPARE(changed.count(), valid ? 1 : 0);
+            for (auto other : {Button::WindowIcon, Button::Help, Button::Minimize,
+                               Button::Maximize, Button::Close})
+                QCOMPARE(agent.systemButton(other), other == role ? &replacement : &original);
+            agent.setSystemButton(role, nullptr);
+            QVERIFY(!agent.systemButton(role));
+            agent.setSystemButton(role, nullptr);
+            QCOMPARE(changed.count(), valid ? 2 : 0);
+            for (auto other : {Button::WindowIcon, Button::Help, Button::Minimize,
+                               Button::Maximize, Button::Close})
+                QCOMPARE(agent.systemButton(other), other == role ? nullptr : &original);
+        });
+    }
+
     void hitTestVisibilityToggles_data() { agentRows(); }
     void hitTestVisibilityToggles() {
         QFETCH(bool, quick);
@@ -230,6 +281,9 @@ private Q_SLOTS:
 };
 
 int main(int argc, char **argv) {
+#ifdef Q_OS_WIN
+    ::SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+#endif
 #ifdef TEST_WIDGETS
     QApplication app(argc, argv);
 #else

@@ -103,7 +103,8 @@ namespace QWK {
     }
 
     /*!
-        Returns the system button of the given type.
+        Returns the system button of the given type, or nullptr for Unknown or an
+        out-of-range type. QuickWindowAgent uses the same rule.
     */
     QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
         Q_D(const WidgetWindowAgent);
@@ -113,6 +114,10 @@ namespace QWK {
     /*!
         Sets the system button of the given type, the system buttons always receive mouse events so
         you don't need to call \c setHitTestVisible for them.
+        Unknown and out-of-range types are ignored without emitting
+        systemButtonChanged. Passing nullptr unregisters a valid type. Setting an
+        unchanged registration does not emit a signal. QuickWindowAgent follows
+        the same rules, after Qt converts a QML argument to the enum's int type.
     */
     void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
         Q_D(WidgetWindowAgent);

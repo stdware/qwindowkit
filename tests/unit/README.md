@@ -46,22 +46,23 @@ case counts below do not.
 | `core.eventdispatch.unit` | 22 | Shared/native dispatch arguments, result forwarding, ordering, short-circuit consumption, duplicate/foreign registration, transfer, removal and destruction during dispatch, appending filters, nested dispatch, dispatcher/filter destruction order, application-wide native filter cleanup/reinstallation |
 | `core.dispatchlifetime.unit` | 8 | Dispatcher destruction in shared/native callbacks, both callback results, direct/nested dispatch, immediate address reuse, suppression of stale/replacement filters and subsequent self-removal in the replacement dispatcher |
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
-| `core.windowcontext.unit` | 47 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, reentrant writes/removals/hash growth, callback destruction, replay snapshot changes, handle loss/reuse, title replacement, destroyed objects, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
+| `core.windowcontext.unit` | 58 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, reentrant writes/removals/hash growth, callback destruction, replay snapshot changes, handle loss/reuse, title replacement, destroyed objects, SystemButton boundaries, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
 | `core.qtwindowcontext.unit` | 182 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation; 150 resize/visibility rows and 10 dynamic cursor transitions |
 | `core.windowmovegeometry.unit` | 22 | Production release-position geometry: negative screen coordinates, gaps, nearest correction, ties, reserved areas, tiny/invalid/missing screens, oversized windows and custom title offsets |
 | `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
 | `core.portalstyle.component` | 23 | Production portal refresh/subscription logic with a controlled transport: initial snapshot, independent application palette, changes/deduplication, invalid data, in-flight changes, service failure/recovery, timed retry, destruction, reentrancy and worker-thread emission |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
-| `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
+| `agents.unit` | 16 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles and invalid boundaries, exclusion toggles and destroyed registrations |
 | `quicksystembuttonarea.component` (Windows + Quick) | 27 | Scene bounds/center, item and ancestor transforms, visual reparenting, window changes, destruction/reentrancy, pre-native registration and real QML transform-list frame updates |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
+| `systembuttons.qml` (Windows + Quick) | 11 | Real QML numeric-to-enum conversion, production module/agent setup, getter/setter boundaries, registration preservation, duplicate/removal signal counts and enum metadata |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 375 business cases
-across twelve CTest entries (nine unit suites and three component suites). The lifetime
+With Widgets, Quick and StyleAgent enabled on Windows there are 419 business cases
+across thirteen CTest entries (nine unit suites and four component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. Both StyleAgent suites are omitted when that
-component is disabled. The Quick geometry and system-button-area suites retain Windows-only test
+component is disabled. The Quick geometry, system-button-area and QML button suites retain Windows-only test
 registration; the Core/agent suites are registered on all platforms.
 
 The context suite's 21 reentrancy cases run in bounded child processes. They check
@@ -71,6 +72,17 @@ an outdated attribute revision or resumes an obsolete window generation (includi
 numeric handle reuse). Public queries, replay sequences and list/hash sizes are
 checked together. Platform callbacks and handle changes are controlled inputs here;
 `windows.windowlifetime` separately exercises synchronous production Windows calls.
+
+The Core and agent button tests share eleven input cases: all five valid roles,
+Unknown, -1, 6, 7, INT_MIN and INT_MAX. The fixed int enum makes the C++ casts
+defined; the Core cases use bounded child processes. Invalid getter/setter calls
+must preserve existing registrations and emit no agent signals. The QML suite
+passes the same numbers through an actual QML function to the production module,
+without replacing the context factory or invoking C++ setters directly. It runs
+with a hidden window on the offscreen QPA and rejects QML warnings. Numeric
+conversion outside the tested int range remains Qt's responsibility; this is not
+a native hit-test or physical-input test. Its runner requires 13 passes with no
+skips and retains the existing eight-second inner / ten-second CTest deadlines.
 
 The dispatch, context and agent tests link the production libraries. Context tests
 substitute platform inputs and record callbacks; they do not reimplement attribute

@@ -107,7 +107,7 @@ jobs:
           done
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc windows.windowlifetime"
+            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime"
           fi
 
           for name in $expected; do
@@ -139,7 +139,7 @@ jobs:
             -DQWINDOWKIT_BUILD_WIDGETS=ON \
             -DQWINDOWKIT_BUILD_QUICK=ON \
             -DQWINDOWKIT_BUILD_TESTS=ON
-          for name in buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component; do
+          for name in buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml; do
             if ! ctest --test-dir build-static -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required static test $name did not register"
               exit 1
@@ -153,7 +153,7 @@ jobs:
       - name: Test static units and package consumers
         if: matrix.platform == 'windows-msvc'
         timeout-minutes: 2
-        run: ctest --test-dir build-static -R "(\.unit$|^core.windowmove.component$|^core.portalstyle.component$|^quicksystembuttonarea.component$|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qmake$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
+        run: ctest --test-dir build-static -R "(\.unit$|^core.windowmove.component$|^core.portalstyle.component$|^quicksystembuttonarea.component$|^systembuttons.qml$|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qmake$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
 
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
@@ -225,7 +225,7 @@ jobs:
       - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc windows.windowlifetime"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime"
           for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
             expected="$expected buildsystems.components.$scenario"
           done

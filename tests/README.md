@@ -8,7 +8,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 
 | Tests | CTest limit | Inner process limits |
 | --- | ---: | --- |
-| Fast unit suites, including Quick geometry | 10 s each | 8 s |
+| Fast suites, including Quick geometry and `systembuttons.qml` | 10 s each | 8 s |
 | `widgetborder.lifetime` | 10 s | 8 s overall; each child: 2 s startup, 5 s execution, 1 s kill wait |
 | `buildsystems.install` | 15 s | Direct install process bounded by CTest |
 | `buildsystems.cmake` | 60 s | Configure 25 s, build 25 s |
