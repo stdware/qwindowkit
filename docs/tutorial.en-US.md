@@ -305,6 +305,18 @@ Disable maximization:
 setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 ```
 
+For QWindowKit's custom title bar on macOS and in the Qt fallback context, a left
+double-click toggles maximized/normal state only when `Qt::WindowMaximizeButtonHint`
+is set, the window is not fixed-size or fullscreen, and the pointer is in a
+draggable title bar area. Clearing the flag also disables double-click restoration
+of an already maximized window. The same rule applies to Quick window `flags`.
+It does not prevent application code or a custom button handler from changing
+the window state directly.
+
+The macOS custom title bar uses this QWindowKit policy; it does not read the
+Desktop & Dock preference for native title bar double-click actions. Native
+traffic-light buttons remain separate from this custom title bar behavior.
+
 Create a fixed-size window:
 
 ```cpp
