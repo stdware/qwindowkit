@@ -45,67 +45,62 @@ namespace QWK {
         return QStringLiteral("xcb");
     }
 
-    void X11Context::virtual_hook(int id, void *data) {
-        if (id == ShowSystemMenuHook) {
-            // showSystemMenu() is public API and may be called before the window is created or
-            // after it has been destroyed.
-            if (!m_windowId || !m_windowHandle) {
-                return;
-            }
-
-            auto *x11app = qApp->nativeInterface<QNativeInterface::QX11Application>();
-            if (!x11app) {
-                return;
-            }
-
-            auto display = x11app->display();
-            if (!display) {
-                return;
-            }
-
-            const auto &api = QWK::Private::x11API();
-            Q_ASSERT(api.isValid());
-
-            // some marcos to constexpr in X11
-            constexpr auto None = 0L;
-            constexpr auto ClientMessage = 33;
-            constexpr auto False = 0;
-            constexpr auto Button3 = 3;
-            constexpr auto SubstructureNotifyMask = 1L << 19;
-            constexpr auto SubstructureRedirectMask = 1L << 20;
-
-            // use window id (XID)
-            auto xwin = static_cast<Window>(m_windowId);
-            Atom atom = api.XInternAtom(display, "_GTK_SHOW_WINDOW_MENU", False);
-            if (atom == None)
-                return; // WM might not support this atom
-            auto pos = static_cast<const QPoint *>(data);
-            XEvent ev{};
-            ev.xclient.type = ClientMessage;
-            ev.xclient.window = xwin;
-            ev.xclient.message_type = atom;
-
-            // The format member is set to 8, 16, or 32
-            // and specifies whether the data should be viewed as
-            // a list of bytes, shorts, or longs - typeof(xclient.data).
-            ev.xclient.format = 32;
-
-            qreal dpr = m_windowHandle->devicePixelRatio();
-            int root_x = qRound(pos->x() * dpr);
-            int root_y = qRound(pos->y() * dpr);
-
-            ev.xclient.data.l[0] = Button3; // right button
-            ev.xclient.data.l[1] = root_x;
-            ev.xclient.data.l[2] = root_y;
-
-            Window root = api.XDefaultRootWindow(display);
-            api.XUngrabPointer(display, 0L);
-            api.XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask,
-                           &ev);
-            api.XFlush(display);
-        } else {
-            AbstractWindowContext::virtual_hook(id, data);
+    void X11Context::showSystemMenu(const QPoint &pos) {
+        // showSystemMenu() is public API and may be called before the window is created or
+        // after it has been destroyed.
+        if (!m_windowId || !m_windowHandle) {
+            return;
         }
+
+        auto *x11app = qApp->nativeInterface<QNativeInterface::QX11Application>();
+        if (!x11app) {
+            return;
+        }
+
+        auto display = x11app->display();
+        if (!display) {
+            return;
+        }
+
+        const auto &api = QWK::Private::x11API();
+        Q_ASSERT(api.isValid());
+
+        // some marcos to constexpr in X11
+        constexpr auto None = 0L;
+        constexpr auto ClientMessage = 33;
+        constexpr auto False = 0;
+        constexpr auto Button3 = 3;
+        constexpr auto SubstructureNotifyMask = 1L << 19;
+        constexpr auto SubstructureRedirectMask = 1L << 20;
+
+        // use window id (XID)
+        auto xwin = static_cast<Window>(m_windowId);
+        Atom atom = api.XInternAtom(display, "_GTK_SHOW_WINDOW_MENU", False);
+        if (atom == None)
+            return; // WM might not support this atom
+        XEvent ev{};
+        ev.xclient.type = ClientMessage;
+        ev.xclient.window = xwin;
+        ev.xclient.message_type = atom;
+
+        // The format member is set to 8, 16, or 32
+        // and specifies whether the data should be viewed as
+        // a list of bytes, shorts, or longs - typeof(xclient.data).
+        ev.xclient.format = 32;
+
+        qreal dpr = m_windowHandle->devicePixelRatio();
+        int root_x = qRound(pos.x() * dpr);
+        int root_y = qRound(pos.y() * dpr);
+
+        ev.xclient.data.l[0] = Button3; // right button
+        ev.xclient.data.l[1] = root_x;
+        ev.xclient.data.l[2] = root_y;
+
+        Window root = api.XDefaultRootWindow(display);
+        api.XUngrabPointer(display, 0L);
+        api.XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask,
+                       &ev);
+        api.XFlush(display);
     }
 }
 #endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)

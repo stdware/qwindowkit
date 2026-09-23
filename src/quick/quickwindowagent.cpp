@@ -9,6 +9,9 @@
 #include <QtQuick/private/qquickanchors_p.h>
 
 #include "quickitemdelegate_p.h"
+#ifdef Q_OS_MAC
+#  include "quicksystembuttonarea_p.h"
+#endif
 
 namespace QWK {
 

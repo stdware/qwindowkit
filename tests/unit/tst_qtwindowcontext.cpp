@@ -27,13 +27,7 @@ namespace {
         int moves = 0;
         void systemMove() override { ++moves; }
         void systemResize(Qt::Edges edges) override { resizes.append(edges); }
-        void virtual_hook(int id, void *data) override {
-            if (id == ShowSystemMenuHook) {
-                menus.append(*static_cast<QPoint *>(data));
-                return;
-            }
-            QtWindowContext::virtual_hook(id, data);
-        }
+        void showSystemMenu(const QPoint &pos) override { menus.append(pos); }
     };
 
     struct Fixture {

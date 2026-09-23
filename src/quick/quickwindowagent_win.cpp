@@ -123,7 +123,7 @@ namespace QWK {
         nativeWindowId = ctx->windowId();
         borderColor = {};
         if (!nativePainting) {
-            ctx->virtual_hook(AbstractWindowContext::Windows10BorderColorHook, &borderColor);
+            borderColor = ctx->windows10BorderColor();
         }
 
         setX(0);

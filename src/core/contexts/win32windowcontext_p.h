@@ -14,6 +14,7 @@
 // version without notice, or may even be removed.
 //
 
+#include <QWKCore/qwkconfig.h>
 #include <QWKCore/qwindowkit_windows.h>
 #include <QWKCore/private/abstractwindowcontext_p.h>
 
@@ -38,7 +39,13 @@ namespace QWK {
         Q_ENUM(WindowPart)
 
         QString key() const override;
-        void virtual_hook(int id, void *data) override;
+        void raiseWindow() override;
+        void showSystemMenu(const QPoint &pos) override;
+#if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+        QColor windows10BorderColor() const override;
+        void setWindows10BorderActive(bool active) override;
+        void drawWindows10Border() override;
+#endif
 
         QVariant windowAttribute(const QString &key) const override;
 

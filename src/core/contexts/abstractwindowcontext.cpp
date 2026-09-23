@@ -4,11 +4,7 @@
 
 #include "abstractwindowcontext_p.h"
 
-#include <QtGui/QPen>
-#include <QtGui/QPainter>
 #include <QtGui/QScreen>
-
-#include "qwkglobal_p.h"
 
 namespace QWK {
 
@@ -99,7 +95,7 @@ namespace QWK {
 #ifdef Q_OS_MAC
     void AbstractWindowContext::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
         m_systemButtonAreaCallback = callback;
-        virtual_hook(SystemButtonAreaChangedHook, nullptr);
+        updateSystemButtonArea();
     }
 #endif
 
@@ -159,60 +155,48 @@ namespace QWK {
         return {};
     }
 
-    QWK_USED static constexpr const struct {
-        const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
-        const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
-        const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
-        const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
-    } kSampleColorSet;
+    void AbstractWindowContext::centralizeWindow() {
+        if (!m_windowId)
+            return;
 
-    void AbstractWindowContext::virtual_hook(int id, void *data) {
-        switch (id) {
-            case CentralizeHook: {
-                if (!m_windowId)
-                    return;
+        QRect windowGeometry = m_delegate->getGeometry(m_host);
+        QRect screenGeometry = m_windowHandle->screen()->geometry();
+        int x = (screenGeometry.width() - windowGeometry.width()) / 2;
+        int y = (screenGeometry.height() - windowGeometry.height()) / 2;
+        QPoint pos(x, y);
+        pos += screenGeometry.topLeft();
+        m_delegate->setGeometry(m_host, QRect(pos, windowGeometry.size()));
+    }
 
-                QRect windowGeometry = m_delegate->getGeometry(m_host);
-                QRect screenGeometry = m_windowHandle->screen()->geometry();
-                int x = (screenGeometry.width() - windowGeometry.width()) / 2;
-                int y = (screenGeometry.height() - windowGeometry.height()) / 2;
-                QPoint pos(x, y);
-                pos += screenGeometry.topLeft();
-                m_delegate->setGeometry(m_host, QRect(pos, windowGeometry.size()));
-                return;
-            }
+    void AbstractWindowContext::raiseWindow() {
+        if (!m_windowId)
+            return;
 
-            case RaiseWindowHook: {
-                if (!m_windowId)
-                    return;
-
-                m_delegate->setWindowVisible(m_host, true);
-                Qt::WindowStates state = m_delegate->getWindowState(m_host);
-                if (state & Qt::WindowMinimized) {
-                    m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);
-                }
-                m_delegate->bringWindowToTop(m_host);
-                return;
-            }
-
-            case DefaultColorsHook: {
-                auto &map = *static_cast<QMap<QString, QColor> *>(data);
-                map.clear();
-                map.insert(QStringLiteral("activeLight"), kSampleColorSet.activeLight);
-                map.insert(QStringLiteral("activeDark"), kSampleColorSet.activeDark);
-                map.insert(QStringLiteral("inactiveLight"), kSampleColorSet.inactiveLight);
-                map.insert(QStringLiteral("inactiveDark"), kSampleColorSet.inactiveDark);
-                return;
-            }
-
-            default:
-                break;
+        m_delegate->setWindowVisible(m_host, true);
+        Qt::WindowStates state = m_delegate->getWindowState(m_host);
+        if (state & Qt::WindowMinimized) {
+            m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);
         }
+        m_delegate->bringWindowToTop(m_host);
     }
 
     void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
-        virtual_hook(ShowSystemMenuHook, &const_cast<QPoint &>(pos));
+        Q_UNUSED(pos)
     }
+
+#ifdef Q_OS_MAC
+    void AbstractWindowContext::updateSystemButtonArea() {}
+#endif
+
+#ifdef Q_OS_WINDOWS
+    QColor AbstractWindowContext::windows10BorderColor() const { return {}; }
+
+    void AbstractWindowContext::setWindows10BorderActive(bool active) {
+        Q_UNUSED(active)
+    }
+
+    void AbstractWindowContext::drawWindows10Border() {}
+#endif
 
     void AbstractWindowContext::notifyWinIdChange() {
         const QPointer<AbstractWindowContext> self(this);

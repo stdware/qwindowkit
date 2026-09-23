@@ -343,7 +343,7 @@ private Q_SLOTS:
         Fixture f;
         f.changeHandle(1);
         f.delegate->state = Qt::WindowStates(initial);
-        f.context.virtual_hook(Context::RaiseWindowHook, nullptr);
+        f.context.raiseWindow();
         QCOMPARE(int(f.delegate->state), expected);
         QCOMPARE(f.delegate->operations, restored ? QStringList({"show", "state", "raise"})
                                                  : QStringList({"show", "raise"}));
@@ -354,8 +354,8 @@ private Q_SLOTS:
         Fixture f;
         f.delegate->state = Qt::WindowMinimized;
         const auto geometry = f.delegate->geometry;
-        f.context.virtual_hook(Context::RaiseWindowHook, nullptr);
-        f.context.virtual_hook(Context::CentralizeHook, nullptr);
+        f.context.raiseWindow();
+        f.context.centralizeWindow();
         QVERIFY(f.delegate->operations.isEmpty());
         QCOMPARE(f.delegate->state, Qt::WindowStates(Qt::WindowMinimized));
         QCOMPARE(f.delegate->geometry, geometry);
@@ -369,7 +369,7 @@ private Q_SLOTS:
         const auto screen = f.window.screen()->geometry();
         expected.moveTopLeft(screen.topLeft() + QPoint((screen.width() - expected.width()) / 2,
                                                       (screen.height() - expected.height()) / 2));
-        f.context.virtual_hook(Context::CentralizeHook, nullptr);
+        f.context.centralizeWindow();
         QCOMPARE(f.delegate->geometry, expected);
         QCOMPARE(f.delegate->operations, QStringList({"geometry"}));
         QVERIFY(!f.window.isVisible());

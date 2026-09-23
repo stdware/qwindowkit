@@ -185,7 +185,7 @@ namespace QWK {
     */
     void WindowAgentBase::centralize() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::CentralizeHook, nullptr);
+        d->context->centralizeWindow();
     }
 
     /*!
@@ -193,7 +193,7 @@ namespace QWK {
     */
     void WindowAgentBase::raise() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::RaiseWindowHook, nullptr);
+        d->context->raiseWindow();
     }
 
     /*!

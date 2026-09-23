@@ -27,7 +27,7 @@ namespace QWK {
         ~X11Context() override;
 
         QString key() const override;
-        void virtual_hook(int id, void *data) override;
+        void showSystemMenu(const QPoint &pos) override;
     };
 
 }

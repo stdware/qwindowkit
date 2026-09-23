@@ -22,6 +22,10 @@
 
 namespace QWK {
 
+#ifdef Q_OS_MAC
+    class QuickSystemButtonArea;
+#endif
+
     class QuickWindowAgentPrivate : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(QuickWindowAgent)
     public:
@@ -29,8 +33,7 @@ namespace QWK {
         ~QuickWindowAgentPrivate() override;
 
 #ifdef Q_OS_MAC
-        QPointer<QQuickItem> systemButtonAreaItem;
-        std::unique_ptr<QObject> systemButtonAreaItemHandler;
+        std::unique_ptr<QuickSystemButtonArea> systemButtonAreaItemHandler;
 #endif
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)

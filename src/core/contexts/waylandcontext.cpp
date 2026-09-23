@@ -31,43 +31,38 @@ namespace QWK {
         return QStringLiteral("wayland");
     }
 
-    void WaylandContext::virtual_hook(int id, void *data) {
-        if (id == ShowSystemMenuHook) {
-            if (!m_windowId || !m_windowHandle) {
-                return;
-            }
-            auto *waylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
-            if (!waylandApp) {
-                return;
-            }
-            uint serial = waylandApp->lastInputSerial();
-            wl_seat *seat = waylandApp->lastInputSeat();
-            if (serial == 0 || !seat) {
-                return;
-            }
+    void WaylandContext::showSystemMenu(const QPoint &globalPos) {
+        if (!m_windowId || !m_windowHandle) {
+            return;
+        }
+        auto *waylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
+        if (!waylandApp) {
+            return;
+        }
+        uint serial = waylandApp->lastInputSerial();
+        wl_seat *seat = waylandApp->lastInputSeat();
+        if (serial == 0 || !seat) {
+            return;
+        }
 
-            auto toplevel = static_cast<xdg_toplevel *>(
-                QGuiApplication::platformNativeInterface()->nativeResourceForWindow(
-                    "xdg_toplevel", m_windowHandle));
-            if (!toplevel) {
-                return;
-            }
-            const auto &globalPos = *static_cast<const QPoint *>(data);
-            const QPointF localPos = m_windowHandle->mapFromGlobal(QPointF(globalPos));
-            // QtWindowContext uses FramelessWindowHint, so the content and surface origins
-            // coincide. Undo Qt's coordinate scaling, without applying Wayland's buffer scale.
-            const QPoint surfacePos =
-                QHighDpi::toNativeLocalPosition(localPos, m_windowHandle.data()).toPoint();
-            xdg_toplevel_show_window_menu(toplevel, seat, serial, surfacePos.x(), surfacePos.y());
+        auto toplevel = static_cast<xdg_toplevel *>(
+            QGuiApplication::platformNativeInterface()->nativeResourceForWindow(
+                "xdg_toplevel", m_windowHandle));
+        if (!toplevel) {
+            return;
+        }
+        const QPointF localPos = m_windowHandle->mapFromGlobal(QPointF(globalPos));
+        // QtWindowContext uses FramelessWindowHint, so the content and surface origins
+        // coincide. Undo Qt's coordinate scaling, without applying Wayland's buffer scale.
+        const QPoint surfacePos =
+            QHighDpi::toNativeLocalPosition(localPos, m_windowHandle.data()).toPoint();
+        xdg_toplevel_show_window_menu(toplevel, seat, serial, surfacePos.x(), surfacePos.y());
 
-            wl_display *d = waylandApp->display();
-            if (d) {
-                const auto &api = QWK::Private::waylandAPI();
-                Q_ASSERT(api.isValid());
-                api.wl_display_flush(d);
-            }
-        } else {
-            AbstractWindowContext::virtual_hook(id, data);
+        wl_display *d = waylandApp->display();
+        if (d) {
+            const auto &api = QWK::Private::waylandAPI();
+            Q_ASSERT(api.isValid());
+            api.wl_display_flush(d);
         }
     }
 }

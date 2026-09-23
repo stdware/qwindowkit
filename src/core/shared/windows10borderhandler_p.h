@@ -59,7 +59,7 @@ namespace QWK {
         inline void updateExtraMargins(bool windowActive) {
             // This handler is installed only when win10-border-needed is true.
             // Activation is platform state, not a new application attribute value.
-            ctx->virtual_hook(AbstractWindowContext::Windows10BorderActivationHook, &windowActive);
+            ctx->setWindows10BorderActive(windowActive);
         }
 
         virtual void updateGeometry() = 0;

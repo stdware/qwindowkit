@@ -25,7 +25,7 @@ namespace QWK {
         ~CocoaWindowContext() override;
 
         QString key() const override;
-        void virtual_hook(int id, void *data) override;
+        void updateSystemButtonArea() override;
 
         QVariant windowAttribute(const QString &key) const override;
 

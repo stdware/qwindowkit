@@ -836,90 +836,60 @@ namespace QWK {
         return QStringLiteral("win32");
     }
 
-    void Win32WindowContext::virtual_hook(int id, void *data) {
-        switch (id) {
-            case RaiseWindowHook: {
-                if (!m_windowId)
-                    return;
-                m_delegate->setWindowVisible(m_host, true);
-                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-                bringWindowToFront(hwnd);
-                return;
-            }
+    void Win32WindowContext::raiseWindow() {
+        if (!m_windowId)
+            return;
+        m_delegate->setWindowVisible(m_host, true);
+        const auto hwnd = reinterpret_cast<HWND>(m_windowId);
+        bringWindowToFront(hwnd);
+    }
 
-            case ShowSystemMenuHook: {
-                if (!m_windowId)
-                    return;
-                const auto &pos = *static_cast<const QPoint *>(data);
-                auto hWnd = reinterpret_cast<HWND>(m_windowId);
+    void Win32WindowContext::showSystemMenu(const QPoint &pos) {
+        if (!m_windowId)
+            return;
+        auto hWnd = reinterpret_cast<HWND>(m_windowId);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-                const QPoint nativeGlobalPos =
-                    QHighDpi::toNativeGlobalPosition(pos, m_windowHandle.data());
+        const QPoint nativeGlobalPos =
+            QHighDpi::toNativeGlobalPosition(pos, m_windowHandle.data());
 #else
-                const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
+        const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
 #endif
-                std::ignore = showSystemMenu_sys(this, hWnd, qpoint2point(nativeGlobalPos), false,
-                                                 isHostSizeFixed());
-                return;
-            }
-
-            case DefaultColorsHook: {
-                auto &map = *static_cast<QMap<QString, QColor> *>(data);
-                map.clear();
-                map.insert(QStringLiteral("activeLight"), kWindowsColorSet.activeLight);
-                map.insert(QStringLiteral("activeDark"), kWindowsColorSet.activeDark);
-                map.insert(QStringLiteral("inactiveLight"), kWindowsColorSet.inactiveLight);
-                map.insert(QStringLiteral("inactiveDark"), kWindowsColorSet.inactiveDark);
-                return;
-            }
+        std::ignore = showSystemMenu_sys(this, hWnd, qpoint2point(nativeGlobalPos), false,
+                                         isHostSizeFixed());
+    }
 
 #if QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
-            case Windows10BorderActivationHook: {
-                if (!m_windowId || !data)
-                    return;
-                windows10BorderInactive = !*static_cast<const bool *>(data);
-                applyFrameMargins(effectiveExtraMargins(
-                    windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
-                return;
-            }
-
-            case Windows10BorderColorHook: {
-                auto &color = *static_cast<QColor *>(data);
-                color = {};
-                if (!m_windowId || !m_windowHandle)
-                    return;
-                const auto hwnd = reinterpret_cast<HWND>(m_windowId);
-                const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
-                if (m_delegate->isWindowActive(m_host)) {
-                    color = isWindowFrameBorderColorized()
-                                ? getAccentColor()
-                                : QColor(dark ? kWindowsColorSet.activeDark
-                                              : kWindowsColorSet.activeLight);
-                } else {
-                    color = QColor(dark ? kWindowsColorSet.inactiveDark
-                                        : kWindowsColorSet.inactiveLight);
-                }
-                return;
-            }
-
-            case DrawWindows10BorderHook_Native: {
-                if (!m_windowId)
-                    return;
-
-                // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L1025
-                // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe#extending-the-client-frame
-                // Draw a black rectangle to make Windows native top border show
-
-                drawWindows10BorderNative(reinterpret_cast<HWND>(m_windowId));
-                return;
-            }
-#endif
-
-            default:
-                break;
-        }
-        AbstractWindowContext::virtual_hook(id, data);
+    void Win32WindowContext::setWindows10BorderActive(bool active) {
+        if (!m_windowId)
+            return;
+        windows10BorderInactive = !active;
+        applyFrameMargins(effectiveExtraMargins(
+            windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
     }
+
+    QColor Win32WindowContext::windows10BorderColor() const {
+        if (!m_windowId || !m_windowHandle)
+            return {};
+        const auto hwnd = reinterpret_cast<HWND>(m_windowId);
+        const bool dark = isDarkThemeActive() && isDarkWindowFrameEnabled(hwnd);
+        if (m_delegate->isWindowActive(m_host)) {
+            return isWindowFrameBorderColorized()
+                       ? getAccentColor()
+                       : QColor(dark ? kWindowsColorSet.activeDark : kWindowsColorSet.activeLight);
+        }
+        return QColor(dark ? kWindowsColorSet.inactiveDark : kWindowsColorSet.inactiveLight);
+    }
+
+    void Win32WindowContext::drawWindows10Border() {
+        if (!m_windowId)
+            return;
+
+        // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L1025
+        // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe#extending-the-client-frame
+        // Draw a black rectangle to make Windows native top border show.
+        drawWindows10BorderNative(reinterpret_cast<HWND>(m_windowId));
+    }
+#endif
 
     QVariant Win32WindowContext::windowAttribute(const QString &key) const {
         if (key == QStringLiteral("window-rect")) {
