@@ -110,6 +110,9 @@ jobs:
             expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar fallbackcursor.offscreen fallbackcursor.windows"
           fi
 
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
           for name in $expected; do
             if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required test $name did not register"
@@ -124,7 +127,7 @@ jobs:
       # test in this suite registers itself conditionally.
       - name: Test
         timeout-minutes: 3
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        run: ctest --test-dir build -LE reconfigure --output-on-failure --no-tests=error
 
       - name: Configure static package consumer regressions
         if: matrix.platform == 'windows-msvc'
@@ -139,7 +142,11 @@ jobs:
             -DQWINDOWKIT_BUILD_WIDGETS=ON \
             -DQWINDOWKIT_BUILD_QUICK=ON \
             -DQWINDOWKIT_BUILD_TESTS=ON
-          for name in buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml windows.borderattributes windows.acrylic windows.effects windows.titlebar fallbackcursor.offscreen fallbackcursor.windows; do
+          expected="buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml windows.borderattributes windows.acrylic windows.effects windows.titlebar fallbackcursor.offscreen fallbackcursor.windows"
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
+          for name in $expected; do
             if ! ctest --test-dir build-static -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required static test $name did not register"
               exit 1
@@ -154,6 +161,15 @@ jobs:
         if: matrix.platform == 'windows-msvc'
         timeout-minutes: 2
         run: ctest --test-dir build-static -R "(\.unit$|^core.windowmove.component$|^core.portalstyle.component$|^quicksystembuttonarea.component$|^systembuttons.qml$|^windows.borderattributes$|^windows.acrylic$|^windows.effects$|^windows.titlebar$|^fallbackcursor\.|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qmake$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
+
+      - name: Test shared qmake reconfiguration
+        timeout-minutes: 4
+        run: ctest --test-dir build -L reconfigure --output-on-failure --no-tests=error
+
+      - name: Test static qmake reconfiguration
+        if: matrix.platform == 'windows-msvc'
+        timeout-minutes: 4
+        run: ctest --test-dir build-static -L reconfigure --output-on-failure --no-tests=error
 
       # Single-axis caption hit testing has a separate compile-time path without
       # system borders. Exercise it with real Widgets and Quick HWNDs as well.
@@ -229,6 +245,9 @@ jobs:
           for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
             expected="$expected buildsystems.components.$scenario"
           done
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
           for name in $expected; do
             if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
               echo "Required test $name did not register"
@@ -243,4 +262,9 @@ jobs:
       - name: Test
         timeout-minutes: 3
         shell: msys2 {0}
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        run: ctest --test-dir build -LE reconfigure --output-on-failure --no-tests=error
+
+      - name: Test qmake reconfiguration
+        timeout-minutes: 4
+        shell: msys2 {0}
+        run: ctest --test-dir build -L reconfigure --output-on-failure --no-tests=error

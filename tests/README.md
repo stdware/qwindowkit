@@ -15,6 +15,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | `buildsystems.qtmajor` | 45 s | Each isolated configuration: 5 s |
 | `buildsystems.components.*` | 35 s each | Configure 15 s, build 15 s |
 | `buildsystems.qmake` | 60 s | qmake 15 s, make 25 s |
+| `buildsystems.qmake.reconfigure.*` | 60 s each | Prepare 15 s; each cold module build 50 s; transitions: configure/build 15 s each, install 10 s, qmake 15 s, make 25 s |
 | `buildsystems.msbuild` | 60 s | MSBuild 25 s |
 | `qmltypes.installed` | 60 s total | Install 10 s, configure/build 20 s each, runtime 8 s, each lint invocation 5 s |
 | `quickborder.software.*`, `quickborder.native.d3d11` | 20 s each | 15 s |
@@ -33,7 +34,8 @@ qmake prefix query is also bounded to five seconds and fails if it cannot finish
 Full CI test steps have a separate three-minute aggregate deadline. The static
 unit/MSBuild consumer CI step is limited to two minutes and the no-system-borders
 hit-test step to one minute. These CI deadlines exclude dependency setup and
-building the main project. Local CTest runs enforce the per-test limits above;
+building the main project. qmake reconfiguration has a separate four-minute CI
+step for each shared/static run. Local CTest runs enforce the per-test limits above;
 they do not inherit the CI step's aggregate deadline.
 
 Run all enabled tests from a configured, built tree, using the compiler's developer

@@ -40,6 +40,9 @@ if(QWINDOWKIT_BUILD_WIDGETS)
 else()
     set(_use_widgets false)
 endif()
+if(QWINDOWKIT_BUILD_QUICK)
+    list(APPEND _modules quick)
+endif()
 
 # Only the debug build of QWindowKit installs libraries with the debug postfix, and only a debug
 # consumer would look for them.
@@ -104,6 +107,45 @@ if(_qmake_executable AND QWINDOWKIT_TEST_MAKE_PROGRAM)
         -P "${CMAKE_CURRENT_SOURCE_DIR}/qmake/RunBuild.cmake"
     )
     set_tests_properties(buildsystems.qmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
+
+    # Separate bounded stages retain one real build tree while switching modules.
+    # Fixtures order them even under ctest -j, and failed prerequisites stop the chain.
+    if(QWINDOWKIT_BUILD_WIDGETS AND QWINDOWKIT_BUILD_QUICK)
+        set(_previous_stage)
+        foreach(_stage prepare build_core build_widgets build_quick all core widgets quick restored)
+            set(_test "buildsystems.qmake.reconfigure.${_stage}")
+            add_test(NAME ${_test}
+                COMMAND ${CMAKE_COMMAND}
+                "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+                "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}"
+                "-DBUILD_CONFIG=$<CONFIG>" "-DSTAGE=${_stage}"
+                "-DGENERATOR=${CMAKE_GENERATOR}"
+                "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+                "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+                "-DCMAKE_MAKE_TOOL=${CMAKE_MAKE_PROGRAM}"
+                "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+                "-DENABLE_STYLE_AGENT=${QWINDOWKIT_ENABLE_STYLE_AGENT}"
+                "-DQT_PREFIX=${_qt_prefix}" "-DQT_MAJOR=${QT_VERSION_MAJOR}"
+                "-DQMSETUP_DIR=${qmsetup_DIR}"
+                "-DBUILD_STATIC=${QWINDOWKIT_BUILD_STATIC}"
+                "-DDEBUG_POSTFIX=${CMAKE_DEBUG_POSTFIX}"
+                "-DQMAKE_EXECUTABLE=${_qmake_executable}"
+                "-DMAKE_PROGRAM=${QWINDOWKIT_TEST_MAKE_PROGRAM}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/qmake/Reconfigure.cmake")
+            set_tests_properties(${_test} PROPERTIES TIMEOUT 60
+                LABELS "qmake;install;reconfigure"
+                FIXTURES_SETUP "qmake_reconfigure_${_stage}"
+                RESOURCE_LOCK qmake_reconfigure)
+            if(_previous_stage)
+                set_tests_properties(${_test} PROPERTIES
+                    FIXTURES_REQUIRED "qmake_reconfigure_${_previous_stage}")
+            endif()
+            set(_previous_stage ${_stage})
+        endforeach()
+        unset(_previous_stage)
+        unset(_stage)
+        unset(_test)
+    endif()
 else()
     message(STATUS "qmake or a make tool was not found, skipping the qmake build system test")
 endif()
