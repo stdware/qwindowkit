@@ -39,14 +39,16 @@ namespace QWK {
             using XSendEventFn = int (*)(Display *, Window, Bool, long, XEvent *);
             using XFlushFn = int (*)(Display *);
             using XUngrabPointerFn = int (*)(Display *, unsigned long);
+            using XDefaultRootWindowFn = Window (*)(Display *);
 
             XInternAtomFn XInternAtom = nullptr;
             XSendEventFn XSendEvent = nullptr;
             XFlushFn XFlush = nullptr;
             XUngrabPointerFn XUngrabPointer = nullptr;
+            XDefaultRootWindowFn XDefaultRootWindow = nullptr;
 
             inline bool isValid() const {
-                return XInternAtom && XSendEvent && XFlush && XUngrabPointer;
+                return XInternAtom && XSendEvent && XFlush && XUngrabPointer && XDefaultRootWindow;
             }
         };
 

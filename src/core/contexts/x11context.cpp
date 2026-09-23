@@ -9,91 +9,7 @@
 #include "qwindowkit_x11.h"
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-// copy from X11 library and simplify it
-typedef struct _XExtData XExtData;
-struct ScreenFormat;
-struct Depth;
-struct Visual;
-typedef XID Colormap;
-typedef struct {
-    XExtData *ext_data;        /* hook for extension to hang data */
-    struct _XDisplay *display; /* back pointer to display structure */
-    Window root;               /* Root window id. */
-    int width, height;         /* width and height of screen */
-    int mwidth, mheight;       /* width and height of  in millimeters */
-    int ndepths;               /* number of depths possible */
-    Depth *depths;             /* list of allowable depths on the screen */
-    int root_depth;            /* bits per pixel */
-    Visual *root_visual;       /* root visual */
-
-    // typedef struct _XGC
-    // #ifdef XLIB_ILLEGAL_ACCESS
-    //     {
-    //         XExtData *ext_data;	/* hook for extension to hang data */
-    //         GContext gid;	/* protocol ID for graphics context */
-    //         /* there is more to this structure, but it is private to Xlib */
-    //     }
-    // #endif
-    // *GC;
-    void * /*GC*/ default_gc; /* GC for the root root visual */
-
-    Colormap cmap; /* default color map */
-    unsigned long white_pixel;
-    unsigned long black_pixel; /* White and Black pixel values */
-    int max_maps, min_maps;    /* max and min color maps */
-    int backing_store;         /* Never, WhenMapped, Always */
-    Bool save_unders;
-    long root_input_mask; /* initial root input mask */
-} Screen;
-typedef char *XPointer;
-typedef struct {
-    XExtData *ext_data; /* hook for extension to hang data */
-    struct _XPrivate *private1;
-    int fd; /* Network socket. */
-    int private2;
-    int proto_major_version; /* major version of server's X protocol */
-    int proto_minor_version; /* minor version of servers X protocol */
-    char *vendor;            /* vendor of the server hardware */
-    XID private3;
-    XID private4;
-    XID private5;
-    int private6;
-    XID (*resource_alloc)(/* allocator function */
-                          struct _XDisplay *);
-    int byte_order;              /* screen byte order, LSBFirst, MSBFirst */
-    int bitmap_unit;             /* padding and data requirements */
-    int bitmap_pad;              /* padding requirements on bitmaps */
-    int bitmap_bit_order;        /* LeastSignificant or MostSignificant */
-    int nformats;                /* number of pixmap formats in list */
-    ScreenFormat *pixmap_format; /* pixmap format list */
-    int private8;
-    int release; /* release of the server */
-    struct _XPrivate *private9, *private10;
-    int qlen;                        /* Length of input event queue */
-    unsigned long last_request_read; /* seq number of last event read */
-    unsigned long request;           /* sequence number of last request. */
-    XPointer private11;
-    XPointer private12;
-    XPointer private13;
-    XPointer private14;
-    unsigned max_request_size; /* maximum number 32 bit words in request*/
-    struct _XrmHashBucketRec *db;
-    int (*private15)(struct _XDisplay *);
-    char *display_name;          /* "host:display" string used on this connect*/
-    int default_screen;          /* default screen for operations */
-    int nscreens;                /* number of screens on this server*/
-    Screen *screens;             /* pointer to list of screens */
-    unsigned long motion_buffer; /* size of motion buffer */
-    unsigned long private16;
-    int min_keycode; /* minimum defined keycode */
-    int max_keycode; /* maximum defined keycode */
-    XPointer private17;
-    XPointer private18;
-    int private19;
-    char *xdefaults; /* contents of defaults from server */
-    /* there is more to this structure, but it is private to Xlib */
-} *_XPrivDisplay;
-
+// Xlib client-message layout; Display remains opaque.
 typedef struct {
     int type;
     unsigned long serial; /* # of last request processed by server */
@@ -118,10 +34,6 @@ union _XEvent {
     XClientMessageEvent xclient;
     long pad[24];
 };
-
-#define ScreenOfDisplay(dpy, scr) (&((_XPrivDisplay) (dpy))->screens[scr])
-#define DefaultScreen(dpy)        (((_XPrivDisplay) (dpy))->default_screen)
-#define DefaultRootWindow(dpy)    (ScreenOfDisplay(dpy, DefaultScreen(dpy))->root)
 
 namespace QWK {
 
@@ -186,7 +98,7 @@ namespace QWK {
             ev.xclient.data.l[1] = root_x;
             ev.xclient.data.l[2] = root_y;
 
-            Window root = DefaultRootWindow(display);
+            Window root = api.XDefaultRootWindow(display);
             api.XUngrabPointer(display, 0L);
             api.XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask,
                            &ev);

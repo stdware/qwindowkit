@@ -40,6 +40,8 @@ namespace QWK {
                     api.XFlush = reinterpret_cast<X11API::XFlushFn>(x11lib.resolve("XFlush"));
                     api.XUngrabPointer = reinterpret_cast<X11API::XUngrabPointerFn>(
                         x11lib.resolve("XUngrabPointer"));
+                    api.XDefaultRootWindow = reinterpret_cast<X11API::XDefaultRootWindowFn>(
+                        x11lib.resolve("XDefaultRootWindow"));
                 }
             }
             guard = false;
