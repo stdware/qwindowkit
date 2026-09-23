@@ -665,18 +665,6 @@ namespace QWK {
                 reinterpret_cast<setTitlebarAppearsTransparentPtr>(method_setImplementation(
                     method, reinterpret_cast<IMP>(setTitlebarAppearsTransparent)));
 
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
-
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            oldSendEvent = reinterpret_cast<sendEventPtr>(
-                method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
-
             viewClass = nativeViewClass;
             method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
             oldMouseDownCanMoveWindow = reinterpret_cast<mouseDownCanMoveWindowPtr>(method_getImplementation(method));
@@ -697,20 +685,6 @@ namespace QWK {
             method_setImplementation(method,
                                      reinterpret_cast<IMP>(oldSetTitlebarAppearsTransparent));
             oldSetTitlebarAppearsTransparent = nil;
-
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
-            oldCanBecomeKeyWindow = nil;
-
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
-            oldCanBecomeMainWindow = nil;
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
-            oldSendEvent = nil;
 
             method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
             class_replaceMethod(viewClass, @selector(mouseDownCanMoveWindow),
@@ -734,34 +708,6 @@ namespace QWK {
             }
 
             return oldMouseDownCanMoveWindow(obj, sel);
-        }
-
-        static BOOL canBecomeKeyWindow(id obj, SEL sel) {
-            auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            auto nsview = [nswindow contentView];
-            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
-                return YES;
-            }
-
-            if (oldCanBecomeKeyWindow) {
-                return oldCanBecomeKeyWindow(obj, sel);
-            }
-
-            return YES;
-        }
-
-        static BOOL canBecomeMainWindow(id obj, SEL sel) {
-            auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            auto nsview = [nswindow contentView];
-            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
-                return YES;
-            }
-
-            if (oldCanBecomeMainWindow) {
-                return oldCanBecomeMainWindow(obj, sel);
-            }
-
-            return YES;
         }
 
         static void setStyleMask(id obj, SEL sel, NSWindowStyleMask styleMask) {
@@ -788,27 +734,6 @@ namespace QWK {
             }
         }
 
-        static void sendEvent(id obj, SEL sel, NSEvent *event) {
-            if (oldSendEvent) {
-                oldSendEvent(obj, sel, event);
-            }
-
-#if 0
-            const auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            const auto it = instances.find(nswindow);
-            if (it == instances.end()) {
-                return;
-            }
-
-            NSWindowProxy *proxy = it.value();
-            if (event.type == NSEventTypeLeftMouseDown) {
-                proxy->lastMouseDownEvent = event;
-                QCoreApplication::processEvents();
-                proxy->lastMouseDownEvent = nil;
-            }
-#endif
-        }
-
     private:
         Q_DISABLE_COPY(NSWindowProxy)
 
@@ -832,31 +757,15 @@ namespace QWK {
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
-        // NSEvent *lastMouseDownEvent = nil;
-
         using setStyleMaskPtr = void (*)(id, SEL, NSWindowStyleMask);
         static inline setStyleMaskPtr oldSetStyleMask = nil;
 
         using setTitlebarAppearsTransparentPtr = void (*)(id, SEL, BOOL);
         static inline setTitlebarAppearsTransparentPtr oldSetTitlebarAppearsTransparent = nil;
 
-        using canBecomeKeyWindowPtr = BOOL (*)(id, SEL);
-        static inline canBecomeKeyWindowPtr oldCanBecomeKeyWindow = nil;
-
-        using canBecomeMainWindowPtr = BOOL (*)(id, SEL);
-        static inline canBecomeMainWindowPtr oldCanBecomeMainWindow = nil;
-
-        using sendEventPtr = void (*)(id, SEL, NSEvent *);
-        static inline sendEventPtr oldSendEvent = nil;
-
         using mouseDownCanMoveWindowPtr = BOOL (*)(id, SEL);
         static inline mouseDownCanMoveWindowPtr oldMouseDownCanMoveWindow = nil;
     };
-
-    static inline NSWindow *mac_getNSWindow(const WId windowId) {
-        const auto nsview = reinterpret_cast<NSView *>(windowId);
-        return [nsview window];
-    }
 
     static inline NSWindowProxy *ensureWindowProxy(const WId windowId) {
         NSView *nsview = reinterpret_cast<NSView *>(windowId);
@@ -905,12 +814,11 @@ namespace QWK {
 
     private:
         AbstractWindowContext *m_context;
-        bool m_cursorShapeChanged;
         WindowStatus m_windowStatus;
     };
 
     CocoaWindowEventFilter::CocoaWindowEventFilter(AbstractWindowContext *context)
-        : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        : m_context(context), m_windowStatus(Idle) {
         m_context->installSharedEventFilter(this);
     }
 
