@@ -77,6 +77,27 @@ namespace QWK {
     using WndProcHash = QHash<HWND, std::shared_ptr<ManagedWindow>>;
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
 
+    // Native calls can run a nested event loop. A live QObject alone is not enough:
+    // its HWND may have been destroyed/recreated, or its registration replaced.
+    class ManagedWindowGuard {
+    public:
+        ManagedWindowGuard(Win32WindowContext *ctx, HWND hwnd)
+            : context(ctx), window(ctx->window()), hwnd(hwnd), entry(g_wndProcHash->value(hwnd)) {}
+
+        bool isCurrent() const {
+            return context && window && entry && !entry->destroying &&
+                   entry->context == context && g_wndProcHash->value(hwnd) == entry &&
+                   context->window() == window &&
+                   context->windowId() == reinterpret_cast<WId>(hwnd) && ::IsWindow(hwnd);
+        }
+
+    private:
+        QPointer<Win32WindowContext> context;
+        QPointer<QWindow> window;
+        HWND hwnd;
+        std::shared_ptr<ManagedWindow> entry;
+    };
+
     static bool isLikelyFrameDriftAfterWinIdChange(HWND hwnd, const RECT &expectedFrameRect,
                                                    const RECT &candidateFrameRect) {
         const int dx = candidateFrameRect.left - expectedFrameRect.left;
@@ -260,9 +281,10 @@ namespace QWK {
     }
 
     // Returns false if the menu is canceled
-    static bool showSystemMenu_sys(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
-                                   const bool fixedSize) {
+    static bool showSystemMenu_sys(Win32WindowContext *context, HWND hWnd, const POINT &pos,
+                                   const bool selectFirstEntry, const bool fixedSize) {
         Q_ASSERT(hWnd);
+        const ManagedWindowGuard guard(context, hWnd);
         HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
             // The corresponding window doesn't have a system menu, most likely due to the
@@ -324,6 +346,9 @@ namespace QWK {
             (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN) |
              TPM_RIGHTBUTTON),
             pos.x, pos.y, 0, hWnd, nullptr);
+
+        if (!guard.isCurrent())
+            return false;
 
         // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
         // highlighting until we unhighlight it manually.
@@ -703,13 +728,12 @@ namespace QWK {
         }
 
         // Try hooked procedure and save result
-        const QPointer<Win32WindowContext> contextGuard(ctx);
-        const QPointer<QWindow> windowGuard(ctx->window());
+        const ManagedWindowGuard guard(ctx, hWnd);
         LRESULT result;
-        if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
-            if (!contextGuard || !windowGuard) {
-                return result;
-            }
+        const bool handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
+        if (!guard.isCurrent())
+            return result;
+        if (handled) {
             // https://github.com/stdware/qwindowkit/issues/45
             // Forward the event to user-defined native event filters, there may be some messages
             // that need to be processed by the user.
@@ -828,7 +852,7 @@ namespace QWK {
 #else
                 const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
 #endif
-                std::ignore = showSystemMenu_sys(hWnd, qpoint2point(nativeGlobalPos), false,
+                std::ignore = showSystemMenu_sys(this, hWnd, qpoint2point(nativeGlobalPos), false,
                                                  isHostSizeFixed());
                 return;
             }
@@ -960,6 +984,8 @@ namespace QWK {
         mouseLeaveBlocked = false;
         lastHitTestResult = WindowPart::Outside;
         lastHitTestResultRaw = HTNOWHERE;
+        iconButtonClickTime = 0;
+        iconButtonClickLevel = 0;
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
@@ -1644,12 +1670,15 @@ namespace QWK {
                 }
 
                 if (lastHitTestResult == WindowPart::ChromeButton) {
+                    const ManagedWindowGuard guard(this, hWnd);
                     if (message == WM_NCMOUSEMOVE) {
                         // ### FIXME FIXME FIXME
                         // ### FIXME: Calling DefWindowProc() here is really dangerous, investigate
                         // how to avoid doing this.
                         // ### FIXME FIXME FIXME
                         *result = ::DefWindowProcW(hWnd, WM_NCMOUSEMOVE, wParam, lParam);
+                        if (!guard.isCurrent())
+                            return true;
                         emulateClientAreaMessage(hWnd, message, wParam, lParam);
                         return true;
                     }
@@ -1664,6 +1693,8 @@ namespace QWK {
                                     // until the menu returns
                                     iconButtonClickTime = ::GetTickCount64();
                                     *result = ::DefWindowProcW(hWnd, message, wParam, lParam);
+                                    if (!guard.isCurrent())
+                                        return true;
                                     iconButtonClickTime = 0;
                                     if (iconButtonClickLevel & IconButtonTriggersClose) {
                                         ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
@@ -2608,10 +2639,19 @@ namespace QWK {
         }
 
         if (shouldShowSystemMenu) {
+            const ManagedWindowGuard guard(this, hWnd);
             static HHOOK mouseHook = nullptr;
             static std::optional<POINT> mouseClickPos;
             static bool mouseDoubleClicked = false;
             bool mouseHookedLocal = false;
+            const auto cleanup = qScopeGuard([&mouseHookedLocal] {
+                if (!mouseHookedLocal)
+                    return;
+                ::UnhookWindowsHookEx(mouseHook);
+                mouseHook = nullptr;
+                mouseClickPos.reset();
+                mouseDoubleClicked = false;
+            });
 
             // The menu is triggered by a click on icon button
             if (iconButtonClickTime > 0) {
@@ -2657,19 +2697,22 @@ namespace QWK {
                             return ::CallNextHookEx(nullptr, nCode, wParam, lParam);
                         },
                         nullptr, ::GetCurrentThreadId());
-                    mouseHookedLocal = true;
+                    mouseHookedLocal = mouseHook != nullptr;
                 }
             }
 
 #undef MOUSE_HOOK
 
             bool res =
-                showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
+                showSystemMenu_sys(this, hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
 
-            // Uninstall mouse hook and check if it's a double-click
+            // cleanup owns the hook independently of this context's lifetime.
+            *result = FALSE;
+            if (!guard.isCurrent())
+                return true;
+
+            // Check the recorded click before the scope guard uninstalls the hook.
             if (mouseHookedLocal) {
-                ::UnhookWindowsHookEx(mouseHook);
-
                 // Emulate the Windows icon button's behavior
                 if (!res && mouseClickPos.has_value()) {
                     POINT nativeLocalPos = mouseClickPos.value();
@@ -2689,10 +2732,6 @@ namespace QWK {
                 if (mouseDoubleClicked) {
                     iconButtonClickLevel |= IconButtonDoubleClicked;
                 }
-
-                mouseHook = nullptr;
-                mouseClickPos.reset();
-                mouseDoubleClicked = false;
             }
 
             // QPA's internal code will handle system menu events separately, and its

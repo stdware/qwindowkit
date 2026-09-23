@@ -43,3 +43,39 @@ the original global predecessor failed the distinct-window and detach assertions
 Restoring the previous message-context handling failed seven reentrancy cases on
 geometry or unwanted consumption; restoring the fix passed the complete regression.
 Other Qt/compiler/Windows versions, sanitizers and hosted CI were not run.
+
+## Native menu and WinId lifetime regressions
+
+`windows.windowlifetime` adds thirteen cases, each in an isolated process. Eight
+menu cases use real HWNDs and native menu loops: cancellation, selecting Close,
+icon double-click, deleting the agent or window, recreating the HWND, replacing
+the agent, and a reentrant menu request. A fixed menu mnemonic drives selection
+through posted character messages; these are native-message integration tests,
+not physical mouse/keyboard input tests. Callbacks must actually run, Close must
+reach the widget, and surviving registrations must service another menu.
+
+Five WinId cases cover context deletion during actual Windows QPA surface teardown,
+nested surface notifications, native surface recreation, and deletion of QWindow
+or QWidget receivers during explicit event delivery. The receiver-deletion cases
+are controlled Qt event probes, not deletion from inside Qt's own destroy() stack.
+The QWindow delegate uses controlled non-lifecycle operations; surface events,
+the WinId filter, shared dispatcher and Win32 context are production code.
+
+The shared-library test compiles the unmodified private Win32 implementation,
+which is not exported, and injects a derived context through the existing factory.
+Static builds link that implementation from QWKCore. The derived context and
+surface filter reserve their allocations after destruction and protect them with
+`VirtualProtect(PAGE_NOACCESS)`, so stale access fails deterministically. The
+test does not replace menu APIs or stub their return values. Hook cleanup and
+exact numeric HWND reuse also require static review; fresh HWND allocation does
+not guarantee numeric reuse.
+
+The runner requires 15 passes (13 cases plus initialization/cleanup), rejects
+skips/expected failures, and shares the 15-second inner / 20-second CTest bounds
+and desktop lock with `windows.windowproc`. Native menu loops have a 1.5-second
+watchdog; failure to enter the intended callback remains a test failure.
+
+```sh
+cmake --build build --config Release --target tst_windowlifetime --parallel 4
+ctest --test-dir build -C Release -R '^windows.windowlifetime$' --output-on-failure --no-tests=error
+```

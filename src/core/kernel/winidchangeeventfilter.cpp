@@ -26,18 +26,22 @@ namespace QWK {
     }
 
     bool WindowWinIdChangeEventFilter::eventFilter(QObject *obj, QEvent *event) {
-        Q_UNUSED(obj)
-        if (event->type() == QEvent::PlatformSurface) {
-            auto e = static_cast<QPlatformSurfaceEvent *>(event);
-            if (e->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
-                isAboutToBeDestroyed = true;
-                context->notifyWinIdChange();
-                isAboutToBeDestroyed = false;
-            } else {
-                context->notifyWinIdChange();
-            }
+        if (event->type() != QEvent::PlatformSurface)
+            return false;
+        const QPointer<QObject> receiver(obj);
+        const QPointer<WindowWinIdChangeEventFilter> self(this);
+        auto e = static_cast<QPlatformSurfaceEvent *>(event);
+        if (e->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+            const bool previous = isAboutToBeDestroyed;
+            isAboutToBeDestroyed = true;
+            context->notifyWinIdChange();
+            if (self)
+                self->isAboutToBeDestroyed = previous;
+        } else {
+            context->notifyWinIdChange();
         }
-        return false;
+        // Qt must not deliver the event to a receiver deleted by a shared callback.
+        return !receiver;
     }
 
 }

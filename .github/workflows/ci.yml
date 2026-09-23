@@ -107,7 +107,7 @@ jobs:
           done
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc"
+            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc windows.windowlifetime"
           fi
 
           for name in $expected; do
@@ -225,7 +225,7 @@ jobs:
       - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component widgetborder.lifetime windows.windowproc windows.windowlifetime"
           for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
             expected="$expected buildsystems.components.$scenario"
           done

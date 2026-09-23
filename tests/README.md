@@ -19,7 +19,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | `qmltypes.installed` | 60 s total | Install 10 s, configure/build 20 s each, runtime 8 s, each lint invocation 5 s |
 | `quickborder.software.*`, `quickborder.native.d3d11` | 20 s each | 15 s |
 | `windows.hittest` | 45 s | Driver 40 s; existing fixture/message/cleanup deadlines also apply |
-| `windows.windowproc` | 20 s | 15 s overall; each child: 2 s startup, 5 s execution, 1 s kill wait |
+| `windows.windowproc`, `windows.windowlifetime` | 20 s each | 15 s overall; each child: 2 s startup, 5 s execution, 1 s kill wait |
 
 Inner deadlines apply to individual operations. The outer CTest deadline caps
 the entire test even when several operations are slow. Timeout is a failure;
