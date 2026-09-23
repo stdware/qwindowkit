@@ -331,6 +331,7 @@ private Q_SLOTS:
         context->resetCalls();
         host.recreate();
         QVERIFY(context->windowId());
+        QCOMPARE(host.agent->windowAttribute(extra).value<QMargins>(), custom);
         QCOMPARE(host.agent->windowAttribute(acrylic), reject ? QVariant() : QVariant(true));
         QCOMPARE(context->appliedMargins, reject ? custom : extended);
         QVERIFY(context->sets > 0);

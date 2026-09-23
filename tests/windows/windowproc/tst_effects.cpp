@@ -224,6 +224,7 @@ private Q_SLOTS:
         context->reset();
         host.recreate();
         QVERIFY(context->windowId());
+        QCOMPARE(host.agent->windowAttribute("extra-margins").value<QMargins>(), custom);
         QCOMPARE(host.agent->windowAttribute(key), reject ? QVariant() : valueFor(effect, true));
         QVERIFY(context->sets > 0);
         QCOMPARE(context->margins, !reject && hasMargins(effect) && effect != "dwm-blur" ? extended : custom);

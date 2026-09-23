@@ -999,12 +999,15 @@ namespace QWK {
 
         // Install window hook
         auto hWnd = reinterpret_cast<HWND>(winId);
-        if (!isSystemBorderEnabled()) {
+        if (!isSystemBorderEnabled() &&
+            !windowAttribute(QStringLiteral("extra-margins")).isValid()) {
             static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
 
             // If we remove the system border, the window will lose its shadow. If dwm is enabled,
             // then we need to set at least 1px margins, otherwise the following operation will
             // fail with no effect.
+            // Install the default only once. Cached user margins and material
+            // ordering must survive native-window recreation and be replayed below.
             setWindowAttribute(QStringLiteral("extra-margins"), margins);
             if (!isCurrent())
                 return;
