@@ -24,7 +24,7 @@ function(qwk_add_unit_test target name expected_passes)
     qwk_register_fast_test(${target} ${name} ${expected_passes})
 endfunction()
 
-qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
+qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 28)
 qwk_add_unit_test(tst_dispatchlifetime core.dispatchlifetime.unit 10)
 qwk_add_unit_test(tst_objecteventfilters core.objecteventfilters.unit 7)
 qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 60)

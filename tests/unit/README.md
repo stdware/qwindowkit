@@ -43,7 +43,7 @@ case counts below do not.
 
 | CTest name | Business cases | Checks |
 | --- | ---: | --- |
-| `core.eventdispatch.unit` | 22 | Shared/native dispatch arguments, result forwarding, ordering, short-circuit consumption, duplicate/foreign registration, transfer, removal and destruction during dispatch, appending filters, nested dispatch, dispatcher/filter destruction order, application-wide native filter cleanup/reinstallation |
+| `core.eventdispatch.unit` | 26 | Shared/native dispatch arguments, result forwarding, ordering, short-circuit consumption, duplicate/foreign registration, transfer, independent registration in both channels, removal and destruction during dispatch, appending filters, nested dispatch, dispatcher/filter destruction order, application-wide native filter cleanup/reinstallation including nested final-subscriber destruction with either callback result |
 | `core.dispatchlifetime.unit` | 8 | Dispatcher destruction in shared/native callbacks, both callback results, direct/nested dispatch, immediate address reuse, suppression of stale/replacement filters and subsequent self-removal in the replacement dispatcher |
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
 | `core.windowcontext.unit` | 58 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, reentrant writes/removals/hash growth, callback destruction, replay snapshot changes, handle loss/reuse, title replacement, destroyed objects, SystemButton boundaries, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
@@ -57,7 +57,7 @@ case counts below do not.
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 | `systembuttons.qml` (Windows + Quick) | 11 | Real QML numeric-to-enum conversion, production module/agent setup, getter/setter boundaries, registration preservation, duplicate/removal signal counts and enum metadata |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 419 business cases
+With Widgets, Quick and StyleAgent enabled on Windows there are 423 business cases
 across thirteen CTest entries (nine unit suites and four component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even
@@ -91,6 +91,19 @@ to bypass native hooks while testing real public methods and delegates. StyleAge
 private notifications are not exported, so its test compiles the unchanged production
 `styleagent.cpp` and moc output with deterministic platform subscription substitutes;
 it does not link a second copy of StyleAgent from QWKCore.
+
+Shared and native dispatchers use one internal `EventDispatchState` for registration,
+removal, nesting and lifetime checks. Each channel keeps its own state and filter
+owner pointer. Filters appended during delivery participate in that same delivery;
+removal leaves null slots until the outermost dispatch finishes. Consumption stops
+the current delivery, while dispatcher destruction stops every outstanding frame,
+even if a new dispatcher immediately occupies the same address. The application
+native master stays alive when its last subscriber disappears during a callback;
+later subscribers can reuse it, and final removal outside dispatch unregisters it.
+The expanded dispatch suite passes on both the previous separate implementations
+and the common implementation, checking behavior preservation rather than a new
+bug fix. Installed-package consumers also compile both dispatcher headers to check
+that the common state header is included in the install tree.
 
 Production cursor snapshots and widget inheritance are separately covered by the
 [fallback cursor regressions](../fallbackcursor/README.md), using real agents and

@@ -307,6 +307,37 @@ private Q_SLOTS:
         QCOMPARE(calls, 1);
     }
 
+    void independentRegistrations() {
+        QWK::SharedEventDispatcher shared;
+        QWK::NativeEventDispatcher native;
+        Filter filter;
+        QObject object;
+        QEvent event(QEvent::User);
+        int message = 0;
+        QT_NATIVE_EVENT_RESULT_TYPE result = 0;
+        int calls = 0;
+        filter.callback = [&] { ++calls; return false; };
+        shared.installSharedEventFilter(&filter);
+        native.installNativeEventFilter(&filter);
+        QVERIFY(!shared.sharedDispatch(&object, &event));
+        QVERIFY(!native.nativeDispatch("independent", &message, &result));
+        QCOMPARE(calls, 2);
+
+        shared.removeSharedEventFilter(&filter);
+        QVERIFY(!filter.detached());
+        QVERIFY(!shared.sharedDispatch(&object, &event));
+        QVERIFY(!native.nativeDispatch("independent", &message, &result));
+        QCOMPARE(calls, 3);
+        shared.installSharedEventFilter(&filter);
+        native.removeNativeEventFilter(&filter);
+        QVERIFY(!filter.detached());
+        QVERIFY(!shared.sharedDispatch(&object, &event));
+        QVERIFY(!native.nativeDispatch("independent", &message, &result));
+        QCOMPARE(calls, 4);
+        shared.removeSharedEventFilter(&filter);
+        QVERIFY(filter.detached());
+    }
+
     void appFilterUnregisters() {
         int calls = 0;
         {
@@ -319,19 +350,40 @@ private Q_SLOTS:
         QCOMPARE(calls, 1);
     }
 
+    void lastAppFilterDestroyedInCallback_data() {
+        QTest::addColumn<bool>("nested");
+        QTest::addColumn<bool>("consume");
+        QTest::newRow("direct-pass") << false << false;
+        QTest::newRow("direct-consume") << false << true;
+        QTest::newRow("nested-pass") << true << false;
+        QTest::newRow("nested-consume") << true << true;
+    }
+
     void lastAppFilterDestroyedInCallback() {
+        QFETCH(bool, nested);
+        QFETCH(bool, consume);
         auto filter = std::make_unique<AppFilter>();
         int calls = 0;
-        filter->callback = [&] { ++calls; filter.reset(); return true; };
-        QVERIFY(dispatchAppEvent());
+        bool innerConsumed = false;
+        filter->callback = [&] {
+            ++calls;
+            if (nested && calls == 1)
+                innerConsumed = dispatchAppEvent();
+            else
+                filter.reset();
+            return consume;
+        };
+        QCOMPARE(dispatchAppEvent(), consume);
+        if (nested)
+            QCOMPARE(innerConsumed, consume);
         QVERIFY(!filter);
         QVERIFY(!dispatchAppEvent());
-        QCOMPARE(calls, 1);
+        QCOMPARE(calls, nested ? 2 : 1);
         {
             AppFilter replacement;
             replacement.callback = [&] { ++calls; return true; };
             QVERIFY(dispatchAppEvent());
-            QCOMPARE(calls, 2);
+            QCOMPARE(calls, nested ? 3 : 2);
         }
         QVERIFY(!dispatchAppEvent());
     }

@@ -12,6 +12,7 @@ set(_src
     windowagentbase.cpp
     windowitemdelegate_p.h
     windowitemdelegate.cpp
+    kernel/eventdispatch_p.h
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
     kernel/sharedeventfilter_p.h

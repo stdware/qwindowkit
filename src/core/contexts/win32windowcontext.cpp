@@ -1172,7 +1172,7 @@ namespace QWK {
         }
 
         // Forward to native event filter subscribers
-        if (!m_nativeEventFilters.isEmpty()) {
+        if (!m_nativeDispatch.isEmpty()) {
             MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
             QT_NATIVE_EVENT_RESULT_TYPE res = 0;
             if (nativeDispatch(nativeEventType(), &msg, &res)) {

@@ -14,6 +14,8 @@
 
 #include <QWKCore/qwkglobal.h>
 #include <QWKCore/windowagentbase.h>
+#include <QWKCore/private/nativeeventfilter_p.h>
+#include <QWKCore/private/sharedeventfilter_p.h>
 
 #ifdef CONSUMER_USE_WIDGETS
 #  include <QWKWidgets/widgetwindowagent.h>
@@ -25,6 +27,10 @@
 int main(int argc, char *argv[]) {
     Q_UNUSED(argc)
     Q_UNUSED(argv)
+
+    // Private dispatcher headers depend on the shared state header being installed too.
+    QWK::SharedEventDispatcher sharedDispatcher;
+    QWK::NativeEventDispatcher nativeDispatcher;
 
     // A reference to an exported symbol of every module linked, so that a library that was not
     // found is a link error rather than a program that builds and does nothing.
