@@ -32,6 +32,10 @@ qwk_add_unit_test(tst_windowmovegeometry core.windowmovegeometry.unit 24)
 qwk_add_unit_test(tst_windowmove core.windowmove.component 10)
 set_tests_properties(core.windowmove.component PROPERTIES LABELS "component;fast")
 qwk_add_unit_test(tst_qtwindowcontext core.qtwindowcontext.unit 184)
+if(WIN32)
+    qwk_add_unit_test(tst_windowsregistry core.windowsregistry.unit 15)
+    target_link_libraries(tst_windowsregistry PRIVATE advapi32)
+endif()
 if(NOT QWINDOWKIT_BUILD_STATIC)
     # The fallback class is private and not exported by shared QWKCore. Compile its
     # unchanged implementation here, using the exported production base/delegate.

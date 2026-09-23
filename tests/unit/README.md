@@ -48,22 +48,23 @@ case counts below do not.
 | `core.objecteventfilters.unit` | 5 | Qt filter order after the current filter, receiver/event identity, consumption, missing/last current filter, destroyed filters and application receiver exclusion |
 | `core.windowcontext.unit` | 58 | Attribute CRUD, rejected writes/deletes, replay order, adjacent replay failures, reentrant writes/removals/hash growth, callback destruction, replay snapshot changes, handle loss/reuse, title replacement, destroyed objects, SystemButton boundaries, visibility/exclusions/button priority, fixed-size constraints, setup guards, raise/restore state preservation, centering, notification order, host replacement and observer cleanup |
 | `core.qtwindowcontext.unit` | 182 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation; 150 resize/visibility rows and 10 dynamic cursor transitions |
+| `core.windowsregistry.unit` (Windows) | 13 | Real registry DWORD reads: zero/nonzero/full unsigned range, wrong types, malformed sizes, missing keys/values, Unicode names, and updates/deletion; each case creates and removes a unique HKCU test key without changing personalization settings |
 | `core.windowmovegeometry.unit` | 22 | Production release-position geometry: negative screen coordinates, gaps, nearest correction, ties, reserved areas, tiny/invalid/missing screens, oversized windows and custom title offsets |
 | `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
 | `core.portalstyle.component` | 23 | Production portal refresh/subscription logic with a controlled transport: initial snapshot, independent application palette, changes/deduplication, invalid data, in-flight changes, service failure/recovery, timed retry, destruction, reentrancy and worker-thread emission |
 | `core.styleagent.unit` | 18 | Theme/color state, duplicate suppression, paired signal-time values, hook lifetime, common subscriber snapshots, create/delete/unregister during notification, owner address reuse, nested updates and reentry during sampling |
-| `agents.unit` | 16 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles and invalid boundaries, exclusion toggles and destroyed registrations |
+| `agents.unit` | 18 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles and invalid boundaries, exclusion toggles, destroyed registrations, surviving registrations after title destruction and registration before the first title |
 | `quicksystembuttonarea.component` (Windows + Quick) | 27 | Scene bounds/center, item and ancestor transforms, visual reparenting, window changes, destruction/reentrancy, pre-native registration and real QML transform-list frame updates |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 | `systembuttons.qml` (Windows + Quick) | 11 | Real QML numeric-to-enum conversion, production module/agent setup, getter/setter boundaries, registration preservation, duplicate/removal signal counts and enum metadata |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 432 business cases
-across thirteen CTest entries (nine unit suites and four component suites). The lifetime
+With Widgets, Quick and StyleAgent enabled on Windows there are 449 business cases
+across fourteen CTest entries (ten unit suites and four component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. Both StyleAgent suites are omitted when that
 component is disabled. The Quick geometry, system-button-area and QML button suites retain Windows-only test
-registration; the Core/agent suites are registered on all platforms.
+registration; the registry suite is also Windows-only. The other Core/agent suites are registered on all platforms.
 
 The context suite's 21 reentrancy cases run in bounded child processes. They check
 that successful inner writes win, rejected writes retain the prior cache, unrelated

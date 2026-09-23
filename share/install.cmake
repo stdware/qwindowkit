@@ -34,7 +34,7 @@ if(TRUE)
         if(WIN32)
             # Static consumers must resolve QWKCore's native calls themselves.
             # Qt's shared import libraries do not propagate these system libraries.
-            set(QMAKE_QWK_CORE_STATIC_LIBS "LIBS += -luser32 -lgdi32 -lshell32 -luxtheme")
+            set(QMAKE_QWK_CORE_STATIC_LIBS "LIBS += -luser32 -lgdi32 -lshell32 -luxtheme -ladvapi32")
         endif()
     endif()
 

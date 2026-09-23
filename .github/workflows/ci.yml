@@ -107,7 +107,7 @@ jobs:
           done
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent fallbackcursor.offscreen fallbackcursor.windows"
+            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
           fi
 
           for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
@@ -142,7 +142,7 @@ jobs:
             -DQWINDOWKIT_BUILD_WIDGETS=ON \
             -DQWINDOWKIT_BUILD_QUICK=ON \
             -DQWINDOWKIT_BUILD_TESTS=ON
-          expected="buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent fallbackcursor.offscreen fallbackcursor.windows"
+          expected="buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
           for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
             expected="$expected buildsystems.qmake.reconfigure.$stage"
           done
@@ -241,7 +241,7 @@ jobs:
       - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent fallbackcursor.offscreen fallbackcursor.windows"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
           for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
             expected="$expected buildsystems.components.$scenario"
           done
