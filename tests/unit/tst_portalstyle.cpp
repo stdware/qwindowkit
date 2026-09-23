@@ -262,7 +262,7 @@ private Q_SLOTS:
         QSignalSpy accent(&agent, &Agent::systemAccentColorChanged);
         connect(&agent, &Agent::systemThemeChanged, &agent, [&] {
             if (agent.systemTheme() == Agent::Dark)
-                agent.state().notifyThemeChanged(Agent::Light);
+                agent.state().notifyAppearanceChanged(Agent::Light, agent.systemAccentColor());
         });
         QTRY_COMPARE_WITH_TIMEOUT(agent.systemTheme(), Agent::Light, 1000);
         QCOMPARE(agent.systemAccentColor(), QColor(Qt::red));

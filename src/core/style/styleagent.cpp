@@ -33,10 +33,6 @@ namespace QWK {
         removeSystemThemeHook();
     }
 
-    void StyleAgentPrivate::init() {
-        setupSystemThemeHook();
-    }
-
     void StyleAgentPrivate::notifyAppearanceChanged(StyleAgent::SystemTheme theme,
                                                     const QColor &color) {
         const bool themeChanged = theme != systemTheme;
@@ -59,14 +55,6 @@ namespace QWK {
             accentNotificationPending = false;
             Q_EMIT q_ptr->systemAccentColorChanged();
         }
-    }
-
-    void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
-        notifyAppearanceChanged(theme, systemAccentColor);
-    }
-
-    void StyleAgentPrivate::notifyAccentColorChanged(const QColor &color) {
-        notifyAppearanceChanged(systemTheme, color);
     }
 
     /*!
@@ -106,7 +94,7 @@ namespace QWK {
     StyleAgent::StyleAgent(StyleAgentPrivate &d, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
 
-        d.init();
+        d.setupSystemThemeHook();
     }
 
     /*!

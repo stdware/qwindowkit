@@ -45,8 +45,8 @@ private Q_SLOTS:
         QSignalSpy color(&agent, &Agent::systemAccentColorChanged);
         QVERIFY(theme.isValid());
         QVERIFY(color.isValid());
-        agent.state().notifyThemeChanged(Agent::Unknown);
-        agent.state().notifyAccentColorChanged({});
+        agent.state().notifyAppearanceChanged(Agent::Unknown, agent.systemAccentColor());
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), {});
         QCOMPARE(theme.count(), 0);
         QCOMPARE(color.count(), 0);
     }
@@ -63,31 +63,39 @@ private Q_SLOTS:
         QFETCH(int, theme);
         Agent agent;
         const auto target = static_cast<Agent::SystemTheme>(theme);
-        agent.state().notifyThemeChanged(target == Agent::Unknown ? Agent::Light : Agent::Unknown);
+        agent.state().notifyAppearanceChanged(
+            target == Agent::Unknown ? Agent::Light : Agent::Unknown, Qt::green);
         QSignalSpy changed(&agent, &Agent::systemThemeChanged);
-        agent.state().notifyThemeChanged(target);
+        QSignalSpy color(&agent, &Agent::systemAccentColorChanged);
+        agent.state().notifyAppearanceChanged(target, agent.systemAccentColor());
         QCOMPARE(changed.count(), 1);
+        QCOMPARE(agent.systemAccentColor(), QColor(Qt::green));
+        QCOMPARE(color.count(), 0);
         QCOMPARE(agent.systemTheme(), target);
-        agent.state().notifyThemeChanged(target);
+        agent.state().notifyAppearanceChanged(target, agent.systemAccentColor());
         QCOMPARE(changed.count(), 1);
     }
 
     void colorChangesIncludingInvalid() {
         Agent agent;
+        agent.state().notifyAppearanceChanged(Agent::Dark, {});
         QSignalSpy changed(&agent, &Agent::systemAccentColorChanged);
+        QSignalSpy theme(&agent, &Agent::systemThemeChanged);
         const QColor red(Qt::red), blue(Qt::blue);
-        agent.state().notifyAccentColorChanged(red);
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), red);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(agent.systemAccentColor(), red);
-        agent.state().notifyAccentColorChanged(red);
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), red);
         QCOMPARE(changed.count(), 1);
-        agent.state().notifyAccentColorChanged(blue);
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), blue);
         QCOMPARE(changed.count(), 2);
         QCOMPARE(agent.systemAccentColor(), blue);
-        agent.state().notifyAccentColorChanged({});
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), {});
         QCOMPARE(changed.count(), 3);
+        QCOMPARE(agent.systemTheme(), Agent::Dark);
+        QCOMPARE(theme.count(), 0);
         QVERIFY(!agent.systemAccentColor().isValid());
-        agent.state().notifyAccentColorChanged({});
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), {});
         QCOMPARE(changed.count(), 3);
     }
 
@@ -99,9 +107,9 @@ private Q_SLOTS:
                 [&] { observedTheme = agent.systemTheme(); });
         connect(&agent, &Agent::systemAccentColorChanged, &agent,
                 [&] { observedColor = agent.systemAccentColor(); });
-        agent.state().notifyThemeChanged(Agent::Dark);
+        agent.state().notifyAppearanceChanged(Agent::Dark, agent.systemAccentColor());
         QCOMPARE(observedTheme, Agent::Dark);
-        agent.state().notifyAccentColorChanged(Qt::green);
+        agent.state().notifyAppearanceChanged(agent.systemTheme(), Qt::green);
         QCOMPARE(observedColor, QColor(Qt::green));
     }
 
@@ -111,12 +119,12 @@ private Q_SLOTS:
         connect(&agent, &Agent::systemThemeChanged, &agent, [&] {
             themes.append(int(agent.systemTheme()));
             if (agent.systemTheme() == Agent::Light)
-                agent.state().notifyThemeChanged(Agent::Dark);
+                agent.state().notifyAppearanceChanged(Agent::Dark, agent.systemAccentColor());
         });
-        agent.state().notifyThemeChanged(Agent::Light);
+        agent.state().notifyAppearanceChanged(Agent::Light, agent.systemAccentColor());
         QCOMPARE(themes, QList<int>({int(Agent::Light), int(Agent::Dark)}));
         QCOMPARE(agent.systemTheme(), Agent::Dark);
-        agent.state().notifyThemeChanged(Agent::Dark);
+        agent.state().notifyAppearanceChanged(Agent::Dark, agent.systemAccentColor());
         QCOMPARE(themes.size(), 2);
     }
 
