@@ -299,7 +299,12 @@ namespace QWK {
             auto height = refButton.frame.size.height;
 
             auto viewSize = nsview.frame.size;
-            QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
+            const QRect area = screenRectCallback(QSize(viewSize.width, titlebarHeight));
+            // A Quick area can be detached, destroyed or moved to another window.
+            // Keep the existing native layout until the callback has a usable host area.
+            if (area.isEmpty())
+                return;
+            QPoint center = area.center();
 
             // The origin of the NSWindow coordinate system is in the lower left corner, we
             // do the necessary transformations

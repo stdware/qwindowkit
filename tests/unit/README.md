@@ -2,7 +2,7 @@
 
 These tests use only Qt Test, Qt Core/Gui (and Widgets/Quick when enabled), the
 production QWindowKit code, and the existing CMake/CTest build tools. Test execution
-does not download anything, access the network, install packages, show windows,
+does not download anything, access the network, install packages, show desktop windows,
 inject desktop input, or require a display server. No Python, browser, external
 mocking library, commercial tool, or additional test framework is required.
 
@@ -25,14 +25,15 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH=<local-Qt-prefix> -DQWINDOWKIT_BUILD_TES
 
 The `qwk_fast_unit_tests` target builds just the fast tests and their library
 dependencies. `-L fast` runs only these tests: it does not run the slower installation,
-consumer-build, native-window or rendering tests. Normal unfiltered CTest runs also
+consumer-build, native-window or pixel-rendering tests. Normal unfiltered CTest runs also
 include the fast tests. Use `--output-junit fast-unit.xml` for a combined report;
 each process also writes Qt Test text/XML reports inside its test build directory.
 
 Compilation time is separate from test execution time. The manual-drag suite is
 labeled `component;fast`; geometry is labeled `unit;fast`. Each test process has an
 8-second execution deadline, with a 10-second outer CTest timeout. There are no
-sleeps, polling loops or asynchronous GUI waits. Destructive dispatch cases run in
+fixed sleeps. Quick notification cases use Qt Test condition waits with a 1000-ms requested timeout for queued updates
+and offscreen frames; the process and CTest deadlines still apply. Destructive dispatch cases run in
 isolated child processes with bounded startup/completion waits. The runner requires the expected
 pass count and rejects skips/expected failures, including accidental loss of data
 rows. The expected counts include Qt Test initialization and cleanup; the business
@@ -51,15 +52,16 @@ case counts below do not.
 | `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
+| `quicksystembuttonarea.component` (Windows + Quick) | 27 | Scene bounds/center, item and ancestor transforms, visual reparenting, window changes, destruction/reentrancy, pre-native registration and real QML transform-list frame updates |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 304 business cases
-across ten CTest entries (nine unit suites and one component suite). The lifetime
+With Widgets, Quick and StyleAgent enabled on Windows there are 331 business cases
+across eleven CTest entries (nine unit suites and two component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even
 when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
-component is disabled. The existing geometry suite retains its Windows registration
-condition; the new platform-independent suites are registered on all platforms.
+component is disabled. The Quick geometry and system-button-area suites retain Windows-only test
+registration; the Core/agent suites are registered on all platforms.
 
 The dispatch, context and agent tests link the production libraries. Context tests
 substitute platform inputs and record callbacks; they do not reimplement attribute
@@ -123,3 +125,36 @@ its MSBuild consumer test.
 
 The timeout policy for all project tests, including build consumers and native
 integration suites, is documented in [../README.md](../README.md).
+
+## Quick system button area (AUDIT-017)
+
+`quicksystembuttonarea.component` tests the production `QuickSystemButtonArea`
+observer used by the macOS agent. Shared builds compile its unchanged private
+source and moc into the test; static builds link its library implementation.
+The adapter and Cocoa code are statically reviewed on Windows, not compiled or
+executed here. The suite does not claim native AppKit button positioning,
+fullscreen transitions or native-window recreation coverage.
+
+The callback maps the entire local area rectangle with `mapRectToScene`, then
+uses `QRectF::toRect()` and the existing integer `QRect::center()` convention.
+It reads current geometry on each call. An area detached from the host or in
+another window returns an empty rectangle; Cocoa leaves its last layout alone
+until a usable area returns. Registration and updates do not create a native
+window. Replacing the registration invalidates retained guarded callbacks.
+
+The observer coalesces public item/ancestor property signals on the GUI event
+loop and rebuilds connections after visual parent/window changes. For arbitrary
+QQuickTransform-list edits (which have no general public change signal on Qt 5),
+it compares geometry at `QQuickWindow::afterAnimating`, before scene-graph sync
+on the GUI thread. Hidden/non-rendering windows need no frame notification:
+the callback remains current and the next rendered frame refreshes the native
+layout. There is no background timer or idle-window polling. Equal integer
+rectangles in the same window do not generate redundant native updates.
+
+The QML cases run actual software frames on the offscreen QPA and mutate a real
+Translate plus its transform-list attachment on the item and its ancestor. They
+assert notifications and explicit expected rectangles without calling observer
+refresh methods. Other cases verify scaling, rotation, transform origins,
+nested ancestors, mirroring, rounding, repeated reparenting, destruction and
+notification reentrancy. The suite requires 29 Qt Test passes including
+initialization/cleanup, with no skips. Physical display or OS input is not used.
