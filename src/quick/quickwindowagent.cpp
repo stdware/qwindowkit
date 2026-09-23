@@ -30,9 +30,6 @@ namespace QWK {
 #endif
     }
 
-    void QuickWindowAgentPrivate::init() {
-    }
-
     QuickWindowAgent::QuickWindowAgent(QObject *parent)
         : QuickWindowAgent(*new QuickWindowAgentPrivate(), parent) {
     }
@@ -107,7 +104,6 @@ namespace QWK {
     */
     QuickWindowAgent::QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
-        d.init();
     }
 
 }

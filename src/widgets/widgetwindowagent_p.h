@@ -28,8 +28,6 @@ namespace QWK {
         WidgetWindowAgentPrivate();
         ~WidgetWindowAgentPrivate();
 
-        void init();
-
         // Host
         QWidget *hostWidget{};
 

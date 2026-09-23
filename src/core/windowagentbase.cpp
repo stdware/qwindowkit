@@ -46,9 +46,6 @@ namespace QWK {
 
     WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 
-    void WindowAgentBasePrivate::init() {
-    }
-
     AbstractWindowContext *WindowAgentBasePrivate::createContext() const {
         if (windowContextFactoryMethod) {
             return windowContextFactoryMethod();
@@ -205,8 +202,6 @@ namespace QWK {
     WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)
         : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
-
-        d.init();
     }
 
 }

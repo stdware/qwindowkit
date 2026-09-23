@@ -67,7 +67,7 @@ namespace QWK {
                 api.wl_display_flush(d);
             }
         } else {
-            QtWindowContext::virtual_hook(id, data);
+            AbstractWindowContext::virtual_hook(id, data);
         }
     }
 }

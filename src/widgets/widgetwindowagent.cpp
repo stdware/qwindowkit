@@ -6,7 +6,6 @@
 #include "widgetwindowagent_p.h"
 
 #include <QtGui/QtEvents>
-#include <QtGui/QPainter>
 #include <QtCore/QDebug>
 
 #include "widgetitemdelegate_p.h"
@@ -24,9 +23,6 @@ namespace QWK {
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() = default;
 
     WidgetWindowAgentPrivate::~WidgetWindowAgentPrivate() = default;
-
-    void WidgetWindowAgentPrivate::init() {
-    }
 
     /*!
         Constructs a widget agent, it's better to set the widget to setup as \a parent.
@@ -153,7 +149,6 @@ namespace QWK {
     */
     WidgetWindowAgent::WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
-        d.init();
     }
 
     /*!

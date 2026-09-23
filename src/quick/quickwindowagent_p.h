@@ -28,8 +28,6 @@ namespace QWK {
         QuickWindowAgentPrivate();
         ~QuickWindowAgentPrivate() override;
 
-        void init();
-
         // Host
         QQuickWindow *hostWindow{};
 
