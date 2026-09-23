@@ -25,6 +25,7 @@ has a five-second subprocess deadline and a ten-second CTest limit.
 | `windows.acrylic` | 20 s | 15 s; controlled API failures and native Widgets/Quick calls |
 | `windows.effects` | 20 s | 15 s; Mica, blur, dark mode and border color failures and native calls |
 | `windows.titlebar` | 20 s | 15 s; real Widgets/Quick registration lifecycle and native hit testing |
+| `windows.styleagent` | 20 s | 15 s; real native subscriptions and HWND messages, 9 required passes |
 
 Inner deadlines apply to individual operations. The outer CTest deadline caps
 the entire test even when several operations are slow. Timeout is a failure;

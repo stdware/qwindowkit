@@ -2,13 +2,7 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "styleagent_p.h"
-
-#include <utility>
-
-#include <QtCore/QPointer>
-#include <QtCore/QSet>
-#include <QtCore/QVector>
+#include "styleagentregistry_p.h"
 
 #include <Cocoa/Cocoa.h>
 
@@ -80,37 +74,14 @@ namespace QWK {
 
 namespace QWK {
 
-    using StyleAgentSet = QSet<StyleAgentPrivate *>;
-    Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
-    static quint64 notificationRevision = 0;
+    Q_GLOBAL_STATIC(StyleAgentRegistry, g_styleAgents)
 
     static QWK_SystemThemeObserver *g_systemThemeObserver = nil;
 
     void notifyAllStyleAgents() {
-        const auto revision = ++notificationRevision;
-        auto theme = getSystemTheme();
-        auto color = getAccentColor();
-
-        struct AgentEntry {
-            StyleAgentPrivate *agent;
-            QPointer<StyleAgent> owner;
-        };
-        QVector<AgentEntry> agents;
-        agents.reserve(g_styleAgentSet->size());
-        for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-            agents.append(AgentEntry{ap, QPointer<StyleAgent>(ap->q_ptr)});
-        }
-
-        // Signals can create or destroy agents. Snapshot all owners before calling user code;
-        // a guard also distinguishes a destroyed agent from a new one reusing its address.
-        // Check membership too: the private object unregisters before QObject clears its guards.
-        for (const auto &entry : std::as_const(agents)) {
-            if (revision != notificationRevision)
-                return; // A nested notification has already published a newer snapshot.
-            if (!entry.owner || !g_styleAgentSet->contains(entry.agent))
-                continue;
-            entry.agent->notifyAppearanceChanged(theme, color);
-        }
+        g_styleAgents->notify([] {
+            return StyleAgentRegistry::Appearance{getSystemTheme(), getAccentColor()};
+        });
     }
 
     void StyleAgentPrivate::setupSystemThemeHook() {
@@ -118,18 +89,18 @@ namespace QWK {
         systemAccentColor = getAccentColor();
 
         // Alloc
-        if (g_styleAgentSet->isEmpty()) {
+        if (g_styleAgents->isEmpty()) {
             g_systemThemeObserver = [[QWK_SystemThemeObserver alloc] init];
         }
 
-        g_styleAgentSet->insert(this);
+        g_styleAgents->insert(this);
     }
 
     void StyleAgentPrivate::removeSystemThemeHook() {
-        if (!g_styleAgentSet->remove(this))
+        if (!g_styleAgents->remove(this))
             return;
 
-        if (g_styleAgentSet->isEmpty()) {
+        if (g_styleAgents->isEmpty()) {
             // Delete
             [g_systemThemeObserver release];
             g_systemThemeObserver = nil;

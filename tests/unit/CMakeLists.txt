@@ -72,7 +72,7 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
         "$<TARGET_PROPERTY:QWKCore,INTERFACE_INCLUDE_DIRECTORIES>")
     target_link_libraries(tst_styleagent PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Test)
     add_dependencies(tst_styleagent QWKCore)
-    qwk_register_fast_test(tst_styleagent core.styleagent.unit 11)
+    qwk_register_fast_test(tst_styleagent core.styleagent.unit 20)
 endif()
 
 if(QWINDOWKIT_BUILD_WIDGETS OR QWINDOWKIT_BUILD_QUICK)

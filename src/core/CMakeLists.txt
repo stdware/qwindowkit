@@ -77,6 +77,7 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     list(APPEND _src
         style/styleagent.h
         style/styleagent_p.h
+        style/styleagentregistry_p.h
         style/styleagent.cpp
     )
 
