@@ -14,7 +14,6 @@
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
-#include <QtGui/QPainter>
 #include <QtGui/QPalette>
 
 #include <QtGui/qpa/qwindowsysteminterface.h>
@@ -900,39 +899,6 @@ namespace QWK {
                     color = QColor(dark ? kWindowsColorSet.inactiveDark
                                         : kWindowsColorSet.inactiveLight);
                 }
-                return;
-            }
-
-            // ### FIXME: May be deprecated
-            case DrawWindows10BorderHook_Emulated: {
-                if (!m_windowId)
-                    return;
-
-                auto args = static_cast<void **>(data);
-                auto &painter = *static_cast<QPainter *>(args[0]);
-                const auto &rect = *static_cast<const QRect *>(args[1]);
-                const auto &region = *static_cast<const QRegion *>(args[2]);
-                QPen pen;
-#  if QT_VERSION_MAJOR < 6
-                pen.setWidth(1);
-#  else
-                pen.setWidthF(1 / m_windowHandle->devicePixelRatio()); // why 0.25?
-#  endif
-
-                QColor color;
-                virtual_hook(Windows10BorderColorHook, &color);
-                pen.setColor(color);
-                painter.save();
-
-                // We need antialiasing to give us better result.
-                painter.setRenderHint(QPainter::Antialiasing);
-
-                painter.setPen(pen);
-                painter.drawLine(QLine{
-                    QPoint{0,                       0},
-                    QPoint{m_windowHandle->width(), 0}
-                });
-                painter.restore();
                 return;
             }
 

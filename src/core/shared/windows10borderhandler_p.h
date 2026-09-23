@@ -15,7 +15,7 @@
 //
 
 #include <QtGui/QWindow>
-#include <QtGui/QMouseEvent>
+#include <QtCore/QEvent>
 
 #include <QWKCore/qwindowkit_windows.h>
 #include <QWKCore/private/qwkglobal_p.h>
@@ -54,24 +54,6 @@ namespace QWK {
         inline bool isNormalWindow() const {
             return !(ctx->window()->windowStates() &
                      (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
-        }
-
-        inline void drawBorderEmulated(QPainter *painter, const QRect &rect) {
-            QRegion region(rect);
-            void *args[] = {
-                painter,
-                const_cast<QRect *>(&rect),
-                &region,
-            };
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Emulated, args);
-        }
-
-        inline void drawBorderNative() {
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native, nullptr);
-        }
-
-        inline int borderThickness() const {
-            return ctx->windowAttribute(QStringLiteral("border-thickness")).toInt();
         }
 
         inline void updateExtraMargins(bool windowActive) {

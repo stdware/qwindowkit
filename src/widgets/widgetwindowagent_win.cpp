@@ -6,7 +6,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QDateTime>
-#include <QtGui/QPainter>
+#include <QtGui/QRegion>
 
 #include <QtCore/private/qcoreapplication_p.h>
 
@@ -62,9 +62,6 @@ namespace QWK {
             // integer. So far we haven't found a perfect solution, so just don't
             // set any margins. In theory the window content will only be covered
             // by 1px or so, it should not be a serious issue in the real world.
-            //
-            // widget->setContentsMargins(isNormalWindow() ? QMargins(0, borderThickness(), 0, 0)
-            //                                             : QMargins());
         }
 
         bool isWindowActive() const override {
