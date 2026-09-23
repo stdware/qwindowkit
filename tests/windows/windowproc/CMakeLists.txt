@@ -83,6 +83,38 @@ set_tests_properties(windows.acrylic PROPERTIES
     TIMEOUT 20 LABELS "windows;integration;component" RESOURCE_LOCK desktop)
 unset(_acrylic_passes)
 
+add_executable(tst_effects tst_effects.cpp)
+if(NOT QWINDOWKIT_BUILD_STATIC)
+    target_sources(tst_effects PRIVATE
+        ../../../src/core/contexts/win32windowcontext.cpp
+        ../../../src/core/contexts/win32windowcontext_p.h)
+endif()
+set_target_properties(tst_effects PROPERTIES AUTOMOC ON)
+target_compile_features(tst_effects PRIVATE cxx_std_17)
+target_include_directories(tst_effects PRIVATE
+    ../../../src/core ../../../src/core/contexts ../../../src/core/shared)
+target_link_libraries(tst_effects PRIVATE QWKWidgets Qt${QT_VERSION_MAJOR}::Test
+    Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::GuiPrivate
+    user32 gdi32 shell32 uxtheme)
+set(_effects_passes 204)
+if(QWINDOWKIT_BUILD_QUICK)
+    target_compile_definitions(tst_effects PRIVATE TEST_QUICK)
+    target_link_libraries(tst_effects PRIVATE QWKQuick)
+    set(_effects_passes 205)
+endif()
+add_test(NAME windows.effects
+    COMMAND ${CMAKE_COMMAND} -E env
+    "PATH=$<TARGET_FILE_DIR:QWKCore>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+    "QT_QPA_PLATFORM=windows" "QT_QUICK_BACKEND=software"
+    ${CMAKE_COMMAND}
+    "-DTEST_EXE=$<TARGET_FILE:tst_effects>"
+    "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/effects-$<CONFIG>"
+    "-DEXPECTED_PASSES=${_effects_passes}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
+set_tests_properties(windows.effects PROPERTIES
+    TIMEOUT 20 LABELS "windows;integration;component" RESOURCE_LOCK desktop)
+unset(_effects_passes)
+
 if(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS)
     add_executable(tst_borderattributes tst_borderattributes.cpp)
     if(NOT QWINDOWKIT_BUILD_STATIC)

@@ -51,7 +51,10 @@ entry is a base-class no-op and cannot repair a failed first application. No ret
 is hidden inside the implementation. Margins tracking covers QWK's writes, not
 external raw DWM margin calls. Window generations and successful nested margin
 updates prevent stale tracking writes; successful inner same-key updates keep
-priority, and obsolete/deleted contexts are not rolled back into.
+priority, and obsolete/deleted contexts are not rolled back into. Related material
+updates also invalidate an outer material update on success or failed rollback,
+preventing it from overwriting newer Mica/Mica Alt/blur state. See [EFFECTS.md](EFFECTS.md) for the
+shared reentry contract and adjacent-effect regressions.
 
 References:
 

@@ -53,6 +53,9 @@ namespace QWK {
         virtual bool supportsSystemBackdrop() const;
         virtual HRESULT querySystemBackdrop(int *type) const;
         virtual HRESULT setSystemBackdrop(int type);
+        virtual bool supportsLegacyMica() const;
+        virtual HRESULT setWindowDwmAttribute(DWORD attribute, const void *value, DWORD size);
+        virtual bool setBlurBehind(bool enable);
         virtual bool supportsLegacyAcrylic() const;
         virtual bool setAccentPolicy(const ACCENT_POLICY &policy);
 
@@ -93,6 +96,7 @@ namespace QWK {
         bool windows10BorderInactive = false;
         QMargins appliedFrameMargins;
         quint64 frameMarginsRevision = 0;
+        quint64 materialRevision = 0;
 
         // Native HWNDs can be recreated while the logical QWindow stays alive. Keep the last
         // stable native frame rect so we can prevent Qt's recreate path from applying a stale

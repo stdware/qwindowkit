@@ -276,7 +276,9 @@ private Q_SLOTS:
         legacyMode = true;
         Host host;
         QVERIFY(host.agent->setWindowAttribute(extra, QVariant::fromValue(custom)));
+        context->legacy = false; // Set up the current-OS Mica path before testing legacy Acrylic.
         QVERIFY(host.agent->setWindowAttribute("mica", true));
+        context->legacy = true;
         QCOMPARE(context->appliedMargins, extended);
         context->rejectSet = true;
         QVERIFY(!host.agent->setWindowAttribute(acrylic, false));
