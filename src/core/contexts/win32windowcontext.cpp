@@ -1233,10 +1233,7 @@ namespace QWK {
         return margins;
     }
 
-    bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                                    const QVariant &oldAttribute) {
-        Q_UNUSED(oldAttribute)
-
+    bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute) {
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
         Q_ASSERT(hwnd);
 
@@ -1261,7 +1258,8 @@ namespace QWK {
         // the original accent-colored title bar. 65536 covers the client area without
         // extending from the top, for both Widgets and Quick.
         const QMargins materialMargins(65536, 0, 0, 0);
-        const auto applyEffect = [this, &isCurrent, &ownMaterial](const QMargins &margins, const auto &setEffect) {
+        const auto applyEffect = [this, &isCurrent, &ownMaterial](
+            const QMargins &margins, const auto &setEffect, const char *effectName = "Effect") {
             // Neither private Mica nor ACCENT_POLICY has a reliable readback contract.
             // Change margins first, then leave the old effect untouched if they fail.
             const auto previousMargins = appliedFrameMargins;
@@ -1277,7 +1275,7 @@ namespace QWK {
                     const bool restored = applyFrameMargins(previousMargins);
                     if (isCurrent() && !restored) {
                         ownMaterial();
-                        qWarning("QWindowKit: Effect margins rollback failed; retry the effect update.");
+                        qWarning("QWindowKit: %s margins rollback failed; retry the effect update.", effectName);
                     }
                 }
                 return false;
@@ -1379,31 +1377,10 @@ namespace QWK {
                 ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
             requestedAccent.dwAccentFlags = attribute.toBool()
                 ? ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY : ACCENT_NONE;
-            const auto margins = attribute.toBool() ? QMargins(65536, 0, 0, 0)
-                : effectiveExtraMargins(windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
+            const auto margins = attribute.toBool() ? materialMargins : restoredMargins();
             if (!modern) {
-                // ACCENT_POLICY cannot reliably be queried. Apply margins first so
-                // a margin failure leaves the previous policy entirely untouched.
-                const auto previousMargins = appliedFrameMargins;
-                if (!applyFrameMargins(margins) || !isCurrent())
+                if (!applyEffect(margins, [&]() { return setAccentPolicy(requestedAccent); }, "Acrylic"))
                     return false;
-                const auto marginRevision = frameMarginsRevision;
-                const bool accepted = setAccentPolicy(requestedAccent);
-                if (!isCurrent())
-                    return false;
-                if (!accepted) {
-                    // A callback may have successfully applied a newer extra-margins
-                    // value even though this effect update failed. Keep that write.
-                    if (frameMarginsRevision != marginRevision)
-                        return false;
-                    const bool restored = applyFrameMargins(previousMargins);
-                    if (isCurrent() && !restored) {
-                        ownMaterial();
-                        qWarning("QWindowKit: Acrylic margins rollback failed; retry the effect update.");
-                    }
-                    return false;
-                }
-                ownMaterial();
                 return effectBugWorkaround();
             }
 

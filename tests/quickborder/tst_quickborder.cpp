@@ -48,7 +48,7 @@ namespace {
 
     protected:
         void winIdChanged(WId, WId) override {}
-        bool windowAttributeChanged(const QString &, const QVariant &, const QVariant &) override {
+        bool windowAttributeChanged(const QString &, const QVariant &) override {
             return true;
         }
     };

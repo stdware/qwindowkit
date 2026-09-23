@@ -64,11 +64,11 @@ target_include_directories(tst_acrylic PRIVATE
 target_link_libraries(tst_acrylic PRIVATE QWKWidgets Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::GuiPrivate
     user32 gdi32 shell32 uxtheme)
-set(_acrylic_passes 90)
+set(_acrylic_passes 94)
 if(QWINDOWKIT_BUILD_QUICK)
     target_compile_definitions(tst_acrylic PRIVATE TEST_QUICK)
     target_link_libraries(tst_acrylic PRIVATE QWKQuick)
-    set(_acrylic_passes 92)
+    set(_acrylic_passes 96)
 endif()
 add_test(NAME windows.acrylic
     COMMAND ${CMAKE_COMMAND} -E env

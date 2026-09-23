@@ -44,10 +44,9 @@ namespace {
             ++applications;
             return Win32WindowContext::extendFrameMargins(margins);
         }
-        bool windowAttributeChanged(const QString &key, const QVariant &value,
-                                    const QVariant &old) override {
+        bool windowAttributeChanged(const QString &key, const QVariant &value) override {
             const auto callback = onChange;
-            const bool accepted = Win32WindowContext::windowAttributeChanged(key, value, old);
+            const bool accepted = Win32WindowContext::windowAttributeChanged(key, value);
             if (callback)
                 callback(key);
             return accepted;

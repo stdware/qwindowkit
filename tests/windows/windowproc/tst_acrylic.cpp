@@ -342,7 +342,7 @@ private Q_SLOTS:
         QTest::addColumn<bool>("legacy");
         for (bool legacy : {false, true})
         for (const auto stage : {"backdrop", "margins"})
-            for (const auto action : {"write", "recreate", "delete"})
+            for (const auto action : {"write", "related-write", "recreate", "delete"})
                 QTest::newRow(qPrintable(QString("%1-%2-%3").arg(legacy).arg(stage, action))) << QString(stage) << QString(action) << legacy;
     }
     void reentrant() {
@@ -360,6 +360,13 @@ private Q_SLOTS:
             invoked = true;
             if (action == "write")
                 innerAccepted = host.agent->setWindowAttribute(acrylic, false);
+            else if (action == "related-write") {
+                // Exercise the shared material revision even when the outer call
+                // uses ACCENT_POLICY and the inner one uses the modern backdrop.
+                context->legacy = false;
+                innerAccepted = host.agent->setWindowAttribute("mica", true);
+                context->legacy = legacy;
+            }
             else if (action == "recreate")
                 host.recreate();
             else
@@ -375,6 +382,12 @@ private Q_SLOTS:
             QCOMPARE(host.agent->windowAttribute(acrylic), QVariant(false));
             QCOMPARE(context->backdrop, automatic);
             QCOMPARE(context->appliedMargins, custom);
+        } else if (action == "related-write") {
+            QVERIFY(innerAccepted);
+            QVERIFY(!host.agent->windowAttribute(acrylic).isValid());
+            QCOMPARE(host.agent->windowAttribute("mica"), QVariant(true));
+            QCOMPARE(context->backdrop, mica);
+            QCOMPARE(context->appliedMargins, extended);
         } else {
             QVERIFY(alive);
             QVERIFY(!host.agent->windowAttribute(acrylic).isValid());

@@ -251,7 +251,7 @@ namespace QWK {
                         it.value()->revision != attribute.revision)
                         continue;
                     AttributeChange change(this, attribute.key);
-                    const bool accepted = windowAttributeChanged(attribute.key, attribute.value, {});
+                    const bool accepted = windowAttributeChanged(attribute.key, attribute.value);
                     if (!self || m_windowRevision != revision)
                         return;
                     if (!accepted && change.isCurrent()) {
@@ -281,19 +281,18 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
-        // Copy inputs as well as the old value: callers may pass references into
+        // Copy inputs: callers may pass references into
         // storage that a synchronous platform callback changes or destroys.
         const QString name = key;
         const QVariant value = attribute;
         auto it = m_windowAttributes.constFind(name);
         const bool existed = it != m_windowAttributes.cend();
-        const QVariant oldValue = existed ? it.value()->value : QVariant{};
         AttributeChange change(this, name);
         if (!existed && !value.isValid()) {
             change.supersedePrevious();
             return true;
         }
-        if (m_windowId && !windowAttributeChanged(name, value, oldValue))
+        if (m_windowId && !windowAttributeChanged(name, value))
             return false;
         if (!change.isCurrent())
             return false;
@@ -327,8 +326,7 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::windowAttributeChanged(const QString &key,
-                                                       const QVariant &attribute,
-                                                       const QVariant &oldAttribute) {
+                                                       const QVariant &attribute) {
         return false;
     }
 

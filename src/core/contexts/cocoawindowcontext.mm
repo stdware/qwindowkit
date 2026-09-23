@@ -992,10 +992,7 @@ namespace QWK {
         }
     }
 
-    bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                                    const QVariant &oldAttribute) {
-        Q_UNUSED(oldAttribute)
-
+    bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute) {
         Q_ASSERT(m_windowId);
 
         if (key == QStringLiteral("no-system-buttons")) {
