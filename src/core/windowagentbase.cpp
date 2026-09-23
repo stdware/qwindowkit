@@ -122,7 +122,11 @@ namespace QWK {
                    enabled by default on Windows 10 if the system borders config is enabled. This
                    attribute is available on Windows 10 or later.
             \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
-                   this attribute is only available on Windows 11.
+                   this attribute is only available on Windows 11. Builds before 22621 use
+                   the private ACCENT_POLICY compatibility path; newer builds use DWM's
+                   system backdrop API. Failed platform operations return false. If rollback
+                   also fails, a warning is emitted and the last successful cached value
+                   is retained; retry an explicit boolean to repair the platform state.
             \li \c mica: Specify a boolean value to enable or disable mica material,
                    this attribute is only available on Windows 11.
             \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,

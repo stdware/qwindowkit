@@ -51,6 +51,38 @@ add_test(NAME windows.windowlifetime
 set_tests_properties(windows.windowlifetime PROPERTIES
     TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)
 
+add_executable(tst_acrylic tst_acrylic.cpp)
+if(NOT QWINDOWKIT_BUILD_STATIC)
+    target_sources(tst_acrylic PRIVATE
+        ../../../src/core/contexts/win32windowcontext.cpp
+        ../../../src/core/contexts/win32windowcontext_p.h)
+endif()
+set_target_properties(tst_acrylic PROPERTIES AUTOMOC ON)
+target_compile_features(tst_acrylic PRIVATE cxx_std_17)
+target_include_directories(tst_acrylic PRIVATE
+    ../../../src/core ../../../src/core/contexts ../../../src/core/shared)
+target_link_libraries(tst_acrylic PRIVATE QWKWidgets Qt${QT_VERSION_MAJOR}::Test
+    Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::GuiPrivate
+    user32 gdi32 shell32 uxtheme)
+set(_acrylic_passes 90)
+if(QWINDOWKIT_BUILD_QUICK)
+    target_compile_definitions(tst_acrylic PRIVATE TEST_QUICK)
+    target_link_libraries(tst_acrylic PRIVATE QWKQuick)
+    set(_acrylic_passes 92)
+endif()
+add_test(NAME windows.acrylic
+    COMMAND ${CMAKE_COMMAND} -E env
+    "PATH=$<TARGET_FILE_DIR:QWKCore>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+    "QT_QPA_PLATFORM=windows" "QT_QUICK_BACKEND=software"
+    ${CMAKE_COMMAND}
+    "-DTEST_EXE=$<TARGET_FILE:tst_acrylic>"
+    "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/acrylic-$<CONFIG>"
+    "-DEXPECTED_PASSES=${_acrylic_passes}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
+set_tests_properties(windows.acrylic PROPERTIES
+    TIMEOUT 20 LABELS "windows;integration;component" RESOURCE_LOCK desktop)
+unset(_acrylic_passes)
+
 if(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS)
     add_executable(tst_borderattributes tst_borderattributes.cpp)
     if(NOT QWINDOWKIT_BUILD_STATIC)

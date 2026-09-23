@@ -879,7 +879,7 @@ namespace QWK {
                 if (!m_windowId || !data)
                     return;
                 windows10BorderInactive = !*static_cast<const bool *>(data);
-                extendFrameMargins(effectiveExtraMargins(
+                applyFrameMargins(effectiveExtraMargins(
                     windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
                 return;
             }
@@ -996,6 +996,8 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(WId winId, WId oldWinId) {
+        appliedFrameMargins = {};
+        ++frameMarginsRevision;
         const QPointer<Win32WindowContext> self(this);
         const auto revision = m_windowRevision;
         const auto isCurrent = [self, revision] {
@@ -1187,6 +1189,48 @@ namespace QWK {
             reinterpret_cast<HWND>(m_windowId), &nativeMargins));
     }
 
+    bool Win32WindowContext::applyFrameMargins(const QMargins &margins) {
+        const QPointer<Win32WindowContext> self(this);
+        const auto windowRevision = m_windowRevision;
+        const auto revision = frameMarginsRevision;
+        const bool applied = extendFrameMargins(margins);
+        if (!self || m_windowRevision != windowRevision || frameMarginsRevision != revision)
+            return false;
+        if (applied) {
+            appliedFrameMargins = margins;
+            ++frameMarginsRevision;
+        }
+        return applied;
+    }
+
+    bool Win32WindowContext::supportsSystemBackdrop() const {
+        // Use the official API on its documented baseline; older builds retain
+        // the project's private ACCENT_POLICY path instead of being rejected.
+        return isWin1122H2OrGreater();
+    }
+
+    HRESULT Win32WindowContext::querySystemBackdrop(int *type) const {
+        return DynamicApis::instance().pDwmGetWindowAttribute(
+            reinterpret_cast<HWND>(m_windowId), _DWMWA_SYSTEMBACKDROP_TYPE, type, sizeof(*type));
+    }
+
+    HRESULT Win32WindowContext::setSystemBackdrop(int type) {
+        return DynamicApis::instance().pDwmSetWindowAttribute(
+            reinterpret_cast<HWND>(m_windowId), _DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
+    }
+
+    bool Win32WindowContext::supportsLegacyAcrylic() const {
+        const auto &apis = DynamicApis::instance();
+        return isWin11OrGreater() && apis.pSetWindowCompositionAttribute;
+    }
+
+    bool Win32WindowContext::setAccentPolicy(const ACCENT_POLICY &policy) {
+        auto value = policy;
+        WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &value, sizeof(value)};
+        return DynamicApis::instance().pSetWindowCompositionAttribute(
+            reinterpret_cast<HWND>(m_windowId), &data);
+    }
+
     QMargins Win32WindowContext::effectiveExtraMargins(QMargins margins) const {
         // A negative margin requests full-client glass; do not narrow that request.
         if (windows10BorderInactive && margins.left() >= 0 && margins.top() >= 0 &&
@@ -1211,7 +1255,7 @@ namespace QWK {
         // a synchronous Windows callback deletes the context.
         const auto *change = m_attributeChange;
         const DynamicApis &apis = DynamicApis::instance();
-        const auto &extendMargins = [&apis, hwnd]() {
+        const auto &extendMargins = [this]() {
             // For some unknown reason, the window background is totally black and extending
             // the window frame into the client area seems to fix it magically.
             // After many times of trying, we found that the Acrylic/Mica/Mica Alt background
@@ -1231,11 +1275,10 @@ namespace QWK {
             // when the host object is a QWidget and the title bar still remain hidden. But even
             // though this solution seems perfect, I really don't know why it works. The following
             // hack is totally based on experiments.
-            static constexpr const MARGINS margins = {65536, 0, 0, 0};
-            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+            applyFrameMargins(QMargins(65536, 0, 0, 0));
         };
         const auto &restoreMargins = [this]() {
-            extendFrameMargins(effectiveExtraMargins(
+            applyFrameMargins(effectiveExtraMargins(
                 windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
         };
 
@@ -1275,7 +1318,7 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("extra-margins")) {
-            return extendFrameMargins(effectiveExtraMargins(attribute.value<QMargins>()));
+            return applyFrameMargins(effectiveExtraMargins(attribute.value<QMargins>()));
         }
 
         if (key == QStringLiteral("dark-mode")) {
@@ -1363,50 +1406,71 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("acrylic-material")) {
-            if (!isWin11OrGreater()) {
+            const bool modern = supportsSystemBackdrop();
+            if (!change->isCurrent())
+                return false;
+            if (!modern && (!supportsLegacyAcrylic() || !change->isCurrent())) {
                 return false;
             }
-            if (attribute.toBool()) {
-                extendMargins();
+
+            // Preserve the project's original private-API hack (0e9c2e4) on 21H2.
+            // Unlike the official backdrop attribute, ACCENT_POLICY works before 22621.
+            // The zero gradient uses the historical #AABBGGRR value; luminosity flags
+            // are deliberately retained rather than replacing this with ordinary blur.
+            ACCENT_POLICY requestedAccent{};
+            requestedAccent.dwAccentState = attribute.toBool()
+                ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
+            requestedAccent.dwAccentFlags = attribute.toBool()
+                ? ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY : ACCENT_NONE;
+            const auto margins = attribute.toBool() ? QMargins(65536, 0, 0, 0)
+                : effectiveExtraMargins(windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
+            if (!modern) {
+                // ACCENT_POLICY cannot reliably be queried. Apply margins first so
+                // a margin failure leaves the previous policy entirely untouched.
+                const auto previousMargins = appliedFrameMargins;
+                if (!applyFrameMargins(margins) || !change->isCurrent())
+                    return false;
+                const auto marginRevision = frameMarginsRevision;
+                const bool accepted = setAccentPolicy(requestedAccent);
                 if (!change->isCurrent())
                     return false;
-
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-
-                // PRIVATE API REFERENCE:
-                //     QColor gradientColor = {};
-                //     ACCENT_POLICY policy{};
-                //     policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
-                //     policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
-                //     // This API expects the #AABBGGRR format.
-                //     policy.dwGradientColor =
-                //         DWORD(qRgba(gradientColor.blue(), gradientColor.green(),
-                //                     gradientColor.red(), gradientColor.alpha()));
-                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                //     wcad.Attrib = WCA_ACCENT_POLICY;
-                //     wcad.pvData = &policy;
-                //     wcad.cbData = sizeof(policy);
-                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-            } else {
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-
-                // PRIVATE API REFERENCE:
-                //     ACCENT_POLICY policy{};
-                //     policy.dwAccentState = ACCENT_DISABLED;
-                //     policy.dwAccentFlags = ACCENT_NONE;
-                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                //     wcad.Attrib = WCA_ACCENT_POLICY;
-                //     wcad.pvData = &policy;
-                //     wcad.cbData = sizeof(policy);
-                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-
-                if (!change->isCurrent())
+                if (!accepted) {
+                    // A callback may have successfully applied a newer extra-margins
+                    // value even though this effect update failed. Keep that write.
+                    if (frameMarginsRevision != marginRevision)
+                        return false;
+                    const bool restored = applyFrameMargins(previousMargins);
+                    if (change->isCurrent() && !restored)
+                        qWarning("QWindowKit: Acrylic margins rollback failed; retry the effect update.");
                     return false;
-                restoreMargins();
+                }
+                return effectBugWorkaround();
+            }
+
+            // Snapshot the actual backdrop, which may have been set by Mica/Mica Alt
+            // or by the application. The cached acrylic boolean cannot describe it.
+            int previous = _DWMSBT_AUTO;
+            if (FAILED(querySystemBackdrop(&previous)) || !change->isCurrent())
+                return false;
+            const int requested = attribute.toBool() ? _DWMSBT_TRANSIENTWINDOW : _DWMSBT_AUTO;
+            // A failed backdrop write must not leave newly extended margins behind.
+            if (FAILED(setSystemBackdrop(requested)) || !change->isCurrent())
+                return false;
+
+            // Use the same left-only extension as the other materials (see above).
+            const bool extended = applyFrameMargins(margins);
+            // Never roll back onto a replacement HWND or over a successful inner write.
+            if (!change->isCurrent())
+                return false;
+            if (!extended) {
+                const bool restored = SUCCEEDED(setSystemBackdrop(previous));
+                if (change->isCurrent() && !restored) {
+                    // DWM has no atomic backdrop+margins operation. Keep the cache at
+                    // its last successful value, report failure and make drift visible.
+                    // A subsequent explicit write re-queries DWM and can repair it.
+                    qWarning("QWindowKit: Acrylic backdrop rollback failed; retry the effect update.");
+                }
+                return false;
             }
             return change->isCurrent() && effectBugWorkaround();
         }
