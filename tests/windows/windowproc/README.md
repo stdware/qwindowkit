@@ -46,7 +46,7 @@ Other Qt/compiler/Windows versions, sanitizers and hosted CI were not run.
 
 ## Native menu and WinId lifetime regressions
 
-`windows.windowlifetime` adds thirteen cases, each in an isolated process. Eight
+`windows.windowlifetime` contains twenty-one cases, each in an isolated process. Eight
 menu cases use real HWNDs and native menu loops: cancellation, selecting Close,
 icon double-click, deleting the agent or window, recreating the HWND, replacing
 the agent, and a reentrant menu request. A fixed menu mnemonic drives selection
@@ -70,7 +70,21 @@ test does not replace menu APIs or stub their return values. Hook cleanup and
 exact numeric HWND reuse also require static review; fresh HWND allocation does
 not guarantee numeric reuse.
 
-The runner requires 15 passes (13 cases plus initialization/cleanup), rejects
+Seven attribute cases reach application callbacks through the production effect
+workaround's synchronous `MoveWindow` / `WM_WINDOWPOSCHANGING` path. They delete
+the context, replace/remove the active key, change other supported keys, recreate
+the native window, and delete/replace during attribute replay. The tests verify
+callback reachability, return values, cached state, subsequent writes and native
+geometry restoration for a surviving unchanged window. Context deletion uses the
+same protected allocations as the menu cases. The real Win32 implementation and
+Windows QPA are used with controlled non-lifecycle QWindow delegate operations;
+these tests do not claim visual effect correctness or physical input coverage.
+The recreation callback consumes the old native message, so Qt does not continue
+dispatching it to the QPA window that the callback just destroyed.
+An eighth attribute case deletes the context during `WM_STYLECHANGING` in native
+window initialization, before replay starts; the obsolete initialization must stop.
+
+The runner requires 23 passes (21 cases plus initialization/cleanup), rejects
 skips/expected failures, and shares the 15-second inner / 20-second CTest bounds
 and desktop lock with `windows.windowproc`. Native menu loops have a 1.5-second
 watchdog; failure to enter the intended callback remains a test failure.

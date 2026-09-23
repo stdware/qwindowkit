@@ -111,8 +111,35 @@ namespace QWK {
         QPointer<QObject> m_titleBar{};
         std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
 
-        std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
+        struct WindowAttribute {
+            QString key;
+            QVariant value;
+            quint64 revision;
+        };
+        std::list<WindowAttribute> m_windowAttributesOrder;
         QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
+
+        // Frames live on the caller's stack, including when a callback deletes us.
+        struct AttributeChange {
+            AttributeChange(AbstractWindowContext *context, const QString &key);
+            ~AttributeChange();
+            AttributeChange(const AttributeChange &) = delete;
+            AttributeChange &operator=(const AttributeChange &) = delete;
+            bool isWindowCurrent() const {
+                return context && context->m_windowRevision == windowRevision;
+            }
+            bool isCurrent() const { return !superseded && isWindowCurrent(); }
+            void supersedePrevious();
+
+            QPointer<AbstractWindowContext> context;
+            QString key;
+            quint64 windowRevision;
+            AttributeChange *previous;
+            bool superseded = false;
+        };
+        AttributeChange *m_attributeChange = nullptr;
+        quint64 m_attributeRevision = 0;
+        quint64 m_windowRevision = 0;
 
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
 

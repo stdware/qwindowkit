@@ -3,12 +3,19 @@
 
 #include <functional>
 #include <memory>
+#include <QtCore/QFile>
+#include <QtCore/QProcess>
+#include <QtCore/QTemporaryDir>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 #include <QtTest/QTest>
 #include "windowcontextfixture.h"
+#ifdef Q_OS_WIN
+#  include <QtCore/qt_windows.h>
+#endif
 
 namespace {
+    bool childProcess = false;
     using Button = QWK::WindowAgentBase;
 
     using QwkTest::Item;
@@ -26,6 +33,11 @@ namespace {
         QStringList rejectedKeys;
         QList<QPair<WId, WId>> handles;
         QStringList sequence;
+        std::function<bool(const QString &, const QVariant &, const QVariant &)> onAttribute;
+        std::function<void()> onHandle;
+        bool storageHasSize(int size) const {
+            return int(m_windowAttributesOrder.size()) == size && m_windowAttributes.size() == size;
+        }
         QStringList keys() const {
             QStringList result;
             for (const auto &call : calls)
@@ -36,11 +48,17 @@ namespace {
         void winIdChanged(WId id, WId oldId) override {
             handles.append(qMakePair(id, oldId));
             sequence.append("handle");
+            const auto callback = onHandle;
+            if (callback)
+                callback();
         }
         bool windowAttributeChanged(const QString &key, const QVariant &value,
                                     const QVariant &oldValue) override {
             calls.append({key, value, oldValue});
             sequence.append("attribute:" + key);
+            const auto callback = onAttribute;
+            if (callback)
+                return callback(key, value, oldValue);
             return !rejectedKeys.contains(key);
         }
     };
@@ -71,7 +89,190 @@ namespace {
 
 class WindowContextTest : public QObject {
     Q_OBJECT
+private:
+    void runChild() {
+        QTemporaryDir reports;
+        QVERIFY(reports.isValid());
+        const auto path = reports.filePath("child.txt");
+        QProcess child;
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        child.start(QCoreApplication::applicationFilePath(),
+                    {"--child", QString("%1:%2").arg(QTest::currentTestFunction(), QTest::currentDataTag()),
+                     "-o", path + ",txt"});
+        QVERIFY(child.waitForStarted(2000));
+        const bool finished = child.waitForFinished(5000);
+        if (!finished) {
+            child.kill();
+            child.waitForFinished(1000);
+        }
+        QFile report(path);
+        const auto output = QByteArray("Child exit: ") + QByteArray::number(child.exitCode()) + '\n' +
+            child.readAll() + (report.open(QIODevice::ReadOnly)
+            ? report.readAll() : report.errorString().toUtf8());
+        QVERIFY2(finished, output.constData());
+        QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0,
+                 output.constData());
+    }
 private Q_SLOTS:
+    void reentrantWrites_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto name : {"insert-replace", "insert-remove", "update-replace",
+                               "update-remove", "remove-reinsert", "failed-inner",
+                               "failed-outer", "grow-hash", "recreate"})
+            QTest::newRow(name) << QString::fromLatin1(name);
+    }
+
+    void reentrantWrites() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(QString, scenario);
+        Fixture f;
+        const bool initiallyAbsent = scenario.startsWith("insert-");
+        if (!initiallyAbsent)
+            QVERIFY(f.context.setWindowAttribute("alpha", 1));
+        f.changeHandle(1);
+        bool inside = false;
+        bool nestedResult = false;
+        bool argumentsStable = false;
+        QVariant observedOld;
+        f.context.onAttribute = [&](const QString &key, const QVariant &value, const QVariant &old) {
+            if (inside)
+                return scenario != "failed-inner";
+            inside = true;
+            observedOld = old;
+            if (scenario == "grow-hash") {
+                for (int i = 0; i < 300; ++i)
+                    nestedResult = f.context.setWindowAttribute(QString::number(i), i);
+            } else if (scenario == "recreate") {
+                f.changeHandle(0);
+                f.changeHandle(1); // Numeric reuse must still invalidate the outer operation.
+            } else {
+                nestedResult = f.context.setWindowAttribute("alpha",
+                    scenario.endsWith("remove") ? QVariant{} : QVariant(3));
+            }
+            // Callback arguments remain valid across erasure and hash growth.
+            argumentsStable = key == "alpha" && old == (initiallyAbsent ? QVariant{} : QVariant(1)) &&
+                value == (scenario == "remove-reinsert" ? QVariant{} : QVariant(2));
+            return scenario != "failed-outer";
+        };
+        const bool result = f.context.setWindowAttribute("alpha",
+            scenario == "remove-reinsert" ? QVariant{} : QVariant(2));
+        f.context.onAttribute = {};
+        QVERIFY(argumentsStable);
+        QCOMPARE(observedOld, initiallyAbsent ? QVariant{} : QVariant(1));
+        const bool outerWins = scenario == "failed-inner" || scenario == "grow-hash";
+        QCOMPARE(result, outerWins);
+        if (scenario != "recreate")
+            QCOMPARE(nestedResult, scenario != "failed-inner");
+        const QVariant expected = outerWins ? QVariant(2) : scenario.endsWith("remove")
+            ? QVariant{} : scenario == "recreate" ? QVariant(1) : QVariant(3);
+        QCOMPARE(f.context.windowAttribute("alpha"), expected);
+        const int count = scenario == "grow-hash" ? 301 : expected.isValid() ? 1 : 0;
+        QVERIFY(f.context.storageHasSize(count));
+        f.context.calls.clear();
+        f.changeHandle(2);
+        QCOMPARE(f.context.calls.size(), count);
+        if (expected.isValid()) {
+            QCOMPARE(f.context.calls.last().key, QString("alpha"));
+            QCOMPARE(f.context.calls.last().value, expected);
+        }
+    }
+
+    void reentrantReplay_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto name : {"update-current", "remove-current", "update-next", "remove-next",
+                               "remove-reinsert-next", "add-new", "reject-replaced", "recreate"})
+            QTest::newRow(name) << QString::fromLatin1(name);
+    }
+
+    void reentrantReplay() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(QString, scenario);
+        Fixture f;
+        QVERIFY(f.context.setWindowAttribute("alpha", 1));
+        QVERIFY(f.context.setWindowAttribute("beta", 2));
+        bool first = true;
+        bool nestedResult = true;
+        Observer observer;
+        QList<WId> notifications;
+        observer.callback = [&](QObject *, QEvent *event) {
+            if (event->type() == QEvent::WinIdChange)
+                notifications.append(f.context.windowId());
+            return false;
+        };
+        f.context.installSharedEventFilter(&observer);
+        f.context.onAttribute = [&](const QString &, const QVariant &, const QVariant &) {
+            if (!std::exchange(first, false))
+                return true;
+            if (scenario == "recreate") {
+                f.changeHandle(0);
+                f.changeHandle(1);
+            } else {
+                const QString key = scenario.endsWith("next") ? "beta"
+                    : scenario == "add-new" ? "gamma" : "alpha";
+                if (scenario == "remove-reinsert-next")
+                    nestedResult = f.context.setWindowAttribute(key, {});
+                nestedResult = nestedResult && f.context.setWindowAttribute(key,
+                    scenario.startsWith("remove-") && scenario != "remove-reinsert-next"
+                        ? QVariant{} : QVariant(3));
+            }
+            return scenario != "reject-replaced";
+        };
+        f.changeHandle(1);
+        QVERIFY(nestedResult);
+        QCOMPARE(notifications, scenario == "recreate" ? QList<WId>({0, 1}) : QList<WId>({1}));
+        f.context.onAttribute = {};
+        const QStringList expected = scenario == "add-new" ? QStringList{"alpha", "gamma", "beta"}
+            : scenario == "recreate" ? QStringList{"alpha", "alpha", "beta"}
+            : scenario == "remove-reinsert-next" ? QStringList{"alpha", "beta", "beta"}
+            : scenario.endsWith("next") ? QStringList{"alpha", "beta"}
+            : QStringList{"alpha", "alpha", "beta"};
+        QCOMPARE(f.context.keys(), expected);
+        const int count = scenario.startsWith("remove-") && scenario != "remove-reinsert-next" ? 1
+            : scenario == "add-new" ? 3 : 2;
+        QVERIFY(f.context.storageHasSize(count));
+        QCOMPARE(f.context.windowAttribute("alpha"), scenario == "remove-current" ? QVariant{}
+            : scenario == "update-current" || scenario == "reject-replaced" ? QVariant(3) : QVariant(1));
+        QCOMPARE(f.context.windowAttribute("beta"), scenario == "remove-next" ? QVariant{}
+            : scenario == "update-next" || scenario == "remove-reinsert-next" ? QVariant(3) : QVariant(2));
+        f.context.calls.clear();
+        f.changeHandle(2);
+        QCOMPARE(f.context.calls.size(), count);
+    }
+
+    void callbackDeletion_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto name : {"insert", "update", "replay", "handle"})
+            QTest::newRow(name) << QString::fromLatin1(name);
+    }
+
+    void callbackDeletion() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(QString, scenario);
+        QWindow window;
+        auto context = std::make_unique<Context>();
+        auto delegate = new Delegate(&window);
+        context->setup(&window, delegate);
+        if (scenario != "insert")
+            QVERIFY(context->setWindowAttribute("alpha", 1));
+        if (scenario == "insert" || scenario == "update") {
+            delegate->id = 1;
+            context->notifyWinIdChange();
+        }
+        context->onAttribute = [&](const QString &, const QVariant &, const QVariant &) {
+            context.reset();
+            return true;
+        };
+        if (scenario == "handle")
+            context->onHandle = [&] { context.reset(); };
+        if (scenario == "insert" || scenario == "update") {
+            QVERIFY(!context->setWindowAttribute("alpha", 2));
+        } else {
+            delegate->id = 1;
+            context->notifyWinIdChange();
+        }
+        QVERIFY(!context);
+    }
+
     void setupRejectsInvalidOrRepeatedHosts() {
         QWindow first, second;
         Context context;
@@ -448,9 +649,14 @@ private Q_SLOTS:
 };
 
 int main(int argc, char **argv) {
+#ifdef Q_OS_WIN
+    ::SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+#endif
     QGuiApplication app(argc, argv);
+    auto arguments = app.arguments();
+    childProcess = arguments.removeAll("--child") > 0;
     WindowContextTest test;
-    return QTest::qExec(&test, argc, argv);
+    return QTest::qExec(&test, arguments);
 }
 
 #include "tst_windowcontext.moc"

@@ -46,7 +46,7 @@ add_test(NAME windows.windowlifetime
     ${CMAKE_COMMAND}
     "-DTEST_EXE=$<TARGET_FILE:tst_windowlifetime>"
     "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/windowlifetime-$<CONFIG>"
-    "-DEXPECTED_PASSES=15"
+    "-DEXPECTED_PASSES=23"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
 set_tests_properties(windows.windowlifetime PROPERTIES
     TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)

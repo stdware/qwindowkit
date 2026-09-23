@@ -97,7 +97,22 @@ namespace QWK {
     }
 
     /*!
-        Sets the platform-related attribute for the window. Available attributes:
+        Sets the platform-related attribute for the window.
+
+        With a native window, changes are cached only after the platform accepts
+        them. Without one, values are cached for replay when the window is created. A successful
+        reentrant write or removal of the same key takes precedence over an outer
+        call; that outer call returns false. A rejected inner call leaves the outer
+        call eligible to commit. Changes to other keys are independent.
+
+        If the context is destroyed or the native window changes during the call,
+        the interrupted call returns false without committing its cached value.
+        This does not roll back native side effects already performed. On window
+        recreation, cached attributes are replayed in successful-write order;
+        entries changed by a callback are not replayed again from the old snapshot.
+        Unchanged entries rejected during replay are removed from the cache.
+
+        Available attributes:
 
         On Windows,
             \li \c no-system-menu: Specify a boolean value to disable the system menu.

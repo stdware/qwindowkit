@@ -16,6 +16,25 @@ namespace QWK {
 
     AbstractWindowContext::~AbstractWindowContext() = default;
 
+    AbstractWindowContext::AttributeChange::AttributeChange(AbstractWindowContext *ctx,
+                                                            const QString &attributeKey)
+        : context(ctx), key(attributeKey), windowRevision(ctx->m_windowRevision),
+          previous(ctx->m_attributeChange) {
+        ctx->m_attributeChange = this;
+    }
+
+    AbstractWindowContext::AttributeChange::~AttributeChange() {
+        if (context)
+            context->m_attributeChange = previous;
+    }
+
+    void AbstractWindowContext::AttributeChange::supersedePrevious() {
+        for (auto frame = previous; frame; frame = frame->previous) {
+            if (frame->key == key)
+                frame->superseded = true;
+        }
+    }
+
     void AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
         if (m_host || !host || !delegate) {
             return;
@@ -195,6 +214,7 @@ namespace QWK {
     }
 
     void AbstractWindowContext::notifyWinIdChange() {
+        const QPointer<AbstractWindowContext> self(this);
         auto oldWinId = m_windowId;
         m_windowId = m_winIdChangeEventFilter->winId();
 
@@ -202,6 +222,7 @@ namespace QWK {
         // platform window will be removed, and the WinId will be set to 0. After that, when the
         // QWidget is shown again, the whole things will be recreated again.
         // As a result, we must update our WindowContext each time the WinId changes.
+        const auto oldWindow = m_windowHandle;
         if (m_windowHandle) {
             m_windowHandle->removeEventFilter(this);
         }
@@ -210,19 +231,37 @@ namespace QWK {
             m_windowHandle->installEventFilter(this);
         }
 
+        if (oldWinId != m_windowId || oldWindow != m_windowHandle)
+            ++m_windowRevision;
+
         if (oldWinId != m_windowId) {
+            const auto revision = m_windowRevision;
             winIdChanged(m_windowId, oldWinId);
+            if (!self || m_windowRevision != revision)
+                return;
 
             if (m_windowId) {
-                // Refresh window attributes
-                for (auto it = m_windowAttributesOrder.begin();
-                     it != m_windowAttributesOrder.end();) {
-                    if (!windowAttributeChanged(it->first, it->second, {})) {
-                        m_windowAttributes.remove(it->first);
-                        it = m_windowAttributesOrder.erase(it);
+                // Each original revision is replayed at most once. Updates made by
+                // callbacks apply themselves; never replay a superseded snapshot.
+                const auto attributes = m_windowAttributesOrder;
+                for (const auto &attribute : attributes) {
+                    auto it = m_windowAttributes.constFind(attribute.key);
+                    if (it == m_windowAttributes.cend() ||
+                        it.value()->revision != attribute.revision)
                         continue;
+                    AttributeChange change(this, attribute.key);
+                    const bool accepted = windowAttributeChanged(attribute.key, attribute.value, {});
+                    if (!self || m_windowRevision != revision)
+                        return;
+                    if (!accepted && change.isCurrent()) {
+                        // Re-find after the callback: it may rehash, erase or splice.
+                        it = m_windowAttributes.constFind(attribute.key);
+                        if (it != m_windowAttributes.cend() &&
+                            it.value()->revision == attribute.revision) {
+                            m_windowAttributesOrder.erase(it.value());
+                            m_windowAttributes.remove(attribute.key);
+                        }
                     }
-                    ++it;
                 }
             }
 
@@ -237,38 +276,45 @@ namespace QWK {
         if (it == m_windowAttributes.end()) {
             return {};
         }
-        return it.value()->second;
+        return it.value()->value;
     }
 
     bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
-        auto it = m_windowAttributes.find(key);
-        if (it == m_windowAttributes.end()) {
-            if (!attribute.isValid()) {
-                return true;
-            }
-            if (m_windowId && !windowAttributeChanged(key, attribute, {})) {
-                return false;
-            }
-            m_windowAttributes.insert(
-                key, m_windowAttributesOrder.insert(m_windowAttributesOrder.end(),
-                                                    std::make_pair(key, attribute)));
+        // Copy inputs as well as the old value: callers may pass references into
+        // storage that a synchronous platform callback changes or destroys.
+        const QString name = key;
+        const QVariant value = attribute;
+        auto it = m_windowAttributes.constFind(name);
+        const bool existed = it != m_windowAttributes.cend();
+        const QVariant oldValue = existed ? it.value()->value : QVariant{};
+        AttributeChange change(this, name);
+        if (!existed && !value.isValid()) {
+            change.supersedePrevious();
             return true;
         }
-
-        auto &listIter = it.value();
-        auto &oldAttr = listIter->second;
-        if (m_windowId && !windowAttributeChanged(key, attribute, oldAttr)) {
+        if (m_windowId && !windowAttributeChanged(name, value, oldValue))
             return false;
-        }
+        if (!change.isCurrent())
+            return false;
 
-        if (attribute.isValid()) {
-            oldAttr = attribute;
-            m_windowAttributesOrder.splice(m_windowAttributesOrder.end(), m_windowAttributesOrder,
-                                           listIter);
-        } else {
-            m_windowAttributesOrder.erase(listIter);
-            m_windowAttributes.erase(it);
+        it = m_windowAttributes.constFind(name);
+        if (value.isValid()) {
+            const auto revision = ++m_attributeRevision;
+            if (it == m_windowAttributes.cend()) {
+                m_windowAttributes.insert(name, m_windowAttributesOrder.insert(
+                    m_windowAttributesOrder.end(), {name, value, revision}));
+            } else {
+                const auto listIter = it.value();
+                listIter->value = value;
+                listIter->revision = revision;
+                m_windowAttributesOrder.splice(m_windowAttributesOrder.end(), m_windowAttributesOrder,
+                                               listIter);
+            }
+        } else if (it != m_windowAttributes.cend()) {
+            m_windowAttributesOrder.erase(it.value());
+            m_windowAttributes.remove(name);
         }
+        change.supersedePrevious();
         return true;
     }
 

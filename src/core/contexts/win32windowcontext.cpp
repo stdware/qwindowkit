@@ -151,7 +151,10 @@ namespace QWK {
         // the title bar by pretending the whole window is filled by client area,
         // this however confuses Qt's internal logic. We need to do the following
         // hack to let Qt consider the extra margin when changing window geometry.
+        const QPointer<QWindow> windowGuard(window);
         window->setProperty("_q_windowsCustomMargins", marginsVar);
+        if (!windowGuard)
+            return;
 #  if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (QPlatformWindow *platformWindow = window->handle()) {
             if (const auto ni = QGuiApplication::platformNativeInterface()) {
@@ -746,7 +749,9 @@ namespace QWK {
         return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
     }
 
-    static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
+    template <typename IsCurrent>
+    static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx,
+                                         const IsCurrent &isCurrent) {
         Q_ASSERT(window);
         Q_ASSERT(hWnd);
         Q_ASSERT(ctx);
@@ -754,6 +759,8 @@ namespace QWK {
         if (isSystemBorderEnabled()) {
             // Inform Qt we want and have set custom margins
             setInternalWindowFrameMargins(window, QMargins(0, -getTitleBarHeight(hWnd), 0, 0));
+            if (!isCurrent())
+                return;
         }
 
         auto entry = g_wndProcHash->value(hWnd);
@@ -980,6 +987,11 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(WId winId, WId oldWinId) {
+        const QPointer<Win32WindowContext> self(this);
+        const auto revision = m_windowRevision;
+        const auto isCurrent = [self, revision] {
+            return self && self->m_windowRevision == revision;
+        };
         // Reset the context data
         mouseLeaveBlocked = false;
         lastHitTestResult = WindowPart::Outside;
@@ -1016,6 +1028,8 @@ namespace QWK {
             // then we need to set at least 1px margins, otherwise the following operation will
             // fail with no effect.
             setWindowAttribute(QStringLiteral("extra-margins"), margins);
+            if (!isCurrent())
+                return;
         }
 
         // We should disable WS_SYSMENU, otherwise the system button icons will be visible if mica
@@ -1030,8 +1044,12 @@ namespace QWK {
             }
         }
 
+        if (!isCurrent())
+            return;
         // Add managed window
-        addManagedWindow(m_windowHandle, hWnd, this);
+        addManagedWindow(m_windowHandle, hWnd, this, isCurrent);
+        if (!isCurrent())
+            return;
 
         if (hasFrameRectBeforeWinIdChange && !restoringFrameRectAfterWinIdChange) {
             pendingFrameRectAfterWinIdChange = frameRectBeforeWinIdChange;
@@ -1160,8 +1178,11 @@ namespace QWK {
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
         Q_ASSERT(hwnd);
 
+        // Owned by the base setter/replay stack, so this remains usable even if
+        // a synchronous Windows callback deletes the context.
+        const auto *change = m_attributeChange;
         const DynamicApis &apis = DynamicApis::instance();
-        const auto &extendMargins = [this, &apis, hwnd]() {
+        const auto &extendMargins = [&apis, hwnd]() {
             // For some unknown reason, the window background is totally black and extending
             // the window frame into the client area seems to fix it magically.
             // After many times of trying, we found that the Acrylic/Mica/Mica Alt background
@@ -1190,27 +1211,34 @@ namespace QWK {
             apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
         };
 
-        const auto &effectBugWorkaround = [this, hwnd]() {
+        const auto &effectBugWorkaround = [this, hwnd, change]() {
             // We don't need the following *HACK* for QWidget windows.
             // Completely based on actual experiments, root reason is totally unknown.
 
             // TODO: add more descriptions
             if (m_host->isWidgetType()) {
-                return;
+                return true;
             }
 
             static const char *kPropKey = "_qwk_effectBugWorkaround1";
             if (property(kPropKey).toBool()) {
-                return;
+                return true;
             }
             setProperty(kPropKey, true);
+            if (!change->isWindowCurrent())
+                return false;
 
             RECT rect{};
             ::GetWindowRect(hwnd, &rect);
             ::MoveWindow(hwnd, rect.left, rect.top, 1, 1, FALSE);
+            if (!change->isWindowCurrent())
+                return false;
             ::MoveWindow(hwnd, rect.right - 1, rect.bottom - 1, 1, 1, FALSE);
+            if (!change->isWindowCurrent())
+                return false;
             ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
                          FALSE);
+            return change->isCurrent();
         };
 
         if (key == QStringLiteral("no-system-menu")) {
@@ -1234,9 +1262,13 @@ namespace QWK {
             } else {
                 apis.pAllowDarkModeForApp(enable);
             }
+            if (!change->isCurrent())
+                return false;
             const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
                                                      : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
             apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
+            if (!change->isCurrent())
+                return false;
 
             apis.pFlushMenuThemes();
             return true;
@@ -1249,6 +1281,8 @@ namespace QWK {
             }
             if (attribute.toBool()) {
                 extendMargins();
+                if (!change->isCurrent())
+                    return false;
                 if (isWin1122H2OrGreater()) {
                     // Use official DWM API to enable Mica, available since Windows 11 22H2
                     // (10.0.22621).
@@ -1270,10 +1304,11 @@ namespace QWK {
                     const BOOL enable = FALSE;
                     apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
                 }
+                if (!change->isCurrent())
+                    return false;
                 restoreMargins();
             }
-            effectBugWorkaround();
-            return true;
+            return change->isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("mica-alt")) {
@@ -1282,6 +1317,8 @@ namespace QWK {
             }
             if (attribute.toBool()) {
                 extendMargins();
+                if (!change->isCurrent())
+                    return false;
                 // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
                 // (10.0.22621).
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
@@ -1291,10 +1328,11 @@ namespace QWK {
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
                                             sizeof(backdropType));
+                if (!change->isCurrent())
+                    return false;
                 restoreMargins();
             }
-            effectBugWorkaround();
-            return true;
+            return change->isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("acrylic-material")) {
@@ -1303,6 +1341,8 @@ namespace QWK {
             }
             if (attribute.toBool()) {
                 extendMargins();
+                if (!change->isCurrent())
+                    return false;
 
                 const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
                 apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
@@ -1337,15 +1377,18 @@ namespace QWK {
                 //     wcad.cbData = sizeof(policy);
                 //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
 
+                if (!change->isCurrent())
+                    return false;
                 restoreMargins();
             }
-            effectBugWorkaround();
-            return true;
+            return change->isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("dwm-blur")) {
             // Extending window frame would break this effect for some unknown reason.
             restoreMargins();
+            if (!change->isCurrent())
+                return false;
             if (attribute.toBool()) {
                 if (isWin8OrGreater()) {
                     ACCENT_POLICY policy{};
@@ -1379,8 +1422,7 @@ namespace QWK {
                     apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
                 }
             }
-            effectBugWorkaround();
-            return true;
+            return change->isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("dwm-border-color")) {
