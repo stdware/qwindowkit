@@ -5,6 +5,8 @@
 #include "styleagent.h"
 #include "styleagent_p.h"
 
+#include <QtCore/QPointer>
+
 namespace QWK {
 
     /*!
@@ -14,6 +16,15 @@ namespace QWK {
         Qt6.6 started to support system theme detection, this class is intended as an auxiliary
         support for lower versions of Qt. If your Qt already supports it, it is recommended that
         you don't include this class in your build system.
+
+        Create and use this object on the GUI thread. On Linux, Qt DBus reads the
+        XDG Desktop Portal Settings interface asynchronously and subscribes to
+        appearance changes. Until the initial reply, the theme is Unknown and
+        the accent color is invalid. Unsupported or unavailable settings have
+        the same values; application palette overrides are not system settings.
+        ReadAll calls have a 1000 ms timeout; failed reads retry after 5000 ms.
+        Service/connection loss invalidates the cache and starts recovery.
+        An active event loop and a working portal backend are required.
     */
 
     StyleAgentPrivate::StyleAgentPrivate() = default;
@@ -26,24 +37,36 @@ namespace QWK {
         setupSystemThemeHook();
     }
 
-    void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
-        if (theme == systemTheme)
+    void StyleAgentPrivate::notifyAppearanceChanged(StyleAgent::SystemTheme theme,
+                                                    const QColor &color) {
+        const bool themeChanged = theme != systemTheme;
+        const bool colorChanged = color != systemAccentColor;
+        if (!themeChanged && !colorChanged)
             return;
         systemTheme = theme;
+        systemAccentColor = color;
+        accentNotificationPending |= colorChanged;
 
-        Q_Q(StyleAgent);
-        Q_EMIT q->systemThemeChanged();
+        // Both getters must expose the same snapshot in either notification. A slot
+        // can delete this agent or publish a newer snapshot. A nested theme-only
+        // change must still deliver the pending accent notification exactly once.
+        QPointer<StyleAgent> owner(q_ptr);
+        if (themeChanged)
+            Q_EMIT q_ptr->systemThemeChanged();
+        if (!owner)
+            return;
+        if (accentNotificationPending) {
+            accentNotificationPending = false;
+            Q_EMIT q_ptr->systemAccentColorChanged();
+        }
+    }
+
+    void StyleAgentPrivate::notifyThemeChanged(StyleAgent::SystemTheme theme) {
+        notifyAppearanceChanged(theme, systemAccentColor);
     }
 
     void StyleAgentPrivate::notifyAccentColorChanged(const QColor &color) {
-        // An invalid color is not a programming error: the platform code legitimately reports
-        // one when it cannot determine the accent color (a failed registry read, for example).
-        if (color == systemAccentColor)
-            return;
-        systemAccentColor = color;
-
-        Q_Q(StyleAgent);
-        Q_EMIT q->systemAccentColorChanged();
+        notifyAppearanceChanged(systemTheme, color);
     }
 
     /*!
@@ -59,7 +82,9 @@ namespace QWK {
     StyleAgent::~StyleAgent() = default;
 
     /*!
-        Returns the system theme.
+        Returns the last observed system theme, or Unknown when unavailable or
+        when the Linux portal reports no preference. A high-contrast preference
+        takes precedence over the Linux color-scheme preference.
     */
     StyleAgent::SystemTheme StyleAgent::systemTheme() const {
         Q_D(const StyleAgent);
@@ -67,7 +92,8 @@ namespace QWK {
     }
 
     /*!
-        Returns the system accent color.
+        Returns the last observed system accent color, or an invalid QColor when
+        unavailable. Linux reads the portal accent-color key, not the app palette.
     */
     QColor StyleAgent::systemAccentColor() const {
         Q_D(const StyleAgent);
@@ -86,13 +112,17 @@ namespace QWK {
     /*!
         \fn void StyleAgent::systemThemeChanged()
 
-        This signal is emitted when the system theme changes.
+        This signal is emitted when the observed system theme changes, including
+        transitions to Unknown. Both appearance getters are updated before either
+        change signal is emitted. Equal values do not emit another signal.
     */
 
     /*!
         \fn void StyleAgent::systemAccentColorChanged()
 
-        This signal is emitted when the system accent color changes.
+        This signal is emitted when the observed system accent color changes,
+        including transitions to an invalid color. Both appearance getters are
+        updated before either change signal is emitted.
     */
 
 }

@@ -30,10 +30,13 @@ namespace QWK {
 
         StyleAgent::SystemTheme systemTheme = StyleAgent::Unknown;
         QColor systemAccentColor;
+        bool accentNotificationPending = false;
+        std::unique_ptr<QObject> systemThemeHook;
 
         void setupSystemThemeHook();
         void removeSystemThemeHook();
 
+        void notifyAppearanceChanged(StyleAgent::SystemTheme theme, const QColor &color);
         void notifyThemeChanged(StyleAgent::SystemTheme theme);
         void notifyAccentColorChanged(const QColor &color);
     };

@@ -28,6 +28,9 @@ if(TRUE)
         set(QMAKE_QWK_CORE_STATIC_MACRO "DEFINES += QWK_CORE_STATIC")
         set(QMAKE_QWK_WIDGETS_STATIC_MACRO "DEFINES += QWK_WIDGETS_STATIC")
         set(QMAKE_QWK_QUICK_STATIC_MACRO "DEFINES += QWK_QUICK_STATIC")
+        if(QWINDOWKIT_STYLE_USES_DBUS)
+            set(QMAKE_QWK_CORE_STATIC_LIBS "QT += dbus")
+        endif()
         if(WIN32)
             # Static consumers must resolve QWKCore's native calls themselves.
             # Qt's shared import libraries do not propagate these system libraries.

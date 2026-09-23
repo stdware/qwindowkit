@@ -42,6 +42,25 @@ if(NOT QWINDOWKIT_BUILD_STATIC)
 endif()
 
 if(QWINDOWKIT_ENABLE_STYLE_AGENT)
+    # Compile the real Linux observer and D-Bus transport on the host as well. The
+    # controlled source exercises subscriptions without a desktop or session bus.
+    qm_find_qt(DBus)
+    add_executable(tst_portalstyle tst_portalstyle.cpp
+        ../../src/core/style/styleagent.cpp ../../src/core/style/styleagent.h
+        ../../src/core/style/portalsettings.cpp ../../src/core/style/portalsettings_p.h
+        ../../src/core/style/portalsettings_dbus.cpp)
+    set_target_properties(tst_portalstyle PROPERTIES AUTOMOC ON)
+    target_compile_features(tst_portalstyle PRIVATE cxx_std_17)
+    target_compile_definitions(tst_portalstyle PRIVATE QWK_CORE_STATIC)
+    target_include_directories(tst_portalstyle PRIVATE
+        "$<TARGET_PROPERTY:QWKCore,INTERFACE_INCLUDE_DIRECTORIES>"
+        ../../src/core/style)
+    target_link_libraries(tst_portalstyle PRIVATE Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::DBus Qt${QT_VERSION_MAJOR}::Test)
+    add_dependencies(tst_portalstyle QWKCore)
+    qwk_register_fast_test(tst_portalstyle core.portalstyle.component 25)
+    set_tests_properties(core.portalstyle.component PROPERTIES LABELS "component;fast")
+
     # StyleAgentPrivate is not exported. Compile the real notification implementation into
     # this test, with deterministic platform-hook substitutes, without linking QWKCore.
     add_executable(tst_styleagent tst_styleagent.cpp

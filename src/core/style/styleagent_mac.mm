@@ -82,10 +82,12 @@ namespace QWK {
 
     using StyleAgentSet = QSet<StyleAgentPrivate *>;
     Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
+    static quint64 notificationRevision = 0;
 
     static QWK_SystemThemeObserver *g_systemThemeObserver = nil;
 
     void notifyAllStyleAgents() {
+        const auto revision = ++notificationRevision;
         auto theme = getSystemTheme();
         auto color = getAccentColor();
 
@@ -103,13 +105,11 @@ namespace QWK {
         // a guard also distinguishes a destroyed agent from a new one reusing its address.
         // Check membership too: the private object unregisters before QObject clears its guards.
         for (const auto &entry : std::as_const(agents)) {
+            if (revision != notificationRevision)
+                return; // A nested notification has already published a newer snapshot.
             if (!entry.owner || !g_styleAgentSet->contains(entry.agent))
                 continue;
-            entry.agent->notifyThemeChanged(theme);
-
-            if (!entry.owner || !g_styleAgentSet->contains(entry.agent))
-                continue;
-            entry.agent->notifyAccentColorChanged(color);
+            entry.agent->notifyAppearanceChanged(theme, color);
         }
     }
 

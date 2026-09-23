@@ -1,6 +1,6 @@
 # Fast, offline unit tests
 
-These tests use only Qt Test, Qt Core/Gui (and Widgets/Quick when enabled), the
+These tests use only Qt Test, Qt Core/Gui (and Widgets/Quick when enabled), Qt DBus for the portal suite, the
 production QWindowKit code, and the existing CMake/CTest build tools. Test execution
 does not download anything, access the network, install packages, show desktop windows,
 inject desktop input, or require a display server. No Python, browser, external
@@ -50,16 +50,17 @@ case counts below do not.
 | `core.qtwindowcontext.unit` | 182 | Double-click maximize/restore with state preservation and eligibility guards, scene/global coordinate selection, system-menu requests, title/client press-release transitions, unrelated events and frameless flags across handle loss/recreation; 150 resize/visibility rows and 10 dynamic cursor transitions |
 | `core.windowmovegeometry.unit` | 22 | Production release-position geometry: negative screen coordinates, gaps, nearest correction, ties, reserved areas, tiny/invalid/missing screens, oversized windows and custom title offsets |
 | `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
+| `core.portalstyle.component` | 23 | Production portal refresh/subscription logic with a controlled transport: initial snapshot, independent application palette, changes/deduplication, invalid data, in-flight changes, service failure/recovery, timed retry, destruction, reentrancy and worker-thread emission |
 | `core.styleagent.unit` | 9 | Theme/color state, duplicate notification suppression, invalid colors, signal-time values, reentrant notification and hook lifetime |
 | `agents.unit` | 5 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles, exclusion toggles and destroyed registrations |
 | `quicksystembuttonarea.component` (Windows + Quick) | 27 | Scene bounds/center, item and ancestor transforms, visual reparenting, window changes, destruction/reentrancy, pre-native registration and real QML transform-list frame updates |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 331 business cases
-across eleven CTest entries (nine unit suites and two component suites). The lifetime
+With Widgets, Quick and StyleAgent enabled on Windows there are 354 business cases
+across twelve CTest entries (nine unit suites and three component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even
-when Widgets and Quick are disabled. The StyleAgent suite is omitted when that
+when Widgets and Quick are disabled. Both StyleAgent suites are omitted when that
 component is disabled. The Quick geometry and system-button-area suites retain Windows-only test
 registration; the Core/agent suites are registered on all platforms.
 
@@ -158,3 +159,17 @@ refresh methods. Other cases verify scaling, rotation, transform origins,
 nested ancestors, mirroring, rounding, repeated reparenting, destruction and
 notification reentrancy. The suite requires 29 Qt Test passes including
 initialization/cleanup, with no skips. Physical display or OS input is not used.
+
+## Portal appearance (AUDIT-018)
+
+The portal suite compiles the production Qt DBus transport on every test host,
+but substitutes only that transport at runtime. Its 25 Qt Test checks include
+initialization/cleanup, with no skips. Normal conditions wait at most 1 second;
+the automatic recovery case allows 6 seconds for the real 5-second retry timer.
+The entire process retains its 8-second deadline. The worker case emits from a
+worker and verifies delivery on the agent's thread. The suite does not contact
+a session bus, change desktop settings or exercise real portal marshalling.
+Real Linux portal changes, service/bus restart and X11/Wayland integration require
+separate platform validation. The CMake discovery matrix covers 32 substitute
+configurations, including static portal dependencies and missing Qt DBus; it is
+not a Linux static-link test.

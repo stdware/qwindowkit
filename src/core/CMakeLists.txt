@@ -26,6 +26,7 @@ set(_src
 )
 
 set(_links_private)
+set(_qt_links_private)
 
 if(WIN32)
     list(APPEND _src
@@ -83,7 +84,9 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     elseif(APPLE)
         list(APPEND _src style/styleagent_mac.mm)
     else()
-        list(APPEND _src style/styleagent_linux.cpp)
+        list(APPEND _src style/styleagent_linux.cpp
+            style/portalsettings_p.h style/portalsettings.cpp style/portalsettings_dbus.cpp)
+        list(APPEND _qt_links_private DBus)
     endif()
 else()
     list(APPEND _sync_include_options EXCLUDE "src/core/style/.+")
@@ -94,6 +97,7 @@ qwk_add_library(${PROJECT_NAME} QT_AUTOGEN
     FEATURES cxx_std_17
     LINKS_PRIVATE ${_links_private}
     QT_LINKS Core Gui
+    QT_LINKS_PRIVATE ${_qt_links_private}
     QT_INCLUDE_PRIVATE Core Gui
     INCLUDE_PRIVATE *
     MACRO_PREFIX QWK_CORE

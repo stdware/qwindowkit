@@ -5,6 +5,8 @@
 #include "styleagent_p.h"
 
 #include <QtCore/QSet>
+#include <QtCore/QPointer>
+#include <QtCore/QVector>
 
 #include <QWKCore/private/qwkwindowsextra_p.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
@@ -13,6 +15,7 @@ namespace QWK {
 
     using StyleAgentSet = QSet<StyleAgentPrivate *>;
     Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
+    static quint64 notificationRevision = 0;
 
     static StyleAgent::SystemTheme getSystemTheme() {
         if (isHighContrastModeEnabled()) {
@@ -25,23 +28,22 @@ namespace QWK {
     }
 
     static void notifyAllStyleAgents() {
+        const auto revision = ++notificationRevision;
         auto theme = getSystemTheme();
         auto color = getAccentColor();
 
-        // Each notification emits a signal, so it runs user code that is free to create or
-        // destroy StyleAgent instances, which mutates the very set we are walking. Iterate over
-        // a copy (QSet is implicitly shared, so this costs nothing until someone mutates it) and
-        // re-check membership before every call so that an agent destroyed by an earlier
-        // notification is never touched again.
-        const auto agents = *g_styleAgentSet();
-        for (const auto &ap : agents) {
-            if (!g_styleAgentSet->contains(ap))
-                continue;
-            ap->notifyThemeChanged(theme);
-
-            if (!g_styleAgentSet->contains(ap))
-                continue;
-            ap->notifyAccentColorChanged(color);
+        struct AgentEntry {
+            StyleAgentPrivate *agent;
+            QPointer<StyleAgent> owner;
+        };
+        QVector<AgentEntry> agents;
+        for (auto ap : std::as_const(*g_styleAgentSet()))
+            agents.append({ap, QPointer<StyleAgent>(ap->q_ptr)});
+        for (const auto &entry : std::as_const(agents)) {
+            if (revision != notificationRevision)
+                return; // A nested notification has already published a newer snapshot.
+            if (entry.owner && g_styleAgentSet->contains(entry.agent))
+                entry.agent->notifyAppearanceChanged(theme, color);
         }
     }
 

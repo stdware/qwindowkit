@@ -4,20 +4,14 @@
 
 #include "styleagent_p.h"
 
-#include <QtGui/QPalette>
-#include <QtGui/QGuiApplication>
+#include "portalsettings_p.h"
 
 namespace QWK {
-
     void StyleAgentPrivate::setupSystemThemeHook() {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-        systemAccentColor = QGuiApplication::palette().color(QPalette::Accent);
-#else
-        systemAccentColor = QGuiApplication::palette().color(QPalette::Highlight);
-#endif
+        systemThemeHook.reset(new PortalStyleObserver(this, createDBusPortalSettingsSource()));
     }
 
     void StyleAgentPrivate::removeSystemThemeHook() {
+        systemThemeHook.reset();
     }
-
 }
