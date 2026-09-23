@@ -180,7 +180,7 @@ namespace QWK {
         // Install painting hook
         auto ctx = context.get();
         if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
-            borderHandler = std::make_unique<WidgetBorderHandler>(hostWidget, ctx);
+            borderHandler = std::make_unique<WidgetBorderHandler>(static_cast<QWidget *>(ctx->host()), ctx);
         }
     }
 #endif

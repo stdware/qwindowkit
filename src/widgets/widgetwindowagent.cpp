@@ -54,7 +54,7 @@ namespace QWK {
 #endif
 
         Q_D(WidgetWindowAgent);
-        if (d->hostWidget) {
+        if (d->context) {
             return false;
         }
 
@@ -67,7 +67,6 @@ namespace QWK {
         // w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Check
 
         d->setup(w, new WidgetItemDelegate());
-        d->hostWidget = w;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();

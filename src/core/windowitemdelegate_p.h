@@ -30,7 +30,6 @@ namespace QWK {
 
     public:
         // Item property query
-        virtual QWindow *window(const QObject *obj) const = 0;
         virtual bool isEnabled(const QObject *obj) const = 0;
         virtual bool isVisible(const QObject *obj) const = 0;
         // Bounding rectangle for geometry queries; hit testing can be more precise.

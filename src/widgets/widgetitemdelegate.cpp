@@ -41,10 +41,6 @@ namespace QWK {
 
     WidgetItemDelegate::~WidgetItemDelegate() = default;
 
-    QWindow *WidgetItemDelegate::window(const QObject *obj) const {
-        return static_cast<const QWidget *>(obj)->windowHandle();
-    }
-
     bool WidgetItemDelegate::isEnabled(const QObject *obj) const {
         return static_cast<const QWidget *>(obj)->isEnabled();
     }

@@ -53,12 +53,12 @@ case counts below do not.
 | `core.windowmove.component` | 8 | Production manual-drag event filter: movement/consumption, release position, screen changes, completion, deferred cleanup, window destruction and actual offscreen screen provider |
 | `core.portalstyle.component` | 23 | Production portal refresh/subscription logic with a controlled transport: initial snapshot, independent application palette, changes/deduplication, invalid data, in-flight changes, service failure/recovery, timed retry, destruction, reentrancy and worker-thread emission |
 | `core.styleagent.unit` | 18 | Theme/color state, duplicate suppression, paired signal-time values, hook lifetime, common subscriber snapshots, create/delete/unregister during notification, owner address reuse, nested updates and reentry during sampling |
-| `agents.unit` | 18 per enabled UI module | Widgets/Quick setup rejection, title replacement/reset, signal counts/arguments/state, all system button roles and invalid boundaries, exclusion toggles, destroyed registrations, surviving registrations after title destruction and registration before the first title |
+| `agents.unit` | 19 per enabled UI module | Widgets/Quick setup rejection (including null input in release builds and a destroyed host), title replacement/reset, signal counts/arguments/state, all system button roles and invalid boundaries, exclusion toggles, destroyed registrations, surviving registrations after title destruction and registration before the first title |
 | `quicksystembuttonarea.component` (Windows + Quick) | 27 | Scene bounds/center, item and ancestor transforms, visual reparenting, window changes, destruction/reentrancy, pre-native registration and real QML transform-list frame updates |
 | `quickgeometry.unit` (existing, Windows + Quick) | 12 | Quick transforms, precise containment, fractional bounds, singular transforms and dynamic geometry |
 | `systembuttons.qml` (Windows + Quick) | 11 | Real QML numeric-to-enum conversion, production module/agent setup, getter/setter boundaries, registration preservation, duplicate/removal signal counts and enum metadata |
 
-With Widgets, Quick and StyleAgent enabled on Windows there are 449 business cases
+With Widgets, Quick and StyleAgent enabled on Windows there are 451 business cases
 across fourteen CTest entries (ten unit suites and four component suites). The lifetime
 suite contributes eight cases, each in a child process.
 Core suites are available even

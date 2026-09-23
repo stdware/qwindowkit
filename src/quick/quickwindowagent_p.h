@@ -28,9 +28,6 @@ namespace QWK {
         QuickWindowAgentPrivate();
         ~QuickWindowAgentPrivate() override;
 
-        // Host
-        QQuickWindow *hostWindow{};
-
 #ifdef Q_OS_MAC
         QPointer<QQuickItem> systemButtonAreaItem;
         std::unique_ptr<QObject> systemButtonAreaItemHandler;

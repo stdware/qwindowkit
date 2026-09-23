@@ -217,7 +217,8 @@ namespace QWK {
     void QuickWindowAgentPrivate::setupWindows10BorderWorkaround() {
         auto ctx = context.get();
         if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
-            borderItem = new BorderItem(hostWindow->contentItem(), ctx);
+            auto window = static_cast<QQuickWindow *>(ctx->host());
+            borderItem = new BorderItem(window->contentItem(), ctx);
         }
     }
 #endif
