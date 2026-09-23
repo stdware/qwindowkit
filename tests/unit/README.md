@@ -92,6 +92,11 @@ private notifications are not exported, so its test compiles the unchanged produ
 `styleagent.cpp` and moc output with deterministic platform subscription substitutes;
 it does not link a second copy of StyleAgent from QWKCore.
 
+Production cursor snapshots and widget inheritance are separately covered by the
+[fallback cursor regressions](../fallbackcursor/README.md), using real agents and
+delegates on both the offscreen and Windows QPA. The recording delegate below
+does not establish cursor restoration correctness.
+
 The Qt fallback tests use the real `QtWindowContext` event filter with a recording
 delegate and recording system move/resize/menu boundaries. Events are dispatched
 synchronously; resize cases use windows shown only on the offscreen QPA. No desktop

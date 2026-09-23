@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtGui/QWindow>
+#include <QtGui/QCursor>
+#include <optional>
 
 #include <QWKCore/private/windowitemdelegate_p.h>
 #include <QWKQuick/qwkquickglobal.h>
@@ -47,6 +49,9 @@ namespace QWK {
         void setWindowVisible(QObject *host, bool visible) const override;
         void setGeometry(QObject *host, const QRect &rect) override;
         void bringWindowToTop(QObject *host) const override;
+
+    private:
+        mutable std::optional<QCursor> m_savedCursor;
     };
 
 }

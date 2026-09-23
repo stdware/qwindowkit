@@ -67,7 +67,7 @@ namespace QWK {
 #endif
     }
 
-    class QtWindowEventFilter : public SharedEventFilter {
+    class QtWindowEventFilter : public QObject, public SharedEventFilter {
     public:
         explicit QtWindowEventFilter(QtWindowContext *context);
         ~QtWindowEventFilter() override;
@@ -82,9 +82,14 @@ namespace QWK {
 
     protected:
         bool sharedEventFilter(QObject *object, QEvent *event) override;
+        bool eventFilter(QObject *object, QEvent *event) override;
 
     private:
+        void observeCursorHost(QObject *host, QWindow *window);
+        void restoreCursor();
         QtWindowContext *m_context;
+        QPointer<QObject> m_cursorHost;
+        QPointer<QWindow> m_cursorWindow;
         bool m_cursorShapeChanged;
         WindowStatus m_windowStatus;
     };
@@ -94,18 +99,85 @@ namespace QWK {
         m_context->installSharedEventFilter(this);
     }
 
-    QtWindowEventFilter::~QtWindowEventFilter() = default;
+    QtWindowEventFilter::~QtWindowEventFilter() {
+        restoreCursor();
+    }
+
+    void QtWindowEventFilter::restoreCursor() {
+        if (!m_cursorShapeChanged)
+            return;
+        m_cursorShapeChanged = false;
+        if (m_cursorHost)
+            m_context->delegate()->restoreCursorShape(m_cursorHost);
+    }
+
+    void QtWindowEventFilter::observeCursorHost(QObject *host, QWindow *window) {
+        if (m_cursorHost != host) {
+            m_cursorHost = host;
+            host->installEventFilter(this);
+        }
+        if (m_cursorWindow == window)
+            return;
+        if (m_cursorWindow)
+            disconnect(m_cursorWindow, nullptr, this, nullptr);
+        m_cursorWindow = window;
+        // QWindow constraints can change without a mouse or resize event. QWidget
+        // updates them without signals; that path is rechecked on the next mouse event.
+        connect(window, &QWindow::minimumWidthChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::minimumHeightChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::maximumWidthChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::maximumHeightChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::windowStateChanged, this, [this] {
+            m_windowStatus = Idle;
+            restoreCursor();
+        });
+    }
+
+    bool QtWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+        if (object == m_cursorHost) {
+            if (event->type() == QEvent::Destroy) {
+                // QWidget delivers Destroy before tearing down its cursor storage.
+                // Do not try to restore into a host whose destruction has begun.
+                m_cursorHost.clear();
+                m_cursorShapeChanged = false;
+                return false;
+            }
+            switch (event->type()) {
+                case QEvent::Leave:
+                case QEvent::Hide:
+                case QEvent::WindowStateChange: {
+                    const QPointer<QObject> receiver(object);
+                    restoreCursor();
+                    return !receiver;
+                }
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
 
     bool QtWindowEventFilter::sharedEventFilter(QObject *obj, QEvent *event) {
-        Q_UNUSED(obj)
-
         auto type = event->type();
+        if (type == QEvent::Leave || type == QEvent::Hide ||
+            type == QEvent::WindowStateChange || type == QEvent::WinIdChange) {
+            const QPointer<QtWindowEventFilter> self(this);
+            const QPointer<QObject> receiver(obj);
+            if (type != QEvent::Leave)
+                m_windowStatus = Idle;
+            restoreCursor();
+            return !self || !receiver;
+        }
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
         }
         auto host = m_context->host();
         auto window = m_context->window();
         auto delegate = m_context->delegate();
+        if (!host || !window)
+            return false;
+        const QPointer<QtWindowEventFilter> self(this);
+        const QPointer<QObject> receiver(host);
         auto me = static_cast<const QMouseEvent *>(event);
         const bool widthFixed = m_context->isHostWidthFixed();
         const bool heightFixed = m_context->isHostHeightFixed();
@@ -120,13 +192,11 @@ namespace QWK {
         const auto& updateCursorShape{ [&](){
             const Qt::CursorShape shape = calculateCursorShape(edges);
             if (shape == Qt::ArrowCursor) {
-                if (m_cursorShapeChanged) {
-                    delegate->restoreCursorShape(host);
-                    m_cursorShapeChanged = false;
-                }
+                restoreCursor();
             } else {
-                delegate->setCursorShape(host, shape);
+                observeCursorHost(host, window);
                 m_cursorShapeChanged = true;
+                delegate->setCursorShape(host, shape);
             }
         } };
 
@@ -138,6 +208,8 @@ namespace QWK {
                 switch (me->button()) {
                     case Qt::LeftButton: {
                         updateCursorShape();
+                        if (!self || !receiver)
+                            return true;
                         if (edges != Qt::Edges()) {
                             m_context->systemResize(edges);
                             m_windowStatus = Resizing;
@@ -185,6 +257,9 @@ namespace QWK {
                     }
                 }
                 m_windowStatus = Idle;
+                updateCursorShape();
+                if (!self || !receiver)
+                    return true;
                 break;
             }
 
@@ -193,6 +268,8 @@ namespace QWK {
                     case Idle:
                     case WaitingRelease: {
                         updateCursorShape();
+                        if (!self || !receiver)
+                            return true;
                         break;
                     }
                     case PreparingMove: {

@@ -194,7 +194,8 @@ private Q_SLOTS:
 #else
         QCOMPARE(f.delegate->cursor, mode == 0 ? Qt::SizeVerCursor :
                                      mode == 1 ? Qt::SizeHorCursor : Qt::CrossCursor);
-        QCOMPARE(f.delegate->restores, mode < 2 ? 0 : 1);
+        // Changing constraints/state releases ownership before the next mouse event.
+        QCOMPARE(f.delegate->restores, 1);
 #endif
         f.mouse(QEvent::MouseButtonRelease, {150, 100}, Qt::LeftButton);
         f.mouse(QEvent::MouseMove, {150, 100}, Qt::NoButton);
