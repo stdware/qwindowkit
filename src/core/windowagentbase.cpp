@@ -14,9 +14,10 @@
 #elif defined(Q_OS_MAC)
 #  include "cocoawindowcontext_p.h"
 #elif defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#  include "qwindowkit_linux.h"
-#  include "linuxwaylandcontext_p.h"
-#  include "linuxx11context_p.h"
+#  include "qwindowkit_x11.h"
+#  include "qwindowkit_wayland.h"
+#  include "waylandcontext_p.h"
+#  include "x11context_p.h"
 #endif
 #include "qtwindowcontext_p.h"
 
@@ -45,9 +46,6 @@ namespace QWK {
 
     WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 
-    void WindowAgentBasePrivate::init() {
-    }
-
     AbstractWindowContext *WindowAgentBasePrivate::createContext() const {
         if (windowContextFactoryMethod) {
             return windowContextFactoryMethod();
@@ -60,11 +58,13 @@ namespace QWK {
 #  elif defined(Q_OS_MAC)
         return new CocoaWindowContext();
 #  elif defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#    ifdef QWK_HAS_WAYLAND_CONTEXT
         if (Private::isWaylandPlatform() && Private::waylandAPI().isValid()) {
-            return new LinuxWaylandContext();
+            return new WaylandContext();
         }
+#    endif
         if (Private::isX11Platform() && Private::x11API().isValid()) {
-            return new LinuxX11Context();
+            return new X11Context();
         }
 #  endif
         // Final fallback, no native features.
@@ -94,7 +94,32 @@ namespace QWK {
     }
 
     /*!
-        Sets the platform-related attribute for the window. Available attributes:
+        Sets the platform-related attribute for the window.
+
+        With a native window, changes are cached only after the platform accepts
+        them. Without one, values are cached for replay when the window is created. A successful
+        reentrant write or removal of the same key takes precedence over an outer
+        call; that outer call returns false. A rejected inner call leaves the outer
+        call eligible to commit. Changes to other keys are independent except
+        Windows material attributes sharing native effects and frame margins.
+
+        If the context is destroyed or the native window changes during the call,
+        the interrupted call returns false without committing its cached value.
+        This does not roll back native side effects already performed. On window
+        recreation, cached attributes are replayed in successful-write order;
+        entries changed by a callback are not replayed again from the old snapshot.
+        Unchanged entries rejected during replay are removed from the cache.
+
+        Available attributes:
+
+        Windows effect updates return false when a required platform call fails.
+        Mica and blur restore the last successfully applied QWK frame margins if
+        their effect setter fails. A failed restoration emits a warning; the cache
+        retains its last successful value, while native state may differ. Retry an
+        explicit value to repair it. Successful nested material updates, or partial
+        state left by a failed nested rollback, take precedence over older material
+        updates. A rejected inner call with restored state leaves the outer eligible.
+        Removing an absent cached value is a no-op, not a native-state reset.
 
         On Windows,
             \li \c no-system-menu: Specify a boolean value to disable the system menu.
@@ -104,7 +129,11 @@ namespace QWK {
                    enabled by default on Windows 10 if the system borders config is enabled. This
                    attribute is available on Windows 10 or later.
             \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
-                   this attribute is only available on Windows 11.
+                   this attribute is only available on Windows 11. Builds before 22621 use
+                   the private ACCENT_POLICY compatibility path; newer builds use DWM's
+                   system backdrop API. Failed platform operations return false. If rollback
+                   also fails, a warning is emitted and the last successful cached value
+                   is retained; retry an explicit boolean to repair the platform state.
             \li \c mica: Specify a boolean value to enable or disable mica material,
                    this attribute is only available on Windows 11.
             \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
@@ -143,7 +172,8 @@ namespace QWK {
     }
 
     /*!
-        Shows the system menu, it's only implemented on Windows.
+        Shows the system menu at the global position \a pos, in Qt device-independent
+        coordinates, on supported platforms.
     */
     void WindowAgentBase::showSystemMenu(const QPoint &pos) {
         Q_D(WindowAgentBase);
@@ -155,7 +185,7 @@ namespace QWK {
     */
     void WindowAgentBase::centralize() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::CentralizeHook, nullptr);
+        d->context->centralizeWindow();
     }
 
     /*!
@@ -163,7 +193,7 @@ namespace QWK {
     */
     void WindowAgentBase::raise() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::RaiseWindowHook, nullptr);
+        d->context->raiseWindow();
     }
 
     /*!
@@ -172,8 +202,6 @@ namespace QWK {
     WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)
         : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
-
-        d.init();
     }
 
 }

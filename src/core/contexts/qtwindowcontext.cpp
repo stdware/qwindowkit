@@ -13,46 +13,28 @@ namespace QWK {
 
     static constexpr const quint8 kDefaultResizeBorderThickness = 8;
 
-    static Qt::CursorShape calculateCursorShape(const QWindow *window, const QPoint &pos) {
-#ifdef Q_OS_MACOS
-        Q_UNUSED(window);
-        Q_UNUSED(pos);
-        return Qt::ArrowCursor;
-#else
-        Q_ASSERT(window);
-        if (!window) {
-            return Qt::ArrowCursor;
+    static Qt::CursorShape calculateCursorShape(Qt::Edges edges) {
+        const bool horizontal = edges & (Qt::LeftEdge | Qt::RightEdge);
+        const bool vertical = edges & (Qt::TopEdge | Qt::BottomEdge);
+        if (horizontal && vertical) {
+            return edges == (Qt::LeftEdge | Qt::TopEdge) ||
+                           edges == (Qt::RightEdge | Qt::BottomEdge)
+                       ? Qt::SizeFDiagCursor : Qt::SizeBDiagCursor;
         }
-        if (window->visibility() != QWindow::Windowed) {
-            return Qt::ArrowCursor;
-        }
-        const int x = pos.x();
-        const int y = pos.y();
-        const int w = window->width();
-        const int h = window->height();
-        if (((x < kDefaultResizeBorderThickness) && (y < kDefaultResizeBorderThickness)) ||
-            ((x >= (w - kDefaultResizeBorderThickness)) &&
-             (y >= (h - kDefaultResizeBorderThickness)))) {
-            return Qt::SizeFDiagCursor;
-        }
-        if (((x >= (w - kDefaultResizeBorderThickness)) && (y < kDefaultResizeBorderThickness)) ||
-            ((x < kDefaultResizeBorderThickness) && (y >= (h - kDefaultResizeBorderThickness)))) {
-            return Qt::SizeBDiagCursor;
-        }
-        if ((x < kDefaultResizeBorderThickness) || (x >= (w - kDefaultResizeBorderThickness))) {
+        if (horizontal)
             return Qt::SizeHorCursor;
-        }
-        if ((y < kDefaultResizeBorderThickness) || (y >= (h - kDefaultResizeBorderThickness))) {
+        if (vertical)
             return Qt::SizeVerCursor;
-        }
         return Qt::ArrowCursor;
-#endif
     }
 
-    static inline Qt::Edges calculateWindowEdges(const QWindow *window, const QPoint &pos) {
+    static inline Qt::Edges calculateWindowEdges(const QWindow *window, const QPoint &pos,
+                                                  bool widthFixed, bool heightFixed) {
 #ifdef Q_OS_MACOS
         Q_UNUSED(window);
         Q_UNUSED(pos);
+        Q_UNUSED(widthFixed);
+        Q_UNUSED(heightFixed);
         return {};
 #else
         Q_ASSERT(window);
@@ -77,13 +59,17 @@ namespace QWK {
         if (y >= (window->height() - kDefaultResizeBorderThickness)) {
             edges |= Qt::BottomEdge;
         }
+        if (widthFixed)
+            edges &= ~(Qt::LeftEdge | Qt::RightEdge);
+        if (heightFixed)
+            edges &= ~(Qt::TopEdge | Qt::BottomEdge);
         return edges;
 #endif
     }
 
-    class QtWindowEventFilter : public SharedEventFilter {
+    class QtWindowEventFilter : public QObject, public SharedEventFilter {
     public:
-        explicit QtWindowEventFilter(AbstractWindowContext *context);
+        explicit QtWindowEventFilter(QtWindowContext *context);
         ~QtWindowEventFilter() override;
 
         enum WindowStatus {
@@ -96,51 +82,121 @@ namespace QWK {
 
     protected:
         bool sharedEventFilter(QObject *object, QEvent *event) override;
+        bool eventFilter(QObject *object, QEvent *event) override;
 
     private:
-        AbstractWindowContext *m_context;
+        void observeCursorHost(QObject *host, QWindow *window);
+        void restoreCursor();
+        QtWindowContext *m_context;
+        QPointer<QObject> m_cursorHost;
+        QPointer<QWindow> m_cursorWindow;
         bool m_cursorShapeChanged;
         WindowStatus m_windowStatus;
     };
 
-    QtWindowEventFilter::QtWindowEventFilter(AbstractWindowContext *context)
+    QtWindowEventFilter::QtWindowEventFilter(QtWindowContext *context)
         : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
         m_context->installSharedEventFilter(this);
     }
 
-    QtWindowEventFilter::~QtWindowEventFilter() = default;
+    QtWindowEventFilter::~QtWindowEventFilter() {
+        restoreCursor();
+    }
+
+    void QtWindowEventFilter::restoreCursor() {
+        if (!m_cursorShapeChanged)
+            return;
+        m_cursorShapeChanged = false;
+        if (m_cursorHost)
+            m_context->delegate()->restoreCursorShape(m_cursorHost);
+    }
+
+    void QtWindowEventFilter::observeCursorHost(QObject *host, QWindow *window) {
+        if (m_cursorHost != host) {
+            m_cursorHost = host;
+            host->installEventFilter(this);
+        }
+        if (m_cursorWindow == window)
+            return;
+        if (m_cursorWindow)
+            disconnect(m_cursorWindow, nullptr, this, nullptr);
+        m_cursorWindow = window;
+        // QWindow constraints can change without a mouse or resize event. QWidget
+        // updates them without signals; that path is rechecked on the next mouse event.
+        connect(window, &QWindow::minimumWidthChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::minimumHeightChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::maximumWidthChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::maximumHeightChanged, this, [this] { restoreCursor(); });
+        connect(window, &QWindow::windowStateChanged, this, [this] {
+            m_windowStatus = Idle;
+            restoreCursor();
+        });
+    }
+
+    bool QtWindowEventFilter::eventFilter(QObject *object, QEvent *event) {
+        if (object == m_cursorHost) {
+            if (event->type() == QEvent::Destroy) {
+                // QWidget delivers Destroy before tearing down its cursor storage.
+                // Do not try to restore into a host whose destruction has begun.
+                m_cursorHost.clear();
+                m_cursorShapeChanged = false;
+                return false;
+            }
+            switch (event->type()) {
+                case QEvent::Leave:
+                case QEvent::Hide:
+                case QEvent::WindowStateChange: {
+                    const QPointer<QObject> receiver(object);
+                    restoreCursor();
+                    return !receiver;
+                }
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
 
     bool QtWindowEventFilter::sharedEventFilter(QObject *obj, QEvent *event) {
-        Q_UNUSED(obj)
-
         auto type = event->type();
+        if (type == QEvent::Leave || type == QEvent::Hide ||
+            type == QEvent::WindowStateChange || type == QEvent::WinIdChange) {
+            const QPointer<QtWindowEventFilter> self(this);
+            const QPointer<QObject> receiver(obj);
+            if (type != QEvent::Leave)
+                m_windowStatus = Idle;
+            restoreCursor();
+            return !self || !receiver;
+        }
         if (type < QEvent::MouseButtonPress || type > QEvent::MouseMove) {
             return false;
         }
         auto host = m_context->host();
         auto window = m_context->window();
         auto delegate = m_context->delegate();
+        if (!host || !window)
+            return false;
+        const QPointer<QtWindowEventFilter> self(this);
+        const QPointer<QObject> receiver(host);
         auto me = static_cast<const QMouseEvent *>(event);
-        bool fixedSize = m_context->isHostSizeFixed();
+        const bool widthFixed = m_context->isHostWidthFixed();
+        const bool heightFixed = m_context->isHostHeightFixed();
+        const bool fixedSize = widthFixed && heightFixed;
 
         QPoint scenePos = getMouseEventScenePos(me);
         QPoint globalPos = getMouseEventGlobalPos(me);
 
         bool inTitleBar = m_context->isInTitleBarDraggableArea(scenePos);
 
+        const Qt::Edges edges = calculateWindowEdges(window, scenePos, widthFixed, heightFixed);
         const auto& updateCursorShape{ [&](){
-            if (fixedSize) {
-                return;
-            }
-            const Qt::CursorShape shape = calculateCursorShape(window, scenePos);
+            const Qt::CursorShape shape = calculateCursorShape(edges);
             if (shape == Qt::ArrowCursor) {
-                if (m_cursorShapeChanged) {
-                    delegate->restoreCursorShape(host);
-                    m_cursorShapeChanged = false;
-                }
+                restoreCursor();
             } else {
-                delegate->setCursorShape(host, shape);
+                observeCursorHost(host, window);
                 m_cursorShapeChanged = true;
+                delegate->setCursorShape(host, shape);
             }
         } };
 
@@ -151,14 +207,14 @@ namespace QWK {
                 m_windowStatus = WaitingRelease;
                 switch (me->button()) {
                     case Qt::LeftButton: {
-                        if (!fixedSize) {
-                            Qt::Edges edges = calculateWindowEdges(window, scenePos);
-                            if (edges != Qt::Edges()) {
-                                startSystemResize(window, edges);
-                                m_windowStatus = Resizing;
-                                handled = true;
-                                break;
-                            }
+                        updateCursorShape();
+                        if (!self || !receiver)
+                            return true;
+                        if (edges != Qt::Edges()) {
+                            m_context->systemResize(edges);
+                            m_windowStatus = Resizing;
+                            handled = true;
+                            break;
                         }
                         if (inTitleBar) {
                             // If we call startSystemMove() now but release the mouse without actual
@@ -201,6 +257,9 @@ namespace QWK {
                     }
                 }
                 m_windowStatus = Idle;
+                updateCursorShape();
+                if (!self || !receiver)
+                    return true;
                 break;
             }
 
@@ -209,10 +268,12 @@ namespace QWK {
                     case Idle:
                     case WaitingRelease: {
                         updateCursorShape();
+                        if (!self || !receiver)
+                            return true;
                         break;
                     }
                     case PreparingMove: {
-                        startSystemMove(window);
+                        m_context->systemMove();
                         m_windowStatus = Moving;
                         handled = true;
                         break;
@@ -261,12 +322,16 @@ namespace QWK {
 
     QtWindowContext::~QtWindowContext() = default;
 
-    QString QtWindowContext::key() const {
-        return QStringLiteral("qt");
+    void QtWindowContext::systemMove() {
+        startSystemMove(window());
     }
 
-    void QtWindowContext::virtual_hook(int id, void *data) {
-        AbstractWindowContext::virtual_hook(id, data);
+    void QtWindowContext::systemResize(Qt::Edges edges) {
+        startSystemResize(window(), edges);
+    }
+
+    QString QtWindowContext::key() const {
+        return QStringLiteral("qt");
     }
 
     void QtWindowContext::winIdChanged(WId winId, WId oldWinId) {

@@ -97,18 +97,25 @@ jobs:
       # The build system tests register themselves only where the configure found the tool they
       # drive, which is the one way this job could go green while covering less than it says. A
       # missing qmake or nmake is meant to be a skip on a developer's machine and a failure here.
-      - name: Check that the consumer tests registered
+      # The fast unit suites are also required, so accidental conditional exclusions fail CI.
+      - name: Check that the required tests registered
         shell: bash
         run: |
-          expected="buildsystems.cmake buildsystems.qmake"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit"
+          for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
+            expected="$expected buildsystems.components.$scenario"
+          done
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            expected="$expected buildsystems.msbuild"
+            expected="$expected buildsystems.msbuild quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
           fi
 
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
           for name in $expected; do
-            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
-              echo "$name did not register, so the tool it drives was not found here"
+            if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required test $name did not register"
               exit 1
             fi
           done
@@ -119,7 +126,76 @@ jobs:
       # --no-tests=error is not optional. ctest exits 0 when it finds nothing to run, and every
       # test in this suite registers itself conditionally.
       - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        timeout-minutes: 3
+        run: ctest --test-dir build -LE reconfigure --output-on-failure --no-tests=error
+
+      - name: Configure static package consumer regressions
+        if: matrix.platform == 'windows-msvc'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -G Ninja -S . -B build-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQWINDOWKIT_BUILD_STATIC=ON \
+            -DQWINDOWKIT_BUILD_WIDGETS=ON \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON
+          expected="buildsystems.msbuild buildsystems.qmake core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.portalstyle.component quicksystembuttonarea.component systembuttons.qml windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
+          for name in $expected; do
+            if ! ctest --test-dir build-static -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required static test $name did not register"
+              exit 1
+            fi
+          done
+
+      - name: Build static configuration
+        if: matrix.platform == 'windows-msvc'
+        run: cmake --build build-static
+
+      - name: Test static units and package consumers
+        if: matrix.platform == 'windows-msvc'
+        timeout-minutes: 2
+        run: ctest --test-dir build-static -R "(\.unit$|^core.windowmove.component$|^core.portalstyle.component$|^quicksystembuttonarea.component$|^systembuttons.qml$|^windows.borderattributes$|^windows.acrylic$|^windows.effects$|^windows.titlebar$|^windows.styleagent$|^fallbackcursor\.|^testpolicy.timeouts$|^buildsystems.msbuild$|^buildsystems.qmake$|^buildsystems.qtmajor$|^buildsystems.components\.)" --output-on-failure --no-tests=error
+
+      - name: Test shared qmake reconfiguration
+        timeout-minutes: 4
+        run: ctest --test-dir build -L reconfigure --output-on-failure --no-tests=error
+
+      - name: Test static qmake reconfiguration
+        if: matrix.platform == 'windows-msvc'
+        timeout-minutes: 4
+        run: ctest --test-dir build-static -L reconfigure --output-on-failure --no-tests=error
+
+      # Single-axis caption hit testing has a separate compile-time path without
+      # system borders. Exercise it with real Widgets and Quick HWNDs as well.
+      - name: Configure without system borders
+        if: matrix.platform == 'windows-msvc'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -G Ninja -S . -B build-no-system-borders \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DQWINDOWKIT_BUILD_WIDGETS=ON \
+            -DQWINDOWKIT_BUILD_QUICK=ON \
+            -DQWINDOWKIT_BUILD_TESTS=ON \
+            -DQWINDOWKIT_INSTALL=OFF \
+            -DQWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS=OFF
+
+      - name: Build native hit-test regression without system borders
+        if: matrix.platform == 'windows-msvc'
+        run: cmake --build build-no-system-borders --target tst_windowhittest
+
+      - name: Test native hit testing without system borders
+        if: matrix.platform == 'windows-msvc'
+        timeout-minutes: 1
+        run: ctest --test-dir build-no-system-borders -R "^windows.hittest$" --output-on-failure --no-tests=error
 
   # MinGW is a job of its own because it wants msys2 rather than the toolchain the matrix above
   # sets up with an environment variable, and because Qt comes from the same place as the compiler
@@ -162,12 +238,19 @@ jobs:
 
       # The same question the matrix jobs ask. MSBuild is not part of this toolchain, so only the
       # qmake half is expected here.
-      - name: Check that the consumer tests registered
+      - name: Check that the required tests registered
         shell: msys2 {0}
         run: |
-          for name in buildsystems.cmake buildsystems.qmake; do
-            if ! ctest --test-dir build -N -R "$name" | grep -q "$name"; then
-              echo "$name did not register, so the tool it drives was not found here"
+          expected="testpolicy.timeouts buildsystems.cmake buildsystems.qmake buildsystems.qtmajor core.eventdispatch.unit core.dispatchlifetime.unit core.objecteventfilters.unit core.windowcontext.unit core.qtwindowcontext.unit core.windowmovegeometry.unit core.windowmove.component core.styleagent.unit core.portalstyle.component agents.unit quickgeometry.unit quicksystembuttonarea.component systembuttons.qml widgetborder.lifetime windows.windowproc windows.windowlifetime windows.borderattributes windows.acrylic windows.effects windows.titlebar windows.styleagent core.windowsregistry.unit fallbackcursor.offscreen fallbackcursor.windows"
+          for scenario in present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing; do
+            expected="$expected buildsystems.components.$scenario"
+          done
+          for stage in prepare build_core build_widgets build_quick all core widgets quick restored; do
+            expected="$expected buildsystems.qmake.reconfigure.$stage"
+          done
+          for name in $expected; do
+            if ! ctest --test-dir build -N -R "^${name}$" | grep -Fq "$name"; then
+              echo "Required test $name did not register"
               exit 1
             fi
           done
@@ -177,5 +260,11 @@ jobs:
         run: cmake --build build
 
       - name: Test
+        timeout-minutes: 3
         shell: msys2 {0}
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        run: ctest --test-dir build -LE reconfigure --output-on-failure --no-tests=error
+
+      - name: Test qmake reconfiguration
+        timeout-minutes: 4
+        shell: msys2 {0}
+        run: ctest --test-dir build -L reconfigure --output-on-failure --no-tests=error

@@ -6,7 +6,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QDateTime>
-#include <QtGui/QPainter>
+#include <QtGui/QRegion>
 
 #include <QtCore/private/qcoreapplication_p.h>
 
@@ -44,14 +44,13 @@ namespace QWK {
     public:
         explicit WidgetBorderHandler(QWidget *widget, AbstractWindowContext *ctx,
                                      QObject *parent = nullptr)
-            : QObject(parent), Windows10BorderHandler(ctx), widget(widget) {
+            : QObject(parent), Windows10BorderHandler(ctx, this), widget(widget) {
             widget->installEventFilter(this);
 
             // First update
             if (ctx->windowId()) {
                 setupNecessaryAttributes();
             }
-            WidgetBorderHandler::updateGeometry();
         }
 
         void updateGeometry() override {
@@ -62,42 +61,30 @@ namespace QWK {
             // integer. So far we haven't found a perfect solution, so just don't
             // set any margins. In theory the window content will only be covered
             // by 1px or so, it should not be a serious issue in the real world.
-            //
-            // widget->setContentsMargins(isNormalWindow() ? QMargins(0, borderThickness(), 0, 0)
-            //                                             : QMargins());
         }
 
         bool isWindowActive() const override {
             return widget->isActiveWindow();
         }
 
-        inline void forwardEventToWidgetAndDraw(QWidget *w, QEvent *event) {
+        void forwardEventAndDraw(QObject *receiver, QObject *currentFilter, QEvent *event) {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
-            // Deliver the event
-            if (!forwardObjectEventFilters(this, w, event)) {
-                // Let the widget paint first
-                std::ignore = static_cast<QObject *>(w)->event(event);
+            const QPointer<QObject> handlerGuard(this);
+            const QPointer<QObject> receiverGuard(receiver);
+            const QPointer<AbstractWindowContext> contextGuard(ctx);
+            // Filters may destroy the window or just its agent (and this handler).
+            // A surviving receiver still needs its event even if the agent is gone.
+            if (!forwardObjectEventFilters(currentFilter, receiver, event) && receiverGuard) {
+                // Let Qt paint and flush first.
+                std::ignore = receiver->event(event);
                 QCoreApplicationPrivate::setEventSpontaneous(event, false);
             }
 
-            // Due to the timer or user action, Qt will repaint some regions spontaneously,
-            // even if there is no WM_PAINT message, we must wait for it to finish painting
-            // and then update the top border area.
-            drawBorderNative();
-        }
-
-        inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
-            // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
-            // Deliver the event
-            if (!forwardObjectEventFilters(ctx, window, event)) {
-                // Let Qt paint first
-                std::ignore = static_cast<QObject *>(window)->event(event);
-                QCoreApplicationPrivate::setEventSpontaneous(event, false);
+            // Both native Expose and spontaneous UpdateRequest must finish painting
+            // before the top border is drawn.
+            if (handlerGuard && receiverGuard && contextGuard) {
+                contextGuard->drawWindows10Border();
             }
-
-            // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
-            // must wait for it to finish painting before drawing this top border area.
-            drawBorderNative();
         }
 
     protected:
@@ -125,7 +112,7 @@ namespace QWK {
 #endif
                     auto window = widget->windowHandle();
                     if (window && window->isExposed() && isNormalWindow() && exposeRegionValid) {
-                        forwardEventToWindowAndDraw(window, event);
+                        forwardEventAndDraw(window, ctx, event);
                         return true;
                     }
                     break;
@@ -143,13 +130,8 @@ namespace QWK {
                 case QEvent::UpdateRequest: {
                     if (!isNormalWindow())
                         break;
-                    forwardEventToWidgetAndDraw(widget, event);
+                    forwardEventAndDraw(widget, this, event);
                     return true;
-                }
-
-                case QEvent::WindowStateChange: {
-                    updateGeometry();
-                    break;
                 }
 
                 case QEvent::WindowActivate:
@@ -171,7 +153,7 @@ namespace QWK {
         // Install painting hook
         auto ctx = context.get();
         if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
-            borderHandler = std::make_unique<WidgetBorderHandler>(hostWidget, ctx);
+            borderHandler = std::make_unique<WidgetBorderHandler>(static_cast<QWidget *>(ctx->host()), ctx);
         }
     }
 #endif

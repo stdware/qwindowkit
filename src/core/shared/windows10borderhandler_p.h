@@ -15,7 +15,7 @@
 //
 
 #include <QtGui/QWindow>
-#include <QtGui/QMouseEvent>
+#include <QtCore/QEvent>
 
 #include <QWKCore/qwindowkit_windows.h>
 #include <QWKCore/private/qwkglobal_p.h>
@@ -25,21 +25,30 @@ namespace QWK {
 
     class Windows10BorderHandler : public NativeEventFilter, public SharedEventFilter {
     public:
-        inline Windows10BorderHandler(AbstractWindowContext *ctx) : ctx(ctx) {
+        inline Windows10BorderHandler(AbstractWindowContext *ctx, QObject *owner)
+            : ctx(ctx), owner(owner) {
             ctx->installNativeEventFilter(this);
             ctx->installSharedEventFilter(this);
         }
 
         inline void setupNecessaryAttributes() {
-            if (!isWin11OrGreater()) {
+            const auto guard = owner;
+            const QPointer<AbstractWindowContext> context(ctx);
+            const auto windowId = ctx->windowId();
+            if (!ctx->windowAttribute(QStringLiteral("extra-margins")).isValid()) {
                 // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L940
                 // Must extend top frame to client area
                 static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
                 ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
             }
+            if (!guard || !context || context->windowId() != windowId)
+                return;
 
             // Enable dark mode by default, otherwise the system borders are white
-            ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+            if (!ctx->windowAttribute(QStringLiteral("dark-mode")).isValid())
+                ctx->setWindowAttribute(QStringLiteral("dark-mode"), true);
+            if (guard && context && context->windowId() == windowId)
+                updateExtraMargins(isWindowActive());
         }
 
         inline bool isNormalWindow() const {
@@ -47,44 +56,10 @@ namespace QWK {
                      (Qt::WindowMinimized | Qt::WindowMaximized | Qt::WindowFullScreen));
         }
 
-        inline void drawBorderEmulated(QPainter *painter, const QRect &rect) {
-            QRegion region(rect);
-            void *args[] = {
-                painter,
-                const_cast<QRect *>(&rect),
-                &region,
-            };
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Emulated, args);
-        }
-
-        inline void drawBorderNative() {
-            ctx->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native, nullptr);
-        }
-
-        inline int borderThickness() const {
-            return ctx->windowAttribute(QStringLiteral("border-thickness")).toInt();
-        }
-
         inline void updateExtraMargins(bool windowActive) {
-            if (isWin11OrGreater()) {
-                return;
-            }
-
-            // ### FIXME: transparent seam
-            if (windowActive) {
-                // Restore margins when the window is active
-                static QVariant defaultMargins = QVariant::fromValue(QMargins(0, 1, 0, 0));
-                ctx->setWindowAttribute(QStringLiteral("extra-margins"), defaultMargins);
-                return;
-            }
-
-            // https://github.com/microsoft/terminal/blob/71a6f26e6ece656084e87de1a528c4a8072eeabd/src/cascadia/WindowsTerminal/NonClientIslandWindow.cpp#L904
-            // When the window is inactive, there is a transparency bug in the top
-            // border, and we need to extend the non-client area to the whole title
-            // bar.
-            QRect frame = ctx->windowAttribute(QStringLiteral("window-rect")).toRect();
-            QMargins margins{0, -frame.top(), 0, 0};
-            ctx->setWindowAttribute(QStringLiteral("extra-margins"), QVariant::fromValue(margins));
+            // This handler is installed only when win10-border-needed is true.
+            // Activation is platform state, not a new application attribute value.
+            ctx->setWindows10BorderActive(windowActive);
         }
 
         virtual void updateGeometry() = 0;
@@ -101,8 +76,11 @@ namespace QWK {
             const auto msg = static_cast<const MSG *>(message);
             switch (msg->message) {
                 case WM_DPICHANGED: {
+                    const auto guard = owner;
+                    const QPointer<AbstractWindowContext> context(ctx);
                     updateGeometry();
-                    updateExtraMargins(isWindowActive());
+                    if (guard && context)
+                        updateExtraMargins(isWindowActive());
                     break;
                 }
 
@@ -136,8 +114,11 @@ namespace QWK {
 
             if (event->type() == QEvent::WinIdChange) {
                 if (ctx->windowId()) {
+                    const auto guard = owner;
+                    const QPointer<AbstractWindowContext> context(ctx);
                     setupNecessaryAttributes();
-                    updateGeometry();
+                    if (guard && context)
+                        updateGeometry();
                 }
             }
             return false;
@@ -145,6 +126,7 @@ namespace QWK {
 
     protected:
         AbstractWindowContext *ctx;
+        QPointer<QObject> owner;
     };
 
 }

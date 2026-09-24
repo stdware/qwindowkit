@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtGui/QWindow>
+#include <QtGui/QCursor>
+#include <optional>
 
 #include <QWKCore/private/windowitemdelegate_p.h>
 #include <QWKQuick/qwkquickglobal.h>
@@ -28,10 +30,10 @@ namespace QWK {
         ~QuickItemDelegate() override;
 
     public:
-        QWindow *window(const QObject *obj) const override;
         bool isEnabled(const QObject *obj) const override;
         bool isVisible(const QObject *obj) const override;
         QRect mapGeometryToScene(const QObject *obj) const override;
+        bool containsScenePoint(const QObject *obj, const QPoint &pos) const override;
 
         QWindow *hostWindow(const QObject *host) const override;
         bool isWindowActive(const QObject *host) const override;
@@ -46,6 +48,9 @@ namespace QWK {
         void setWindowVisible(QObject *host, bool visible) const override;
         void setGeometry(QObject *host, const QRect &rect) override;
         void bringWindowToTop(QObject *host) const override;
+
+    private:
+        mutable std::optional<QCursor> m_savedCursor;
     };
 
 }

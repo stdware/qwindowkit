@@ -9,6 +9,9 @@
 #include <QtQuick/private/qquickanchors_p.h>
 
 #include "quickitemdelegate_p.h"
+#ifdef Q_OS_MAC
+#  include "quicksystembuttonarea_p.h"
+#endif
 
 namespace QWK {
 
@@ -22,9 +25,12 @@ namespace QWK {
 
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() = default;
 
-    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() = default;
-
-    void QuickWindowAgentPrivate::init() {
+    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() {
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+        // The window may have deleted the item already. Otherwise retire its filters and
+        // render callbacks before the base class destroys the context they depend on.
+        delete borderItem.data();
+#endif
     }
 
     QuickWindowAgent::QuickWindowAgent(QObject *parent)
@@ -40,12 +46,11 @@ namespace QWK {
         }
 
         Q_D(QuickWindowAgent);
-        if (d->hostWindow) {
+        if (d->context) {
             return false;
         }
 
         d->setup(window, new QuickItemDelegate());
-        d->hostWindow = window;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
@@ -101,7 +106,6 @@ namespace QWK {
     */
     QuickWindowAgent::QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
-        d.init();
     }
 
 }

@@ -16,55 +16,21 @@ namespace QWK {
     SharedEventDispatcher::SharedEventDispatcher() = default;
 
     SharedEventDispatcher::~SharedEventDispatcher() {
-        for (const auto &observer : std::as_const(m_sharedEventFilters)) {
-            if (!observer)
-                continue;
-            observer->m_sharedDispatcher = nullptr;
-        }
+        m_sharedDispatch.detach(&SharedEventFilter::m_sharedDispatcher);
     }
 
     bool SharedEventDispatcher::sharedDispatch(QObject *obj, QEvent *event) {
-        // A callback is free to install or remove filters, including itself, and it may even
-        // re-enter this function because handling an event can deliver more events. Iterate by
-        // index and re-read the size on every step, and rely on removals leaving a null
-        // tombstone behind so that the indexes of the outer dispatches stay valid. This mirrors
-        // how QObject's event filter list is walked.
-        ++m_sharedDispatchDepth;
-        bool filtered = false;
-        for (qsizetype i = 0; i < m_sharedEventFilters.size(); ++i) {
-            SharedEventFilter *ef = m_sharedEventFilters.at(i);
-            if (!ef)
-                continue;
-            if (ef->sharedEventFilter(obj, event)) {
-                filtered = true;
-                break;
-            }
-        }
-        if (--m_sharedDispatchDepth == 0) {
-            m_sharedEventFilters.removeAll(nullptr);
-        }
-        return filtered;
+        return m_sharedDispatch.dispatch([obj, event](SharedEventFilter *filter) {
+            return filter->sharedEventFilter(obj, event);
+        });
     }
 
     void SharedEventDispatcher::installSharedEventFilter(SharedEventFilter *filter) {
-        if (!filter || filter->m_sharedDispatcher)
-            return;
-
-        m_sharedEventFilters.append(filter);
-        filter->m_sharedDispatcher = this;
+        m_sharedDispatch.install(filter, this, &SharedEventFilter::m_sharedDispatcher);
     }
 
     void SharedEventDispatcher::removeSharedEventFilter(SharedEventFilter *filter) {
-        const qsizetype index = m_sharedEventFilters.indexOf(filter);
-        if (index < 0) {
-            return;
-        }
-        if (m_sharedDispatchDepth > 0) {
-            m_sharedEventFilters[index] = nullptr;
-        } else {
-            m_sharedEventFilters.removeAt(index);
-        }
-        filter->m_sharedDispatcher = nullptr;
+        m_sharedDispatch.remove(filter, &SharedEventFilter::m_sharedDispatcher);
     }
 
 }

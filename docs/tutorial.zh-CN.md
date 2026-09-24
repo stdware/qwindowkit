@@ -311,6 +311,14 @@ connect(closeButton, &QPushButton::clicked, window, &QWidget::close);
 setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 ```
 
+在 macOS 和 Qt fallback 上，QWindowKit 自定义标题栏仅在设置了
+`Qt::WindowMaximizeButtonHint`、窗口不是固定尺寸或全屏、且指针位于标题栏可拖拽区域时，
+通过左键双击切换最大化/普通状态。清除该标志也会禁止通过双击还原已最大化的窗口。
+Quick 窗口的 `flags` 遵循相同规则。应用代码或自定义按钮处理函数仍可直接修改窗口状态。
+
+macOS 自定义标题栏使用上述 QWindowKit 策略，不读取“桌面与程序坞”中的原生标题栏双击
+操作偏好。原生红绿灯按钮与此自定义标题栏行为相互独立。
+
 固定大小窗口：
 
 ```cpp
@@ -528,6 +536,29 @@ windowAgent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 
 ```
 
 如果平台不支持，`setWindowAttribute()` 会返回 `false`。
+
+## 使用 StyleAgent 获取系统外观
+
+启用 `QWINDOWKIT_ENABLE_STYLE_AGENT` 后可使用 `QWK::StyleAgent`。在 GUI 线程中
+创建和使用对象，并保持 Qt 事件循环运行。发出变化信号前会先更新两个 getter，
+重复的相同设置不会再次通知。
+
+Linux 的 X11 和 Wayland 均仅使用 [XDG Desktop Portal Settings 接口](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html)，
+通过 Qt DBus 访问。启用 StyleAgent 会增加 Qt DBus 编译和运行依赖，静态 CMake/qmake
+消费端自动获得该依赖；关闭 StyleAgent 后库不需要 Qt DBus。不直接调用 XCB/Wayland，
+也不增加桌面或发行版专用回退。桌面的 Portal 后端需要提供对应的外观设置。
+
+初始读取是异步的：刚构造时 `systemTheme()` 为 `Unknown`，`systemAccentColor()`
+为无效颜色。连接变化信号后读取 getter 来应用后续快照。Portal 的 `color-scheme`
+决定深色/浅色，高 `contrast` 优先映射为 `HighContrast`。未指定偏好或缺少主题设置时
+为 `Unknown`，缺少或无效的 `accent-color` 对应无效 QColor；不使用应用自己覆盖的
+palette 冒充系统设置。
+
+先订阅再读取，收到变化后重读完整外观快照，每次异步读取超时为 1 秒。读取期间再次
+变化会丢弃该次快照并重读；变化停止后，需预留尚未完成的读取和一次重读（最多 2 秒
+读取时间），另加事件循环投递时间。服务/连接断开或读取失败时清空旧值；服务所有者
+变化会立即触发恢复，其他失败每 5 秒重试一次（读取再最多 1 秒）。这些时限依赖正常
+运行的事件循环和会话总线；Portal 正常时没有周期轮询。
 
 ## Linux 说明
 

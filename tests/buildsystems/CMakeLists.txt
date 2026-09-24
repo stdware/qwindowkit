@@ -20,7 +20,17 @@ add_test(NAME buildsystems.install
     COMMAND ${CMAKE_COMMAND} --install ${PROJECT_BINARY_DIR}
     --prefix ${_prefix} --config $<CONFIG>
 )
-set_tests_properties(buildsystems.install PROPERTIES FIXTURES_SETUP qwk_install_tree)
+set_tests_properties(buildsystems.install PROPERTIES FIXTURES_SETUP qwk_install_tree TIMEOUT 15)
+
+# Configuration-only Qt-major matrix: isolated Qt package substitutes, no compiler or network.
+add_test(NAME buildsystems.qtmajor
+    COMMAND ${CMAKE_COMMAND}
+    "-DTEMPLATE=${PROJECT_SOURCE_DIR}/src/QWindowKitConfig.cmake.in"
+    "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/qtmajor-$<CONFIG>"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/package/CheckQtMajor.cmake")
+set_tests_properties(buildsystems.qtmajor PROPERTIES TIMEOUT 45 LABELS "cmake;configuration")
 
 set(_modules core)
 
@@ -29,6 +39,9 @@ if(QWINDOWKIT_BUILD_WIDGETS)
     set(_use_widgets true)
 else()
     set(_use_widgets false)
+endif()
+if(QWINDOWKIT_BUILD_QUICK)
+    list(APPEND _modules quick)
 endif()
 
 # Only the debug build of QWindowKit installs libraries with the debug postfix, and only a debug
@@ -56,8 +69,13 @@ if(_qmake_executable)
         COMMAND ${_qmake_executable} -query QT_INSTALL_PREFIX
         OUTPUT_VARIABLE _qt_prefix
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
+        ERROR_VARIABLE _qt_query_error
+        RESULT_VARIABLE _qt_query_result
+        TIMEOUT 5
     )
+    if(NOT "${_qt_query_result}" STREQUAL "0")
+        message(FATAL_ERROR "qmake prefix query failed (${_qt_query_result}): ${_qt_query_error}")
+    endif()
 elseif(Qt${QT_VERSION_MAJOR}_DIR)
     # <prefix>/lib/cmake/Qt<major>
     get_filename_component(_qt_prefix "${Qt${QT_VERSION_MAJOR}_DIR}/../../.." ABSOLUTE)
@@ -88,7 +106,46 @@ if(_qmake_executable AND QWINDOWKIT_TEST_MAKE_PROGRAM)
         -D "QWK_MODULES=${_modules}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/qmake/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.qmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.qmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
+
+    # Separate bounded stages retain one real build tree while switching modules.
+    # Fixtures order them even under ctest -j, and failed prerequisites stop the chain.
+    if(QWINDOWKIT_BUILD_WIDGETS AND QWINDOWKIT_BUILD_QUICK)
+        set(_previous_stage)
+        foreach(_stage prepare build_core build_widgets build_quick all core widgets quick restored)
+            set(_test "buildsystems.qmake.reconfigure.${_stage}")
+            add_test(NAME ${_test}
+                COMMAND ${CMAKE_COMMAND}
+                "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+                "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}"
+                "-DBUILD_CONFIG=$<CONFIG>" "-DSTAGE=${_stage}"
+                "-DGENERATOR=${CMAKE_GENERATOR}"
+                "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+                "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+                "-DCMAKE_MAKE_TOOL=${CMAKE_MAKE_PROGRAM}"
+                "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+                "-DENABLE_STYLE_AGENT=${QWINDOWKIT_ENABLE_STYLE_AGENT}"
+                "-DQT_PREFIX=${_qt_prefix}" "-DQT_MAJOR=${QT_VERSION_MAJOR}"
+                "-DQMSETUP_DIR=${qmsetup_DIR}"
+                "-DBUILD_STATIC=${QWINDOWKIT_BUILD_STATIC}"
+                "-DDEBUG_POSTFIX=${CMAKE_DEBUG_POSTFIX}"
+                "-DQMAKE_EXECUTABLE=${_qmake_executable}"
+                "-DMAKE_PROGRAM=${QWINDOWKIT_TEST_MAKE_PROGRAM}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/qmake/Reconfigure.cmake")
+            set_tests_properties(${_test} PROPERTIES TIMEOUT 60
+                LABELS "qmake;install;reconfigure"
+                FIXTURES_SETUP "qmake_reconfigure_${_stage}"
+                RESOURCE_LOCK qmake_reconfigure)
+            if(_previous_stage)
+                set_tests_properties(${_test} PROPERTIES
+                    FIXTURES_REQUIRED "qmake_reconfigure_${_previous_stage}")
+            endif()
+            set(_previous_stage ${_stage})
+        endforeach()
+        unset(_previous_stage)
+        unset(_stage)
+        unset(_test)
+    endif()
 else()
     message(STATUS "qmake or a make tool was not found, skipping the qmake build system test")
 endif()
@@ -129,9 +186,11 @@ if(QWINDOWKIT_TEST_MSBUILD_EXECUTABLE AND _platform AND _qt_prefix)
         -D "QT_PREFIX=${_qt_prefix}"
         -D "QT_MAJOR_VERSION=${QT_VERSION_MAJOR}"
         -D "USE_WIDGETS=${_use_widgets}"
+        -D "USE_QUICK=${QWINDOWKIT_BUILD_QUICK}"
+        -D "EXPECT_STATIC=${QWINDOWKIT_BUILD_STATIC}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/msbuild/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.msbuild PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.msbuild PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
 elseif(MSVC)
     message(STATUS "MSBuild or the Qt prefix was not found, skipping the MSBuild build system test")
 endif()
@@ -142,6 +201,21 @@ endif()
 # The package most callers use. It needs no tool of its own, only somewhere to find Qt, since that
 # is what `QWindowKitConfig.cmake` looks for before it hands out a target.
 if(_qt_prefix)
+    foreach(_case present default core missing-required unknown-required optional quiet-missing repeat optional-qt-missing)
+        add_test(NAME buildsystems.components.${_case}
+            COMMAND ${CMAKE_COMMAND}
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/package/component-consumer"
+            "-DINSTALL_PREFIX=${_prefix}"
+            "-DQT_PREFIX=${_qt_prefix}"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/components-${_case}-$<CONFIG>"
+            "-DBUILD_CONFIG=$<CONFIG>" "-DGENERATOR=${CMAKE_GENERATOR}"
+            "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}" "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DUSE_WIDGETS=${QWINDOWKIT_BUILD_WIDGETS}" "-DUSE_QUICK=${QWINDOWKIT_BUILD_QUICK}"
+            "-DQT_MAJOR=${QT_VERSION_MAJOR}" "-DCASE=${_case}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/package/RunComponentCase.cmake")
+        set_tests_properties(buildsystems.components.${_case} PROPERTIES
+            FIXTURES_REQUIRED qwk_install_tree TIMEOUT 35 LABELS "cmake;install;components")
+    endforeach()
     add_test(NAME buildsystems.cmake
         COMMAND ${CMAKE_COMMAND}
         -D "SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake/consumer"
@@ -155,7 +229,7 @@ if(_qt_prefix)
         -D "USE_WIDGETS=${_use_widgets}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.cmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.cmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
 else()
     message(STATUS "The Qt prefix was not found, skipping the CMake build system test")
 endif()

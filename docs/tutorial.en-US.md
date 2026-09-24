@@ -305,6 +305,18 @@ Disable maximization:
 setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 ```
 
+For QWindowKit's custom title bar on macOS and in the Qt fallback context, a left
+double-click toggles maximized/normal state only when `Qt::WindowMaximizeButtonHint`
+is set, the window is not fixed-size or fullscreen, and the pointer is in a
+draggable title bar area. Clearing the flag also disables double-click restoration
+of an already maximized window. The same rule applies to Quick window `flags`.
+It does not prevent application code or a custom button handler from changing
+the window state directly.
+
+The macOS custom title bar uses this QWindowKit policy; it does not read the
+Desktop & Dock preference for native title bar double-click actions. Native
+traffic-light buttons remain separate from this custom title bar behavior.
+
 Create a fixed-size window:
 
 ```cpp
@@ -522,6 +534,35 @@ windowAgent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 
 ```
 
 If the platform does not support an attribute, `setWindowAttribute()` returns `false`.
+
+## System appearance with StyleAgent
+
+Enable `QWINDOWKIT_ENABLE_STYLE_AGENT` to use `QWK::StyleAgent`. Create and use it
+on the GUI thread with a running Qt event loop. Both getters are updated before
+change signals are emitted; repeated equal settings do not emit signals.
+
+On Linux, both X11 and Wayland use only the [XDG Desktop Portal Settings interface](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html)
+through Qt DBus. This adds a Qt DBus build/runtime dependency when StyleAgent is
+enabled; static CMake/qmake consumers receive it automatically. Disabling
+StyleAgent removes this dependency from the library. No direct XCB/Wayland calls
+or desktop-specific fallbacks are used. The desktop's portal backend must provide
+the corresponding appearance settings.
+
+The initial read is asynchronous: immediately after construction, `systemTheme()`
+is `Unknown` and `systemAccentColor()` is invalid. Connect the change signals and
+read the getters to apply subsequent snapshots. The portal's `color-scheme` selects
+Dark/Light; high `contrast` selects HighContrast. No preference or a missing scheme
+means Unknown; missing/invalid `accent-color` means an invalid QColor. Application
+palette overrides never replace unavailable system settings.
+
+StyleAgent subscribes before reading and rereads the full snapshot on changes.
+Each asynchronous read has a 1-second timeout. A change during a read discards that
+snapshot and triggers another read; after changes settle, allow the outstanding
+read plus one new read (up to 2 seconds of read time), plus event-loop delivery.
+Service/connection loss or failed reads invalidate old values. Service-owner changes
+trigger immediate recovery; otherwise failures retry every 5 seconds (then up to
+1 second for the read). These timings require a responsive event loop and working
+session bus. There is no periodic polling while the portal is healthy.
 
 ## Linux Notes
 

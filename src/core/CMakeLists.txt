@@ -12,6 +12,7 @@ set(_src
     windowagentbase.cpp
     windowitemdelegate_p.h
     windowitemdelegate.cpp
+    kernel/eventdispatch_p.h
     kernel/nativeeventfilter_p.h
     kernel/nativeeventfilter.cpp
     kernel/sharedeventfilter_p.h
@@ -26,6 +27,7 @@ set(_src
 )
 
 set(_links_private)
+set(_qt_links_private)
 
 if(WIN32)
     list(APPEND _src
@@ -37,8 +39,10 @@ if(WIN32)
 elseif(APPLE)
 else()
     list(APPEND _src
-        qwindowkit_linux.h
-        qwindowkit_linux.cpp
+        qwindowkit_x11.h
+        qwindowkit_x11.cpp
+        qwindowkit_wayland.h
+        qwindowkit_wayland.cpp
     )
 endif()
 
@@ -47,7 +51,7 @@ if(WIN32)
         contexts/win32windowcontext_p.h
         contexts/win32windowcontext.cpp
     )
-    list(APPEND _links_private uxtheme)
+    list(APPEND _links_private uxtheme advapi32)
 elseif(APPLE)
     list(APPEND _src
         contexts/cocoawindowcontext_p.h
@@ -60,10 +64,10 @@ elseif(APPLE)
     )
 else()
     list(APPEND _src
-        contexts/linuxx11context_p.h
-        contexts/linuxx11context.cpp
-        contexts/linuxwaylandcontext_p.h
-        contexts/linuxwaylandcontext.cpp
+        contexts/x11context_p.h
+        contexts/x11context.cpp
+        contexts/waylandcontext_p.h
+        contexts/waylandcontext.cpp
     )
 endif()
 
@@ -73,6 +77,7 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     list(APPEND _src
         style/styleagent.h
         style/styleagent_p.h
+        style/styleagentregistry_p.h
         style/styleagent.cpp
     )
 
@@ -81,7 +86,9 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     elseif(APPLE)
         list(APPEND _src style/styleagent_mac.mm)
     else()
-        list(APPEND _src style/styleagent_linux.cpp)
+        list(APPEND _src style/styleagent_linux.cpp
+            style/portalsettings_p.h style/portalsettings.cpp style/portalsettings_dbus.cpp)
+        list(APPEND _qt_links_private DBus)
     endif()
 else()
     list(APPEND _sync_include_options EXCLUDE "src/core/style/.+")
@@ -92,12 +99,18 @@ qwk_add_library(${PROJECT_NAME} QT_AUTOGEN
     FEATURES cxx_std_17
     LINKS_PRIVATE ${_links_private}
     QT_LINKS Core Gui
+    QT_LINKS_PRIVATE ${_qt_links_private}
     QT_INCLUDE_PRIVATE Core Gui
     INCLUDE_PRIVATE *
     MACRO_PREFIX QWK_CORE
 )
 
 qwk_sync_include(${PROJECT_NAME} FORCE ${_sync_include_options})
+
+# QWKQuick's type registrar needs the inherited methods and SystemButton enum.
+if(QWINDOWKIT_BUILD_QUICK AND QT_VERSION VERSION_GREATER_EQUAL 6.3)
+    qt6_extract_metatypes(${PROJECT_NAME})
+endif()
 
 set(QWINDOWKIT_ENABLED_TARGETS ${QWINDOWKIT_ENABLED_TARGETS} ${PROJECT_NAME} PARENT_SCOPE)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES ${QWINDOWKIT_ENABLED_SUBDIRECTORIES} core PARENT_SCOPE)

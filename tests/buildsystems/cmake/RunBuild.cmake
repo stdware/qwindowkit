@@ -23,17 +23,21 @@ if(MAKE_PROGRAM)
     list(APPEND _toolchain_args "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}")
 endif()
 
-qwk_run_step("cmake configure" "${CMAKE_COMMAND}"
+# CMake does not search custom library directories such as lib64 on every host.
+# Point at this fixture's config explicitly rather than finding another installation.
+qwk_find_installed_config(_package_dir "${INSTALL_PREFIX}")
+qwk_run_step("cmake configure" 25 "${CMAKE_COMMAND}"
     -S "${SOURCE_DIR}"
     -B "${WORK_DIR}/build"
     ${_toolchain_args}
     "-DCMAKE_BUILD_TYPE=${BUILD_CONFIG}"
     "-DQWK_PREFIX=${INSTALL_PREFIX}"
+    "-DQWindowKit_DIR=${_package_dir}"
     "-DQT_PREFIX=${QT_PREFIX}"
     "-DQWK_USE_WIDGETS=${USE_WIDGETS}"
 )
 
-qwk_run_step("cmake build" "${CMAKE_COMMAND}"
+qwk_run_step("cmake build" 25 "${CMAKE_COMMAND}"
     --build "${WORK_DIR}/build"
     --config "${BUILD_CONFIG}"
 )

@@ -2,7 +2,7 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "styleagent_p.h"
+#include "styleagentregistry_p.h"
 
 #include <Cocoa/Cocoa.h>
 
@@ -74,18 +74,14 @@ namespace QWK {
 
 namespace QWK {
 
-    using StyleAgentSet = QSet<StyleAgentPrivate *>;
-    Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
+    Q_GLOBAL_STATIC(StyleAgentRegistry, g_styleAgents)
 
     static QWK_SystemThemeObserver *g_systemThemeObserver = nil;
 
     void notifyAllStyleAgents() {
-        auto theme = getSystemTheme();
-        auto color = getAccentColor();
-        for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-            ap->notifyThemeChanged(theme);
-            ap->notifyAccentColorChanged(color);
-        }
+        g_styleAgents->notify([] {
+            return StyleAgentRegistry::Appearance{getSystemTheme(), getAccentColor()};
+        });
     }
 
     void StyleAgentPrivate::setupSystemThemeHook() {
@@ -93,18 +89,18 @@ namespace QWK {
         systemAccentColor = getAccentColor();
 
         // Alloc
-        if (g_styleAgentSet->isEmpty()) {
+        if (g_styleAgents->isEmpty()) {
             g_systemThemeObserver = [[QWK_SystemThemeObserver alloc] init];
         }
 
-        g_styleAgentSet->insert(this);
+        g_styleAgents->insert(this);
     }
 
     void StyleAgentPrivate::removeSystemThemeHook() {
-        if (!g_styleAgentSet->remove(this))
+        if (!g_styleAgents->remove(this))
             return;
 
-        if (g_styleAgentSet->isEmpty()) {
+        if (g_styleAgents->isEmpty()) {
             // Delete
             [g_systemThemeObserver release];
             g_systemThemeObserver = nil;

@@ -2,17 +2,14 @@
 // Copyright (C) 2021-2023 wangwenx190 (Yuhang Zhao)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "styleagent_p.h"
-
-#include <QtCore/QSet>
+#include "styleagentregistry_p.h"
 
 #include <QWKCore/private/qwkwindowsextra_p.h>
 #include <QWKCore/private/nativeeventfilter_p.h>
 
 namespace QWK {
 
-    using StyleAgentSet = QSet<StyleAgentPrivate *>;
-    Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
+    Q_GLOBAL_STATIC(StyleAgentRegistry, g_styleAgents)
 
     static StyleAgent::SystemTheme getSystemTheme() {
         if (isHighContrastModeEnabled()) {
@@ -25,24 +22,9 @@ namespace QWK {
     }
 
     static void notifyAllStyleAgents() {
-        auto theme = getSystemTheme();
-        auto color = getAccentColor();
-
-        // Each notification emits a signal, so it runs user code that is free to create or
-        // destroy StyleAgent instances, which mutates the very set we are walking. Iterate over
-        // a copy (QSet is implicitly shared, so this costs nothing until someone mutates it) and
-        // re-check membership before every call so that an agent destroyed by an earlier
-        // notification is never touched again.
-        const auto agents = *g_styleAgentSet();
-        for (const auto &ap : agents) {
-            if (!g_styleAgentSet->contains(ap))
-                continue;
-            ap->notifyThemeChanged(theme);
-
-            if (!g_styleAgentSet->contains(ap))
-                continue;
-            ap->notifyAccentColorChanged(color);
-        }
+        g_styleAgents->notify([] {
+            return StyleAgentRegistry::Appearance{getSystemTheme(), getAccentColor()};
+        });
     }
 
     class SystemSettingEventFilter : public AppNativeEventFilter {
@@ -88,7 +70,7 @@ namespace QWK {
                     uninstallPending = false;
                     // A new StyleAgent may have been created in the meantime, only leave if
                     // there is still nobody left to notify.
-                    if (g_styleAgentSet->isEmpty()) {
+                    if (g_styleAgents->isEmpty()) {
                         uninstall(); // 'this' is deleted here, touch no members afterwards
                     }
                 }
@@ -125,15 +107,15 @@ namespace QWK {
         systemTheme = getSystemTheme();
         systemAccentColor = getAccentColor();
 
-        g_styleAgentSet->insert(this);
+        g_styleAgents->insert(this);
         SystemSettingEventFilter::install();
     }
 
     void StyleAgentPrivate::removeSystemThemeHook() {
-        if (!g_styleAgentSet->remove(this))
+        if (!g_styleAgents->remove(this))
             return;
 
-        if (g_styleAgentSet->isEmpty()) {
+        if (g_styleAgents->isEmpty()) {
             SystemSettingEventFilter::uninstall();
         }
     }

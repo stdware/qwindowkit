@@ -4,17 +4,32 @@
 
 #include "abstractwindowcontext_p.h"
 
-#include <QtGui/QPen>
-#include <QtGui/QPainter>
 #include <QtGui/QScreen>
-
-#include "qwkglobal_p.h"
 
 namespace QWK {
 
     AbstractWindowContext::AbstractWindowContext() = default;
 
     AbstractWindowContext::~AbstractWindowContext() = default;
+
+    AbstractWindowContext::AttributeChange::AttributeChange(AbstractWindowContext *ctx,
+                                                            const QString &attributeKey)
+        : context(ctx), key(attributeKey), windowRevision(ctx->m_windowRevision),
+          previous(ctx->m_attributeChange) {
+        ctx->m_attributeChange = this;
+    }
+
+    AbstractWindowContext::AttributeChange::~AttributeChange() {
+        if (context)
+            context->m_attributeChange = previous;
+    }
+
+    void AbstractWindowContext::AttributeChange::supersedePrevious() {
+        for (auto frame = previous; frame; frame = frame->previous) {
+            if (frame->key == key)
+                frame->superseded = true;
+        }
+    }
 
     void AbstractWindowContext::setup(QObject *host, WindowItemDelegate *delegate) {
         if (m_host || !host || !delegate) {
@@ -48,8 +63,7 @@ namespace QWK {
 
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
-        Q_ASSERT(button != WindowAgentBase::Unknown);
-        if (button == WindowAgentBase::Unknown) {
+        if (!isValidSystemButton(button)) {
             return false;
         }
 
@@ -68,18 +82,20 @@ namespace QWK {
             return false;
         }
 
-        if (org) {
-            // Since the title bar is changed, all items inside it should be dereferenced right away
+        if (m_titleBarAssigned) {
+            // QPointer is already null after the old title is destroyed, but its
+            // registered buttons/exclusions may still live elsewhere in the window.
             removeSystemButtonsAndHitTestItems();
         }
         m_titleBar = item;
+        m_titleBarAssigned = true;
         return true;
     }
 
 #ifdef Q_OS_MAC
     void AbstractWindowContext::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {
         m_systemButtonAreaCallback = callback;
-        virtual_hook(SystemButtonAreaChangedHook, nullptr);
+        updateSystemButtonArea();
     }
 #endif
 
@@ -91,7 +107,7 @@ namespace QWK {
             if (!currentButton || !m_delegate->isVisible(currentButton) || !m_delegate->isEnabled(currentButton)) {
                 continue;
             }
-            if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
+            if (m_delegate->containsScenePoint(currentButton, pos)) {
                 *button = static_cast<WindowAgentBase::SystemButton>(i);
                 return true;
             }
@@ -117,7 +133,7 @@ namespace QWK {
             return false;
         }
 
-        if (!titleBarRect.contains(pos)) {
+        if (!m_delegate->containsScenePoint(m_titleBar, pos)) {
             return false;
         }
 
@@ -128,7 +144,7 @@ namespace QWK {
 
         for (auto &&item : std::as_const(m_hitTestVisibleItems)) {
             if (item && m_delegate->isVisible(item) &&
-                m_delegate->mapGeometryToScene(item).contains(pos)) {
+                m_delegate->containsScenePoint(item, pos)) {
                 return false;
             }
         }
@@ -139,62 +155,51 @@ namespace QWK {
         return {};
     }
 
-    QWK_USED static constexpr const struct {
-        const quint32 activeLight = MAKE_RGBA_COLOR(210, 233, 189, 226);
-        const quint32 activeDark = MAKE_RGBA_COLOR(177, 205, 190, 240);
-        const quint32 inactiveLight = MAKE_RGBA_COLOR(193, 195, 211, 203);
-        const quint32 inactiveDark = MAKE_RGBA_COLOR(240, 240, 250, 255);
-    } kSampleColorSet;
+    void AbstractWindowContext::centralizeWindow() {
+        if (!m_windowId)
+            return;
 
-    void AbstractWindowContext::virtual_hook(int id, void *data) {
-        switch (id) {
-            case CentralizeHook: {
-                if (!m_windowId)
-                    return;
+        QRect windowGeometry = m_delegate->getGeometry(m_host);
+        QRect screenGeometry = m_windowHandle->screen()->geometry();
+        int x = (screenGeometry.width() - windowGeometry.width()) / 2;
+        int y = (screenGeometry.height() - windowGeometry.height()) / 2;
+        QPoint pos(x, y);
+        pos += screenGeometry.topLeft();
+        m_delegate->setGeometry(m_host, QRect(pos, windowGeometry.size()));
+    }
 
-                QRect windowGeometry = m_delegate->getGeometry(m_host);
-                QRect screenGeometry = m_windowHandle->screen()->geometry();
-                int x = (screenGeometry.width() - windowGeometry.width()) / 2;
-                int y = (screenGeometry.height() - windowGeometry.height()) / 2;
-                QPoint pos(x, y);
-                pos += screenGeometry.topLeft();
-                m_delegate->setGeometry(m_host, QRect(pos, windowGeometry.size()));
-                return;
-            }
+    void AbstractWindowContext::raiseWindow() {
+        if (!m_windowId)
+            return;
 
-            case RaiseWindowHook: {
-                if (!m_windowId)
-                    return;
-
-                m_delegate->setWindowVisible(m_host, true);
-                Qt::WindowStates state = m_delegate->getWindowState(m_host);
-                if (state & Qt::WindowMinimized) {
-                    m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);
-                }
-                m_delegate->bringWindowToTop(m_host);
-                return;
-            }
-
-            case DefaultColorsHook: {
-                auto &map = *static_cast<QMap<QString, QColor> *>(data);
-                map.clear();
-                map.insert(QStringLiteral("activeLight"), kSampleColorSet.activeLight);
-                map.insert(QStringLiteral("activeDark"), kSampleColorSet.activeDark);
-                map.insert(QStringLiteral("inactiveLight"), kSampleColorSet.inactiveLight);
-                map.insert(QStringLiteral("inactiveDark"), kSampleColorSet.inactiveDark);
-                return;
-            }
-
-            default:
-                break;
+        m_delegate->setWindowVisible(m_host, true);
+        Qt::WindowStates state = m_delegate->getWindowState(m_host);
+        if (state & Qt::WindowMinimized) {
+            m_delegate->setWindowState(m_host, state & ~Qt::WindowMinimized);
         }
+        m_delegate->bringWindowToTop(m_host);
     }
 
     void AbstractWindowContext::showSystemMenu(const QPoint &pos) {
-        virtual_hook(ShowSystemMenuHook, &const_cast<QPoint &>(pos));
+        Q_UNUSED(pos)
     }
 
+#ifdef Q_OS_MAC
+    void AbstractWindowContext::updateSystemButtonArea() {}
+#endif
+
+#ifdef Q_OS_WINDOWS
+    QColor AbstractWindowContext::windows10BorderColor() const { return {}; }
+
+    void AbstractWindowContext::setWindows10BorderActive(bool active) {
+        Q_UNUSED(active)
+    }
+
+    void AbstractWindowContext::drawWindows10Border() {}
+#endif
+
     void AbstractWindowContext::notifyWinIdChange() {
+        const QPointer<AbstractWindowContext> self(this);
         auto oldWinId = m_windowId;
         m_windowId = m_winIdChangeEventFilter->winId();
 
@@ -202,6 +207,7 @@ namespace QWK {
         // platform window will be removed, and the WinId will be set to 0. After that, when the
         // QWidget is shown again, the whole things will be recreated again.
         // As a result, we must update our WindowContext each time the WinId changes.
+        const auto oldWindow = m_windowHandle;
         if (m_windowHandle) {
             m_windowHandle->removeEventFilter(this);
         }
@@ -210,19 +216,37 @@ namespace QWK {
             m_windowHandle->installEventFilter(this);
         }
 
+        if (oldWinId != m_windowId || oldWindow != m_windowHandle)
+            ++m_windowRevision;
+
         if (oldWinId != m_windowId) {
+            const auto revision = m_windowRevision;
             winIdChanged(m_windowId, oldWinId);
+            if (!self || m_windowRevision != revision)
+                return;
 
             if (m_windowId) {
-                // Refresh window attributes
-                for (auto it = m_windowAttributesOrder.begin();
-                     it != m_windowAttributesOrder.end();) {
-                    if (!windowAttributeChanged(it->first, it->second, {})) {
-                        m_windowAttributes.remove(it->first);
-                        it = m_windowAttributesOrder.erase(it);
+                // Each original revision is replayed at most once. Updates made by
+                // callbacks apply themselves; never replay a superseded snapshot.
+                const auto attributes = m_windowAttributesOrder;
+                for (const auto &attribute : attributes) {
+                    auto it = m_windowAttributes.constFind(attribute.key);
+                    if (it == m_windowAttributes.cend() ||
+                        it.value()->revision != attribute.revision)
                         continue;
+                    AttributeChange change(this, attribute.key);
+                    const bool accepted = windowAttributeChanged(attribute.key, attribute.value);
+                    if (!self || m_windowRevision != revision)
+                        return;
+                    if (!accepted && change.isCurrent()) {
+                        // Re-find after the callback: it may rehash, erase or splice.
+                        it = m_windowAttributes.constFind(attribute.key);
+                        if (it != m_windowAttributes.cend() &&
+                            it.value()->revision == attribute.revision) {
+                            m_windowAttributesOrder.erase(it.value());
+                            m_windowAttributes.remove(attribute.key);
+                        }
                     }
-                    ++it;
                 }
             }
 
@@ -237,38 +261,44 @@ namespace QWK {
         if (it == m_windowAttributes.end()) {
             return {};
         }
-        return it.value()->second;
+        return it.value()->value;
     }
 
     bool AbstractWindowContext::setWindowAttribute(const QString &key, const QVariant &attribute) {
-        auto it = m_windowAttributes.find(key);
-        if (it == m_windowAttributes.end()) {
-            if (!attribute.isValid()) {
-                return true;
-            }
-            if (m_windowId && !windowAttributeChanged(key, attribute, {})) {
-                return false;
-            }
-            m_windowAttributes.insert(
-                key, m_windowAttributesOrder.insert(m_windowAttributesOrder.end(),
-                                                    std::make_pair(key, attribute)));
+        // Copy inputs: callers may pass references into
+        // storage that a synchronous platform callback changes or destroys.
+        const QString name = key;
+        const QVariant value = attribute;
+        auto it = m_windowAttributes.constFind(name);
+        const bool existed = it != m_windowAttributes.cend();
+        AttributeChange change(this, name);
+        if (!existed && !value.isValid()) {
+            change.supersedePrevious();
             return true;
         }
-
-        auto &listIter = it.value();
-        auto &oldAttr = listIter->second;
-        if (m_windowId && !windowAttributeChanged(key, attribute, oldAttr)) {
+        if (m_windowId && !windowAttributeChanged(name, value))
             return false;
-        }
+        if (!change.isCurrent())
+            return false;
 
-        if (attribute.isValid()) {
-            oldAttr = attribute;
-            m_windowAttributesOrder.splice(m_windowAttributesOrder.end(), m_windowAttributesOrder,
-                                           listIter);
-        } else {
-            m_windowAttributesOrder.erase(listIter);
-            m_windowAttributes.erase(it);
+        it = m_windowAttributes.constFind(name);
+        if (value.isValid()) {
+            const auto revision = ++m_attributeRevision;
+            if (it == m_windowAttributes.cend()) {
+                m_windowAttributes.insert(name, m_windowAttributesOrder.insert(
+                    m_windowAttributesOrder.end(), {name, value, revision}));
+            } else {
+                const auto listIter = it.value();
+                listIter->value = value;
+                listIter->revision = revision;
+                m_windowAttributesOrder.splice(m_windowAttributesOrder.end(), m_windowAttributesOrder,
+                                               listIter);
+            }
+        } else if (it != m_windowAttributes.cend()) {
+            m_windowAttributesOrder.erase(it.value());
+            m_windowAttributes.remove(name);
         }
+        change.supersedePrevious();
         return true;
     }
 
@@ -280,8 +310,7 @@ namespace QWK {
     }
 
     bool AbstractWindowContext::windowAttributeChanged(const QString &key,
-                                                       const QVariant &attribute,
-                                                       const QVariant &oldAttribute) {
+                                                       const QVariant &attribute) {
         return false;
     }
 

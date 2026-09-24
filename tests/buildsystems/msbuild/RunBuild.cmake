@@ -2,12 +2,13 @@
 #
 # cmake -D MSBUILD_EXECUTABLE=... -D PROJECT_FILE=... -D INSTALL_PREFIX=... -D WORK_DIR=...
 #       -D BUILD_CONFIG=Debug|Release -D PLATFORM=x64 -D QT_PREFIX=... -D QT_MAJOR_VERSION=6
-#       -D USE_WIDGETS=true|false -P msbuild/RunBuild.cmake
+#       -D USE_WIDGETS=true|false -D USE_QUICK=ON|OFF -D EXPECT_STATIC=ON|OFF
+#       -P msbuild/RunBuild.cmake
 
 include("${CMAKE_CURRENT_LIST_DIR}/../testing/ConsumerBuildCommon.cmake")
 
 qwk_require_variables(MSBUILD_EXECUTABLE PROJECT_FILE INSTALL_PREFIX WORK_DIR BUILD_CONFIG
-    PLATFORM QT_PREFIX QT_MAJOR_VERSION USE_WIDGETS
+    PLATFORM QT_PREFIX QT_MAJOR_VERSION USE_WIDGETS USE_QUICK EXPECT_STATIC
 )
 
 file(REMOVE_RECURSE "${WORK_DIR}")
@@ -20,7 +21,15 @@ file(MAKE_DIRECTORY "${WORK_DIR}")
 file(TO_NATIVE_PATH "${INSTALL_PREFIX}" _native_prefix)
 file(TO_NATIVE_PATH "${QT_PREFIX}" _native_qt_prefix)
 
-qwk_run_step("msbuild" "${MSBUILD_EXECUTABLE}" "${PROJECT_FILE}"
+foreach(_option USE_QUICK EXPECT_STATIC)
+    if(${_option})
+        set(_${_option} true)
+    else()
+        set(_${_option} false)
+    endif()
+endforeach()
+
+qwk_run_step("msbuild" 25 "${MSBUILD_EXECUTABLE}" "${PROJECT_FILE}"
     /nologo
     /verbosity:minimal
     "/p:Configuration=${BUILD_CONFIG}"
@@ -29,6 +38,8 @@ qwk_run_step("msbuild" "${MSBUILD_EXECUTABLE}" "${PROJECT_FILE}"
     "/p:QTDIR=${_native_qt_prefix}"
     "/p:QtVersionMajor=${QT_MAJOR_VERSION}"
     "/p:QwkUseWidgets=${USE_WIDGETS}"
+    "/p:QwkUseQuick=${_USE_QUICK}"
+    "/p:QwkExpectStatic=${_EXPECT_STATIC}"
     "/p:OutDir=${WORK_DIR}/bin/"
     "/p:IntDir=${WORK_DIR}/obj/"
 )

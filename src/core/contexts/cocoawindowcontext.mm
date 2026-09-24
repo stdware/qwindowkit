@@ -299,7 +299,12 @@ namespace QWK {
             auto height = refButton.frame.size.height;
 
             auto viewSize = nsview.frame.size;
-            QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
+            const QRect area = screenRectCallback(QSize(viewSize.width, titlebarHeight));
+            // A Quick area can be detached, destroyed or moved to another window.
+            // Keep the existing native layout until the callback has a usable host area.
+            if (area.isEmpty())
+                return;
+            QPoint center = area.center();
 
             // The origin of the NSWindow coordinate system is in the lower left corner, we
             // do the necessary transformations
@@ -660,18 +665,6 @@ namespace QWK {
                 reinterpret_cast<setTitlebarAppearsTransparentPtr>(method_setImplementation(
                     method, reinterpret_cast<IMP>(setTitlebarAppearsTransparent)));
 
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            oldCanBecomeKeyWindow = reinterpret_cast<canBecomeKeyWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeKeyWindow)));
-
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            oldCanBecomeMainWindow = reinterpret_cast<canBecomeMainWindowPtr>(method_setImplementation(method, reinterpret_cast<IMP>(canBecomeMainWindow)));
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            oldSendEvent = reinterpret_cast<sendEventPtr>(
-                method_setImplementation(method, reinterpret_cast<IMP>(sendEvent)));
-
             viewClass = nativeViewClass;
             method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
             oldMouseDownCanMoveWindow = reinterpret_cast<mouseDownCanMoveWindowPtr>(method_getImplementation(method));
@@ -692,20 +685,6 @@ namespace QWK {
             method_setImplementation(method,
                                      reinterpret_cast<IMP>(oldSetTitlebarAppearsTransparent));
             oldSetTitlebarAppearsTransparent = nil;
-
-#if 0
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeKeyWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeKeyWindow));
-            oldCanBecomeKeyWindow = nil;
-
-            method = class_getInstanceMethod(windowClass, @selector(canBecomeMainWindow));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldCanBecomeMainWindow));
-            oldCanBecomeMainWindow = nil;
-#endif
-
-            method = class_getInstanceMethod(windowClass, @selector(sendEvent:));
-            method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
-            oldSendEvent = nil;
 
             method = class_getInstanceMethod(viewClass, @selector(mouseDownCanMoveWindow));
             class_replaceMethod(viewClass, @selector(mouseDownCanMoveWindow),
@@ -729,34 +708,6 @@ namespace QWK {
             }
 
             return oldMouseDownCanMoveWindow(obj, sel);
-        }
-
-        static BOOL canBecomeKeyWindow(id obj, SEL sel) {
-            auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            auto nsview = [nswindow contentView];
-            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
-                return YES;
-            }
-
-            if (oldCanBecomeKeyWindow) {
-                return oldCanBecomeKeyWindow(obj, sel);
-            }
-
-            return YES;
-        }
-
-        static BOOL canBecomeMainWindow(id obj, SEL sel) {
-            auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            auto nsview = [nswindow contentView];
-            if (g_proxyList->contains(reinterpret_cast<WId>(nsview))) {
-                return YES;
-            }
-
-            if (oldCanBecomeMainWindow) {
-                return oldCanBecomeMainWindow(obj, sel);
-            }
-
-            return YES;
         }
 
         static void setStyleMask(id obj, SEL sel, NSWindowStyleMask styleMask) {
@@ -783,27 +734,6 @@ namespace QWK {
             }
         }
 
-        static void sendEvent(id obj, SEL sel, NSEvent *event) {
-            if (oldSendEvent) {
-                oldSendEvent(obj, sel, event);
-            }
-
-#if 0
-            const auto nswindow = reinterpret_cast<NSWindow *>(obj);
-            const auto it = instances.find(nswindow);
-            if (it == instances.end()) {
-                return;
-            }
-
-            NSWindowProxy *proxy = it.value();
-            if (event.type == NSEventTypeLeftMouseDown) {
-                proxy->lastMouseDownEvent = event;
-                QCoreApplication::processEvents();
-                proxy->lastMouseDownEvent = nil;
-            }
-#endif
-        }
-
     private:
         Q_DISABLE_COPY(NSWindowProxy)
 
@@ -827,31 +757,15 @@ namespace QWK {
 
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
-        // NSEvent *lastMouseDownEvent = nil;
-
         using setStyleMaskPtr = void (*)(id, SEL, NSWindowStyleMask);
         static inline setStyleMaskPtr oldSetStyleMask = nil;
 
         using setTitlebarAppearsTransparentPtr = void (*)(id, SEL, BOOL);
         static inline setTitlebarAppearsTransparentPtr oldSetTitlebarAppearsTransparent = nil;
 
-        using canBecomeKeyWindowPtr = BOOL (*)(id, SEL);
-        static inline canBecomeKeyWindowPtr oldCanBecomeKeyWindow = nil;
-
-        using canBecomeMainWindowPtr = BOOL (*)(id, SEL);
-        static inline canBecomeMainWindowPtr oldCanBecomeMainWindow = nil;
-
-        using sendEventPtr = void (*)(id, SEL, NSEvent *);
-        static inline sendEventPtr oldSendEvent = nil;
-
         using mouseDownCanMoveWindowPtr = BOOL (*)(id, SEL);
         static inline mouseDownCanMoveWindowPtr oldMouseDownCanMoveWindow = nil;
     };
-
-    static inline NSWindow *mac_getNSWindow(const WId windowId) {
-        const auto nsview = reinterpret_cast<NSView *>(windowId);
-        return [nsview window];
-    }
 
     static inline NSWindowProxy *ensureWindowProxy(const WId windowId) {
         NSView *nsview = reinterpret_cast<NSView *>(windowId);
@@ -900,12 +814,11 @@ namespace QWK {
 
     private:
         AbstractWindowContext *m_context;
-        bool m_cursorShapeChanged;
         WindowStatus m_windowStatus;
     };
 
     CocoaWindowEventFilter::CocoaWindowEventFilter(AbstractWindowContext *context)
-        : m_context(context), m_cursorShapeChanged(false), m_windowStatus(Idle) {
+        : m_context(context), m_windowStatus(Idle) {
         m_context->installSharedEventFilter(this);
     }
 
@@ -996,7 +909,9 @@ namespace QWK {
                 if (me->button() == Qt::LeftButton && inTitleBar && !m_context->isHostSizeFixed()) {
                     Qt::WindowFlags windowFlags = delegate->getWindowFlags(host);
                     Qt::WindowStates windowState = delegate->getWindowState(host);
-                    if (!(windowState & Qt::WindowFullScreen)) {
+                    // Match the documented maximize opt-out and the Qt fallback policy.
+                    if ((windowFlags & Qt::WindowMaximizeButtonHint) &&
+                        !(windowState & Qt::WindowFullScreen)) {
                         if (windowState & Qt::WindowMaximized) {
                             delegate->setWindowState(host, windowState & ~Qt::WindowMaximized);
                         } else {
@@ -1027,26 +942,12 @@ namespace QWK {
         return QStringLiteral("cocoa");
     }
 
-    void CocoaWindowContext::virtual_hook(int id, void *data) {
-        switch (id) {
-            case SystemButtonAreaChangedHook: {
-                // This hook fires whenever the callback is set or the system button area item
-                // moves or resizes, and both happen freely before the window has a native
-                // handle. Calling ensureWindowProxy() with a null WId would swizzle against a
-                // nil view class and park a bogus proxy in g_proxyList, which then never gets
-                // empty again and prevents the real window from ever being set up. The callback
-                // is kept in m_systemButtonAreaCallback and applied by winIdChanged() as soon as
-                // the window exists, so there is nothing to do here yet.
-                if (!m_windowId)
-                    return;
-                ensureWindowProxy(m_windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
-                return;
-            }
-
-            default:
-                break;
-        }
-        AbstractWindowContext::virtual_hook(id, data);
+    void CocoaWindowContext::updateSystemButtonArea() {
+        // The callback or area can change before the window has a native handle.
+        // Keep the callback for winIdChanged() without creating a proxy for a nil view.
+        if (!m_windowId)
+            return;
+        ensureWindowProxy(m_windowId)->setScreenRectCallback(m_systemButtonAreaCallback);
     }
 
     QVariant CocoaWindowContext::windowAttribute(const QString &key) const {
@@ -1077,10 +978,7 @@ namespace QWK {
         }
     }
 
-    bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                                    const QVariant &oldAttribute) {
-        Q_UNUSED(oldAttribute)
-
+    bool CocoaWindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute) {
         Q_ASSERT(m_windowId);
 
         if (key == QStringLiteral("no-system-buttons")) {
