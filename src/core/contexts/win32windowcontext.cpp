@@ -1364,11 +1364,9 @@ namespace QWK {
                 const auto xButtonMask = GET_XBUTTON_WPARAM(wParam);
                 return MAKEWPARAM(keyState, xButtonMask);
             }
-#if(WINVER >= _WIN32_WINNT_WIN8)
             if (myMsg == WM_NCPOINTERDOWN) {
                 return keyState | MK_LBUTTON;
             }
-#endif
             return keyState;
         }();
         const auto lParamNew = [myMsg, lParam, hWnd]() -> LPARAM {
