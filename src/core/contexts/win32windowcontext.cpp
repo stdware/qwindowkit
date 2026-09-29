@@ -401,9 +401,7 @@ namespace QWK {
         if (((message >= WM_NCCREATE) && (message <= WM_NCACTIVATE)) ||
             ((message >= WM_NCMOUSEMOVE) && (message <= WM_NCMBUTTONDBLCLK)) ||
             ((message >= WM_NCXBUTTONDOWN) && (message <= WM_NCXBUTTONDBLCLK))
-#if (WINVER >= _WIN32_WINNT_WIN8)
             || ((message >= WM_NCPOINTERUPDATE) && (message <= WM_NCPOINTERUP))
-#endif
             || ((message == WM_NCMOUSEHOVER) || (message == WM_NCMOUSELEAVE))) {
             return true;
         } else {
@@ -1429,7 +1427,6 @@ namespace QWK {
             case WM_NCXBUTTONDBLCLK:
                 SEND_MESSAGE(hWnd, WM_XBUTTONDBLCLK, wParamNew, lParamNew);
                 break;
-#if(WINVER >= _WIN32_WINNT_WIN8)
             case WM_NCPOINTERUPDATE:
                 SEND_MESSAGE(hWnd, WM_MOUSEMOVE, wParamNew, lParamNew);
                 break;
@@ -1439,7 +1436,6 @@ namespace QWK {
             case WM_NCPOINTERUP:
                 SEND_MESSAGE(hWnd, WM_LBUTTONUP, wParamNew, lParamNew);
                 break;
-#endif
             case WM_NCMOUSEHOVER:
                 SEND_MESSAGE(hWnd, WM_MOUSEHOVER, wParamNew, lParamNew);
                 break;
@@ -1525,11 +1521,9 @@ namespace QWK {
             case WM_NCXBUTTONDOWN:
             case WM_NCXBUTTONUP:
             case WM_NCXBUTTONDBLCLK:
-#if(_WIN32_WINNT >= _WIN32_WINNT_WIN8)
             case WM_NCPOINTERUPDATE:
             case WM_NCPOINTERDOWN:
             case WM_NCPOINTERUP:
-#endif
             case WM_NCMOUSEHOVER: {
                 if (message == WM_NCMOUSEMOVE) {
                     if (lastHitTestResult != WindowPart::ChromeButton) {
