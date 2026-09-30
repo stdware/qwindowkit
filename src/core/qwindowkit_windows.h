@@ -61,6 +61,19 @@
 #  define WM_NCUAHDRAWFRAME (0x00AF)
 #endif
 
+// Required missing messages under windows 7
+#ifndef WM_NCPOINTERUPDATE
+#  define WM_NCPOINTERUPDATE (0x0241)
+#endif
+
+#ifndef WM_NCPOINTERDOWN
+#  define WM_NCPOINTERDOWN (0x0242)
+#endif
+
+#ifndef WM_NCPOINTERUP
+#  define WM_NCPOINTERUP (0x0243)
+#endif
+
 using QWK_OSVERSIONINFOW = struct _QWK_OSVERSIONINFOW {
     DWORD dwOSVersionInfoSize;
     DWORD dwMajorVersion;

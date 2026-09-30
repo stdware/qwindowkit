@@ -401,9 +401,7 @@ namespace QWK {
         if (((message >= WM_NCCREATE) && (message <= WM_NCACTIVATE)) ||
             ((message >= WM_NCMOUSEMOVE) && (message <= WM_NCMBUTTONDBLCLK)) ||
             ((message >= WM_NCXBUTTONDOWN) && (message <= WM_NCXBUTTONDBLCLK))
-#if (WINVER >= _WIN32_WINNT_WIN8)
             || ((message >= WM_NCPOINTERUPDATE) && (message <= WM_NCPOINTERUP))
-#endif
             || ((message == WM_NCMOUSEHOVER) || (message == WM_NCMOUSELEAVE))) {
             return true;
         } else {
