@@ -200,7 +200,7 @@ namespace QWK {
         // Install painting hook
         auto ctx = context.get();
         if (ctx->windowAttribute(QStringLiteral("win10-border-needed")).toBool()) {
-            std::ignore = new BorderItem(hostWindow->contentItem(), ctx);
+            win10BorderItem = new BorderItem(hostWindow->contentItem(), ctx);
         }
     }
 #endif
