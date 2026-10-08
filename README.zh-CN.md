@@ -302,6 +302,8 @@ agent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 agent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
+`dark-mode` 设置 Windows 原生外观，不会同步 Qt 控件的应用主题。应用应在统一切换主题时自行设置 Qt 的配色方案；Qt 6.5 提供 `QStyleHints::colorScheme()` 读取接口，Qt 6.8 起才提供 `setColorScheme()` 和 `unsetColorScheme()`。具体用法见教程中的[深浅色主题同步](./docs/tutorial.zh-CN.md#深浅色主题同步)。
+
 macOS 示例：
 
 ```cpp

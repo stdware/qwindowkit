@@ -495,6 +495,32 @@ qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 
 不要在 OpenGL 或 Vulkan 后端下启用 `QT_QPA_DISABLE_REDIRECTION_SURFACE`。
 
+### 深浅色主题同步
+
+QWK 的 `dark-mode` 属性设置 Windows 原生外观，不会调用 `QStyleHints::setColorScheme()`，也不会修改应用的调色板、QSS 或 Qt Quick Controls 的显式主题设置。仅切换该属性可能导致窗口边框和 Qt 控件的深浅色不一致。
+
+`QStyleHints::colorScheme()` 从 Qt 6.5 起可用于读取当前配色方案；设置和重置接口从 Qt 6.8 起才可用。在创建 `QGuiApplication` 或 `QApplication` 后，应用可以在统一切换主题的位置设置 Qt 配色方案，并分别更新各窗口的 QWK 属性：
+
+```cpp
+#include <QtGui/QGuiApplication>
+#include <QtGui/QStyleHints>
+
+// dark 为应用选择的主题；windowAgent 已完成 setup()。
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+QGuiApplication::styleHints()->setColorScheme(
+    dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#endif
+#ifdef Q_OS_WIN
+windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), dark);
+#endif
+```
+
+`setColorScheme()` 影响整个应用，不应根据单个窗口的属性自动设置：多个窗口可能采用不同外观，QWK 内部也会为处理 Windows 边框而启用 `dark-mode`。
+
+用户选择“跟随系统”时，在 Qt 6.8 及以上调用 `QGuiApplication::styleHints()->unsetColorScheme()`，并在系统配色方案变化时更新窗口属性和应用自定义颜色。Qt 6.5–6.7 的公开接口只能读取配色方案；较旧版本需要应用通过调色板、QSS 或所用 Qt Quick Controls 风格的主题机制管理控件颜色。
+
+Qt 的配色方案覆盖并非所有平台都支持，Qt 也不会覆盖应用显式设置的调色板颜色。自定义 QSS 和 Qt Quick Controls 的显式主题设置仍需应用自行同步。详见 [QStyleHints 官方文档](https://doc.qt.io/qt-6/qstylehints.html#colorScheme-prop)。
+
 ## macOS 平台效果
 
 默认建议使用 macOS 系统按钮，不必设置自绘关闭/最小化/缩放按钮。

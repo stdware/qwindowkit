@@ -302,6 +302,8 @@ agent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 agent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
+`dark-mode` configures the native Windows appearance; it does not synchronize the application theme used by Qt controls. Applications should set Qt's color scheme when switching their application theme. `QStyleHints::colorScheme()` is available since Qt 6.5, while `setColorScheme()` and `unsetColorScheme()` require Qt 6.8 or later. See [Synchronizing Light and Dark Themes](./docs/tutorial.en-US.md#synchronizing-light-and-dark-themes) in the tutorial.
+
 macOS examples:
 
 ```cpp
