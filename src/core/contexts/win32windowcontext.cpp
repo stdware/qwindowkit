@@ -2172,17 +2172,19 @@ namespace QWK {
                 }
                 case WM_SETICON:
                 case WM_SETTEXT: {
-                    // Disable painting while these messages are handled to prevent them
-                    // from drawing a window caption over the client area.
+                    // Suppress native caption painting without hiding the window.
+                    // Toggling WS_VISIBLE and forcing frame changes interrupts
+                    // DirectComposition, causing transparent Quick windows to blink.
                     const auto oldStyle = static_cast<DWORD>(::GetWindowLongPtrW(hWnd, GWL_STYLE));
-                    // Prevent Windows from drawing the default title bar by temporarily
-                    // toggling the WS_VISIBLE style.
-                    const DWORD newStyle = (oldStyle & ~WS_VISIBLE);
+                    // The caption style is consulted by DefWindowProc when repainting
+                    // text and icons. Restore it without recalculating the frame so
+                    // client geometry, shadows and native hit testing stay intact.
+                    const DWORD newStyle = (oldStyle & ~WS_CAPTION);
                     ::SetWindowLongPtrW(hWnd, GWL_STYLE, static_cast<LONG_PTR>(newStyle));
-                    triggerFrameChange(hWnd);
+                    const auto restoreStyle = qScopeGuard([hWnd, oldStyle]() {
+                        ::SetWindowLongPtrW(hWnd, GWL_STYLE, static_cast<LONG_PTR>(oldStyle));
+                    });
                     const LRESULT originalResult = ::DefWindowProcW(hWnd, message, wParam, lParam);
-                    ::SetWindowLongPtrW(hWnd, GWL_STYLE, static_cast<LONG_PTR>(oldStyle));
-                    triggerFrameChange(hWnd);
                     *result = originalResult;
                     return true;
                 }
