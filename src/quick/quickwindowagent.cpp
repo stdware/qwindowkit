@@ -22,7 +22,15 @@ namespace QWK {
 
     QuickWindowAgentPrivate::QuickWindowAgentPrivate() = default;
 
-    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() = default;
+    QuickWindowAgentPrivate::~QuickWindowAgentPrivate() {
+#if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
+        // Runs before the base destructor releases the context, so the
+        // BorderItem teardown (itemChange -> updateGeometry -> context) is
+        // still safe; QPointer guards the case where the item was already
+        // destroyed together with its visual QObject parent.
+        delete win10BorderItem.data();
+#endif
+    }
 
     void QuickWindowAgentPrivate::init() {
     }
