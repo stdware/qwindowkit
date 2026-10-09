@@ -82,6 +82,13 @@ qm_setup_build_repo_helpers(qwk)
 # `Qt5Gui_PRIVATE_INCLUDE_DIRS` only on the call that creates the targets.
 qm_find_qt(Core Gui)
 
+# The optional Linux StyleAgent uses the standard XDG Settings portal only.
+set(QWINDOWKIT_STYLE_USES_DBUS OFF)
+if(UNIX AND NOT APPLE AND QWINDOWKIT_ENABLE_STYLE_AGENT)
+    qm_find_qt(DBus)
+    set(QWINDOWKIT_STYLE_USES_DBUS ON)
+endif()
+
 if(QWINDOWKIT_BUILD_WIDGETS)
     qm_find_qt(Widgets)
 endif()

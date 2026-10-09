@@ -14,11 +14,17 @@
 // version without notice, or may even be removed.
 //
 
+#include <QtCore/QPointer>
+
 #include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/windowagentbase_p.h>
 #include <QWKQuick/quickwindowagent.h>
 
 namespace QWK {
+
+#ifdef Q_OS_MAC
+    class QuickSystemButtonArea;
+#endif
 
     class QuickWindowAgentPrivate : public WindowAgentBasePrivate {
         Q_DECLARE_PUBLIC(QuickWindowAgent)
@@ -26,18 +32,13 @@ namespace QWK {
         QuickWindowAgentPrivate();
         ~QuickWindowAgentPrivate() override;
 
-        void init();
-
-        // Host
-        QQuickWindow *hostWindow{};
-
 #ifdef Q_OS_MAC
-        QQuickItem *systemButtonAreaItem{};
-        std::unique_ptr<QObject> systemButtonAreaItemHandler;
+        std::unique_ptr<QuickSystemButtonArea> systemButtonAreaItemHandler;
 #endif
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         void setupWindows10BorderWorkaround();
+        QPointer<QQuickItem> borderItem;
 #endif
     };
 

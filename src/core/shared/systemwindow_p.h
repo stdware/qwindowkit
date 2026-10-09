@@ -16,21 +16,72 @@
 
 #include <QtGui/QWindow>
 #include <QtGui/QMouseEvent>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 
 #include <QWKCore/private/qwkglobal_p.h>
 
 namespace QWK {
 
+    // Keep the point used to grab the title area reachable, including custom title
+    // bars away from the top edge. Use each screen separately: a virtual desktop's
+    // bounding rectangle may contain gaps. The 16-DIP inset leaves room to grab
+    // again; tiny screens use their center. Do not try to fit oversized windows.
+    inline QPoint reachableWindowPosition(const QPoint &position, const QPoint &grabOffset,
+                                          const QList<QRect> &availableAreas) {
+        const QPoint grabPosition = position + grabOffset;
+        QPoint bestPosition = position;
+        double bestDistance = -1;
+        for (const auto &area : availableAreas) {
+            if (area.isEmpty())
+                continue;
+            const int insetX = qMin(16, (area.width() - 1) / 2);
+            const int insetY = qMin(16, (area.height() - 1) / 2);
+            const QPoint reachableGrab(qBound(area.left() + insetX, grabPosition.x(),
+                                              area.right() - insetX),
+                                       qBound(area.top() + insetY, grabPosition.y(),
+                                              area.bottom() - insetY));
+            const double dx = double(reachableGrab.x()) - grabPosition.x();
+            const double dy = double(reachableGrab.y()) - grabPosition.y();
+            const double distance = dx * dx + dy * dy;
+            if (bestDistance < 0 || distance < bestDistance) {
+                bestDistance = distance;
+                bestPosition = position + (reachableGrab - grabPosition);
+            }
+        }
+        // No valid screen data: preserve the position rather than invent an origin.
+        return bestPosition;
+    }
+
     class WindowMoveManipulator : public QObject {
     public:
-        explicit WindowMoveManipulator(QWindow *targetWindow)
+        explicit WindowMoveManipulator(QWindow *targetWindow,
+                                       const QPoint &mousePosition = QCursor::pos())
             : QObject(targetWindow), target(targetWindow), operationComplete(false),
-              initialMousePosition(QCursor::pos()),
+              initialMousePosition(mousePosition),
               initialWindowPosition(targetWindow->position()) {
+            const QPoint offset = initialMousePosition - initialWindowPosition;
+            grabOffset = QPoint(qBound(0, offset.x(), qMax(0, target->width() - 1)),
+                                qBound(0, offset.y(), qMax(0, target->height() - 1)));
             target->installEventFilter(this);
         }
 
     protected:
+        virtual QList<QRect> availableScreenGeometries() const {
+            QList<QRect> areas;
+            const auto screen = target->screen();
+            // Prefer the current screen on an exact distance tie. Query at release
+            // so screen removal and work-area changes during the drag are reflected.
+            if (screen)
+                areas.append(screen->availableGeometry());
+            const auto screens = screen ? screen->virtualSiblings() : QGuiApplication::screens();
+            for (const auto sibling : screens) {
+                if (sibling != screen)
+                    areas.append(sibling->availableGeometry());
+            }
+            return areas;
+        }
+
         bool eventFilter(QObject *obj, QEvent *event) override {
             if (operationComplete) {
                 return false;
@@ -44,11 +95,13 @@ namespace QWK {
                 }
 
                 case QEvent::MouseButtonRelease: {
-                    if (target->y() < 0) {
-                        target->setPosition(target->x(), 0);
-                    }
+                    const QPoint position = reachableWindowPosition(
+                        target->position(), grabOffset, availableScreenGeometries());
                     operationComplete = true;
                     deleteLater();
+                    // Finish before moving: setPosition can deliver synchronous events.
+                    if (position != target->position())
+                        target->setPosition(position);
                     break;
                 }
 
@@ -63,6 +116,7 @@ namespace QWK {
         bool operationComplete;
         QPoint initialMousePosition;
         QPoint initialWindowPosition;
+        QPoint grabOffset;
     };
 
     class WindowResizeManipulator : public QObject {

@@ -17,7 +17,7 @@ QT += core gui
 
 isEmpty(QWK_PREFIX): error("QWK_PREFIX must be given on the qmake command line.")
 
-QWK_QMAKE_DIR = $$QWK_PREFIX/share/QWindowKit/qmake
+isEmpty(QWK_QMAKE_DIR): QWK_QMAKE_DIR = $$QWK_PREFIX/share/QWindowKit/qmake
 
 contains(QWK_MODULES, widgets) {
     QT += widgets
@@ -30,3 +30,9 @@ contains(QWK_MODULES, widgets) {
 }
 
 SOURCES += $$PWD/../consumer.cpp
+
+contains(QWK_MODULES, quick) {
+    QT += quick
+    DEFINES += CONSUMER_USE_QUICK
+    !include($$QWK_QMAKE_DIR/QWKQuick.pri): error("cannot include $$QWK_QMAKE_DIR/QWKQuick.pri")
+}

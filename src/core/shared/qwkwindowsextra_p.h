@@ -65,6 +65,22 @@ extern "C" {
 
 namespace QWK {
 
+    // Takes only a native handle so the Quick render thread never needs a window context.
+    inline void drawWindows10BorderNative(HWND hwnd) {
+        if (!hwnd)
+            return;
+        HDC hdc = ::GetDC(hwnd);
+        if (!hdc)
+            return;
+        RECT clientRect{};
+        if (::GetClientRect(hwnd, &clientRect)) {
+            RECT borderRect{0, 0, RECT_WIDTH(clientRect), 1};
+            ::FillRect(hdc, &borderRect,
+                       reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
+        }
+        ::ReleaseDC(hwnd, hdc);
+    }
+
     enum _DWMWINDOWATTRIBUTE {
         // [set] BOOL, Allows the use of host backdrop brushes for the window.
         _DWMWA_USE_HOSTBACKDROPBRUSH = 17,
@@ -187,8 +203,6 @@ namespace QWK {
     using SetWindowCompositionAttributePtr = BOOL(WINAPI *)(HWND, PWINDOWCOMPOSITIONATTRIBDATA);
 
     // Win10 1809 (10.0.17763)
-    using RefreshImmersiveColorPolicyStatePtr = VOID(WINAPI *)(VOID); // Ordinal 104
-    using AllowDarkModeForWindowPtr = BOOL(WINAPI *)(HWND, BOOL);     // Ordinal 133
     using AllowDarkModeForAppPtr = BOOL(WINAPI *)(BOOL);              // Ordinal 135
     using FlushMenuThemesPtr = VOID(WINAPI *)(VOID);                  // Ordinal 136
     // Win10 1903 (10.0.18362)
@@ -219,8 +233,6 @@ namespace QWK {
 #undef DYNAMIC_API_DECLARE
 
             SetWindowCompositionAttributePtr pSetWindowCompositionAttribute = nullptr;
-            RefreshImmersiveColorPolicyStatePtr pRefreshImmersiveColorPolicyState = nullptr;
-            AllowDarkModeForWindowPtr pAllowDarkModeForWindow = nullptr;
             AllowDarkModeForAppPtr pAllowDarkModeForApp = nullptr;
             FlushMenuThemesPtr pFlushMenuThemes = nullptr;
             SetPreferredAppModePtr pSetPreferredAppMode = nullptr;
@@ -254,8 +266,6 @@ namespace QWK {
     p##NAME = reinterpret_cast<decltype(p##NAME)>(DLL.resolve(MAKEINTRESOURCEA(ORDINAL)))
 
                 QSystemLibrary uxtheme(QStringLiteral("uxtheme"));
-                UNDOC_API_RESOLVE(uxtheme, RefreshImmersiveColorPolicyState, 104);
-                UNDOC_API_RESOLVE(uxtheme, AllowDarkModeForWindow, 133);
                 UNDOC_API_RESOLVE(uxtheme, AllowDarkModeForApp, 135);
                 UNDOC_API_RESOLVE(uxtheme, FlushMenuThemes, 136);
                 UNDOC_API_RESOLVE(uxtheme, SetPreferredAppMode, 135);
@@ -303,14 +313,6 @@ namespace QWK {
         return POINT{LONG(point.x()), LONG(point.y())};
     }
 
-    inline constexpr QSize size2qsize(const SIZE &size) {
-        return QSize{int(size.cx), int(size.cy)};
-    }
-
-    inline constexpr SIZE qsize2size(const QSize &size) {
-        return SIZE{LONG(size.width()), LONG(size.height())};
-    }
-
     inline constexpr QRect rect2qrect(const RECT &rect) {
         return QRect{
             QPoint{int(rect.left),        int(rect.top)         },
@@ -318,31 +320,8 @@ namespace QWK {
         };
     }
 
-    inline constexpr RECT qrect2rect(const QRect &qrect) {
-        return RECT{LONG(qrect.left()), LONG(qrect.top()), LONG(qrect.right()),
-                    LONG(qrect.bottom())};
-    }
-
-    inline constexpr QMargins margins2qmargins(const MARGINS &margins) {
-        return {margins.cxLeftWidth, margins.cyTopHeight, margins.cxRightWidth,
-                margins.cyBottomHeight};
-    }
-
     inline constexpr MARGINS qmargins2margins(const QMargins &qmargins) {
         return {qmargins.left(), qmargins.right(), qmargins.top(), qmargins.bottom()};
-    }
-
-    inline /*constexpr*/ QString hwnd2str(const WId windowId) {
-        if (!windowId) {
-            return QStringLiteral("0x00000000");
-        }
-        return QStringLiteral("0x") +
-               QString::number(windowId, 16).toUpper().rightJustified(8, u'0');
-    }
-
-    inline /*constexpr*/ QString hwnd2str(HWND hwnd) {
-        // NULL handle is allowed here.
-        return hwnd2str(reinterpret_cast<WId>(hwnd));
     }
 
     inline bool isDwmCompositionEnabled() {
@@ -358,15 +337,8 @@ namespace QWK {
     }
 
     inline bool isWindowFrameBorderColorized() {
-        WindowsRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
-        if (!registry.isValid()) {
-            return false;
-        }
-        auto value = registry.dwordValue(L"ColorPrevalence");
-        if (!value.second) {
-            return false;
-        }
-        return value.first;
+        return Private::readRegistryDword(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)",
+                                           L"ColorPrevalence").value_or(0) != 0;
     }
 
     inline bool isHighContrastModeEnabled() {
@@ -383,16 +355,10 @@ namespace QWK {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 #else
-        WindowsRegistryKey registry(
-            HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)");
-        if (!registry.isValid()) {
-            return false;
-        }
-        auto value = registry.dwordValue(L"AppsUseLightTheme");
-        if (!value.second) {
-            return false;
-        }
-        return !value.first;
+        const auto value = Private::readRegistryDword(
+            HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)",
+            L"AppsUseLightTheme");
+        return value && *value == 0;
 #endif
     }
 
@@ -413,17 +379,14 @@ namespace QWK {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         return QGuiApplication::palette().color(QPalette::Accent);
 #else
-        WindowsRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
-        if (!registry.isValid()) {
-            return {};
-        }
-        auto value = registry.dwordValue(L"AccentColor");
-        if (!value.second) {
+        const auto value = Private::readRegistryDword(
+            HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)", L"AccentColor");
+        if (!value) {
             return {};
         }
         // The retrieved value is in the #AABBGGRR format, we need to
         // convert it to the #AARRGGBB format which Qt expects.
-        QColor color = QColor::fromRgba(value.first);
+        QColor color = QColor::fromRgba(*value);
         if (!color.isValid()) {
             return {};
         }

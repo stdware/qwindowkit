@@ -1,0 +1,73 @@
+cmake_minimum_required(VERSION 3.19)
+include(CMakePackageConfigHelpers)
+include("${CMAKE_CURRENT_LIST_DIR}/../testing/ConsumerBuildCommon.cmake")
+qwk_require_variables(TEMPLATE WORK_DIR GENERATOR)
+file(MAKE_DIRECTORY "${WORK_DIR}")
+set(QWINDOWKIT_HAS_QML_MODULE OFF)
+set(QWINDOWKIT_BUILD_WIDGETS ON)
+set(QWINDOWKIT_BUILD_QUICK ON)
+set(CMAKE_INSTALL_PREFIX "${WORK_DIR}")
+foreach(FAKE_MAJOR 5 6)
+    file(MAKE_DIRECTORY "${WORK_DIR}/qt${FAKE_MAJOR}/lib/cmake/Qt${FAKE_MAJOR}")
+    configure_file("${CMAKE_CURRENT_LIST_DIR}/QtConfig.cmake.in"
+        "${WORK_DIR}/qt${FAKE_MAJOR}/lib/cmake/Qt${FAKE_MAJOR}/Qt${FAKE_MAJOR}Config.cmake" @ONLY)
+endforeach()
+set(cases 0)
+foreach(QT_VERSION_MAJOR 5 6)
+    math(EXPR wrong_major "11 - ${QT_VERSION_MAJOR}")
+    foreach(QWINDOWKIT_BUILD_STATIC OFF ON)
+        foreach(QWINDOWKIT_STYLE_USES_DBUS OFF ON)
+            set(package "${WORK_DIR}/package-${QT_VERSION_MAJOR}-${QWINDOWKIT_BUILD_STATIC}-${QWINDOWKIT_STYLE_USES_DBUS}")
+            file(MAKE_DIRECTORY "${package}/lib/cmake/QWindowKit")
+            configure_package_config_file("${TEMPLATE}"
+                "${package}/lib/cmake/QWindowKit/QWindowKitConfig.cmake"
+                INSTALL_DESTINATION lib/cmake/QWindowKit INSTALL_PREFIX "${package}")
+            set(exports "")
+            foreach(component Core Widgets Quick)
+                string(APPEND exports "add_library(QWindowKit::${component} INTERFACE IMPORTED)\n")
+            endforeach()
+            file(WRITE "${package}/lib/cmake/QWindowKit/QWindowKitTargets.cmake" "${exports}")
+            foreach(mode both matching wrong-only missing-dbus)
+                set(qt_roots "${WORK_DIR}/qt${QT_VERSION_MAJOR}")
+                if(mode STREQUAL "both")
+                    list(PREPEND qt_roots "${WORK_DIR}/qt${wrong_major}")
+                elseif(mode STREQUAL "wrong-only")
+                    set(qt_roots "${WORK_DIR}/qt${wrong_major}")
+                endif()
+                set(disable_dbus OFF)
+                if(mode STREQUAL "missing-dbus")
+                    set(disable_dbus ON)
+                endif()
+                # Independent caches prevent package discovery from a preceding case leaking in.
+                set(case_dir "${WORK_DIR}/consumer-${QT_VERSION_MAJOR}-${QWINDOWKIT_BUILD_STATIC}-${QWINDOWKIT_STYLE_USES_DBUS}-${mode}")
+                file(REMOVE "${case_dir}/CMakeCache.txt")
+                execute_process(COMMAND "${CMAKE_COMMAND}"
+                    -S "${CMAKE_CURRENT_LIST_DIR}/major-consumer" -B "${case_dir}"
+                    -G "${GENERATOR}" "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}"
+                    "-DQWindowKit_DIR=${package}/lib/cmake/QWindowKit"
+                    "-DQT_ROOTS=${qt_roots}" "-DEXPECTED_MAJOR=${QT_VERSION_MAJOR}"
+                    "-DWRONG_MAJOR=${wrong_major}" "-DSTATIC_PACKAGE=${QWINDOWKIT_BUILD_STATIC}"
+                    "-DPORTAL_PACKAGE=${QWINDOWKIT_STYLE_USES_DBUS}" "-DDISABLE_DBUS=${disable_dbus}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error TIMEOUT 5)
+                if(mode STREQUAL "wrong-only")
+                    if(NOT "${result}" MATCHES "^[1-9][0-9]*$" OR
+                       NOT "${output}${error}" MATCHES "Qt${QT_VERSION_MAJOR}Config.cmake")
+                        message(FATAL_ERROR "Wrong-only case did not reject missing Qt ${QT_VERSION_MAJOR}: ${result}\n${output}\n${error}")
+                    endif()
+                elseif(mode STREQUAL "missing-dbus" AND QWINDOWKIT_BUILD_STATIC AND QWINDOWKIT_STYLE_USES_DBUS)
+                    if(NOT "${result}" MATCHES "^[1-9][0-9]*$" OR
+                       NOT "${output}${error}" MATCHES "DBus")
+                        message(FATAL_ERROR "Static portal package accepted missing DBus: ${result}\n${output}\n${error}")
+                    endif()
+                elseif(NOT "${result}" STREQUAL "0")
+                    message(FATAL_ERROR "Qt ${QT_VERSION_MAJOR}/${QWINDOWKIT_BUILD_STATIC}/${mode}: ${result}\n${output}\n${error}")
+                endif()
+                math(EXPR cases "${cases} + 1")
+            endforeach()
+        endforeach()
+    endforeach()
+endforeach()
+if(NOT cases EQUAL 32)
+    message(FATAL_ERROR "Expected 32 Qt-major discovery cases, got ${cases}")
+endif()
+message(STATUS "All 32 Qt-major/portal dependency discovery cases passed (configuration substitutes, not ABI tests)")

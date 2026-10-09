@@ -8,9 +8,11 @@
 
 #include "quickwindowagent.h"
 
-namespace QWK {
+#ifdef QWK_QUICK_HAS_QML_MODULE
+void qml_register_types_QWindowKit();
+#endif
 
-    static constexpr const char kModuleUri[] = "QWindowKit";
+namespace QWK {
 
     void registerTypes(QQmlEngine *engine) {
         Q_UNUSED(engine);
@@ -21,9 +23,15 @@ namespace QWK {
         }
         once = true;
 
+#ifdef QWK_QUICK_HAS_QML_MODULE
+        // Explicitly reference the generated registration for static library consumers too.
+        qml_register_types_QWindowKit();
+#else
+        static constexpr const char kModuleUri[] = "QWindowKit";
         // @uri QWindowKit
         qmlRegisterType<QuickWindowAgent>(kModuleUri, 1, 0, "WindowAgent");
         qmlRegisterModule(kModuleUri, 1, 0);
+#endif
     }
 
 }

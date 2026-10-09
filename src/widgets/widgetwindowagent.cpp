@@ -6,7 +6,6 @@
 #include "widgetwindowagent_p.h"
 
 #include <QtGui/QtEvents>
-#include <QtGui/QPainter>
 #include <QtCore/QDebug>
 
 #include "widgetitemdelegate_p.h"
@@ -24,9 +23,6 @@ namespace QWK {
     WidgetWindowAgentPrivate::WidgetWindowAgentPrivate() = default;
 
     WidgetWindowAgentPrivate::~WidgetWindowAgentPrivate() = default;
-
-    void WidgetWindowAgentPrivate::init() {
-    }
 
     /*!
         Constructs a widget agent, it's better to set the widget to setup as \a parent.
@@ -58,7 +54,7 @@ namespace QWK {
 #endif
 
         Q_D(WidgetWindowAgent);
-        if (d->hostWidget) {
+        if (d->context) {
             return false;
         }
 
@@ -71,7 +67,6 @@ namespace QWK {
         // w->setAttribute(Qt::WA_NativeWindow); // ### FIXME: Check
 
         d->setup(w, new WidgetItemDelegate());
-        d->hostWidget = w;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
@@ -88,8 +83,11 @@ namespace QWK {
     }
 
     /*!
-        Sets the title bar widget, all system button and hit-test visible widget references that
-        have been set will be removed.
+        Sets the title bar widget. Replacing a previously assigned title bar clears
+        system button and hit-test visible registrations even if the old title bar
+        has already been destroyed. The registered objects are not deleted.
+        Assigning the same title bar again does not clear registrations or emit a
+        change signal. Registrations made before the first title bar are preserved.
     */
     void WidgetWindowAgent::setTitleBar(QWidget *w) {
         Q_D(WidgetWindowAgent);
@@ -103,7 +101,8 @@ namespace QWK {
     }
 
     /*!
-        Returns the system button of the given type.
+        Returns the system button of the given type, or nullptr for Unknown or an
+        out-of-range type. QuickWindowAgent uses the same rule.
     */
     QWidget *WidgetWindowAgent::systemButton(SystemButton button) const {
         Q_D(const WidgetWindowAgent);
@@ -113,6 +112,10 @@ namespace QWK {
     /*!
         Sets the system button of the given type, the system buttons always receive mouse events so
         you don't need to call \c setHitTestVisible for them.
+        Unknown and out-of-range types are ignored without emitting
+        systemButtonChanged. Passing nullptr unregisters a valid type. Setting an
+        unchanged registration does not emit a signal. QuickWindowAgent follows
+        the same rules, after Qt converts a QML argument to the enum's int type.
     */
     void WidgetWindowAgent::setSystemButton(SystemButton button, QWidget *w) {
         Q_D(WidgetWindowAgent);
@@ -145,7 +148,6 @@ namespace QWK {
     */
     WidgetWindowAgent::WidgetWindowAgent(WidgetWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
-        d.init();
     }
 
     /*!

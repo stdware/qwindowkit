@@ -147,6 +147,25 @@ target_link_libraries(my_quick_app PRIVATE
 
 QWindowKit can also be added as a CMake subdirectory when it is vendored into your project.
 
+With Qt 6.3 or later, building Quick generates `qml/QWindowKit/qmldir` and
+`QWKQuick.qmltypes` in the build tree and installs them under `<INSTALL_DIR>/qml/QWindowKit`.
+`QWindowKit_QML_IMPORT_PATH` points to the import root for both CMake integration methods.
+Add it to Qt Creator's code model and to the application's QML module:
+
+```cmake
+list(APPEND QML_IMPORT_PATH "${QWindowKit_QML_IMPORT_PATH}")
+list(REMOVE_DUPLICATES QML_IMPORT_PATH)
+set(QML_IMPORT_PATH "${QML_IMPORT_PATH}" CACHE STRING "QML import paths" FORCE)
+# When using qt_add_qml_module(my_quick_app ...), also pass:
+# IMPORT_PATH "${QWindowKit_QML_IMPORT_PATH}"
+```
+
+For other editors, add this same directory to the QML language server's import paths.
+For a direct check, run `qmllint -I <INSTALL_DIR>/qml <your-file.qml>`.
+Continue linking `QWindowKit::Quick` and calling `QWK::registerTypes(&engine)` before loading
+QML, including in static builds; this module does not install a runtime plugin.
+Qt 5 and Qt 6.0–6.2 retain procedural registration without generated tooling metadata.
+
 ### qmake
 
 After installing QWindowKit with CMake, include the generated `.pri` file:

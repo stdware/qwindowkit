@@ -15,6 +15,7 @@
 //
 
 #include <QWKCore/qwkglobal.h>
+#include <QWKCore/private/eventdispatch_p.h>
 
 namespace QWK {
 
@@ -33,9 +34,7 @@ namespace QWK {
         void removeSharedEventFilter(SharedEventFilter *filter);
 
     protected:
-        QList<SharedEventFilter *> m_sharedEventFilters;
-
-        int m_sharedDispatchDepth = 0;
+        Private::EventDispatchState<SharedEventFilter> m_sharedDispatch;
 
         friend class SharedEventFilter;
 

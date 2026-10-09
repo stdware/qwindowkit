@@ -1,0 +1,23 @@
+# Test execution is offline. Build/install/consumer tests are deliberately not invoked here.
+if(WIN32)
+    set(ENV{PATH} "${QWK_BIN_DIR};${QT_BIN_DIR};$ENV{PATH}")
+endif()
+set(ENV{QT_QPA_PLATFORM} offscreen)
+set(ENV{QT_QUICK_BACKEND} software)
+file(REMOVE "${RESULT_FILE}.txt" "${RESULT_FILE}.xml")
+execute_process(COMMAND "${TEST_EXE}"
+    -o "${RESULT_FILE}.txt,txt" -o "${RESULT_FILE}.xml,xml"
+    RESULT_VARIABLE result TIMEOUT 8)
+if(EXISTS "${RESULT_FILE}.txt")
+    file(READ "${RESULT_FILE}.txt" report)
+    message("${report}")
+endif()
+if(NOT "${result}" STREQUAL "0")
+    message(FATAL_ERROR "Unit test failed or exceeded the 8-second limit: ${result}")
+endif()
+file(READ "${RESULT_FILE}.xml" report_xml)
+string(REGEX MATCHALL "<Incident type=\"pass\"" passes "${report_xml}")
+list(LENGTH passes pass_count)
+if(NOT pass_count EQUAL EXPECTED_PASSES OR report_xml MATCHES "<Incident type=\"(skip|xfail)\"")
+    message(FATAL_ERROR "Expected ${EXPECTED_PASSES} passes with no skips/expected failures; got ${pass_count}")
+endif()

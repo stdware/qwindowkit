@@ -147,6 +147,25 @@ target_link_libraries(my_quick_app PRIVATE
 
 如果你将 QWindowKit 作为源码依赖放入项目，也可以通过 CMake `add_subdirectory()` 集成。
 
+使用 Qt 6.3 或更高版本构建 Quick 时，会在构建目录的 `qml/QWindowKit` 中生成
+`qmldir` 和 `QWKQuick.qmltypes`，并安装到 `<INSTALL_DIR>/qml/QWindowKit`。
+上述两种 CMake 集成方式均提供 `QWindowKit_QML_IMPORT_PATH`，指向 QML 导入根目录。
+将其加入 Qt Creator 的代码模型以及应用的 QML 模块：
+
+```cmake
+list(APPEND QML_IMPORT_PATH "${QWindowKit_QML_IMPORT_PATH}")
+list(REMOVE_DUPLICATES QML_IMPORT_PATH)
+set(QML_IMPORT_PATH "${QML_IMPORT_PATH}" CACHE STRING "QML import paths" FORCE)
+# 使用 qt_add_qml_module(my_quick_app ...) 时，还需传入：
+# IMPORT_PATH "${QWindowKit_QML_IMPORT_PATH}"
+```
+
+其他编辑器需要将同一目录加入 QML 语言服务器的导入路径。
+也可运行 `qmllint -I <INSTALL_DIR>/qml <your-file.qml>` 检查。
+仍须链接 `QWindowKit::Quick`，并在加载 QML 前调用 `QWK::registerTypes(&engine)`，
+静态构建也采用这一方式；本模块不安装运行时插件。
+Qt 5 和 Qt 6.0–6.2 保留原来的手动注册方式，暂不生成工具元数据。
+
 ### qmake
 
 先使用 CMake 安装 QWindowKit，然后包含生成的 `.pri` 文件：
