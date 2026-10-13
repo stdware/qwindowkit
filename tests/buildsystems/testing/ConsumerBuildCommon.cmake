@@ -20,18 +20,22 @@ endfunction()
     carrying the command and its output. The output is held back until then, since a passing test
     that prints a whole build log buries the ones that did not pass.
 
-    qwk_run_step(<label> <command> [<arg...>])
+    qwk_run_step(<label> <timeout-seconds> <command> [<arg...>])
 ]] #
-function(qwk_run_step _label)
+function(qwk_run_step _label _timeout)
+    if(NOT _timeout MATCHES "^[1-9][0-9]*$" OR _timeout GREATER 25)
+        message(FATAL_ERROR "Consumer step timeout must be an integer between 1 and 25 seconds")
+    endif()
     execute_process(
         COMMAND ${ARGN}
         WORKING_DIRECTORY "${WORK_DIR}"
         RESULT_VARIABLE _code
         OUTPUT_VARIABLE _out
         ERROR_VARIABLE _err
+        TIMEOUT ${_timeout}
     )
 
-    if(NOT _code EQUAL 0)
+    if(NOT "${_code}" STREQUAL "0")
         message(FATAL_ERROR
             "${_label} failed with exit code ${_code}\n"
             "command: ${ARGN}\n"

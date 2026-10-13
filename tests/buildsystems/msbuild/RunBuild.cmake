@@ -29,7 +29,7 @@ foreach(_option USE_QUICK EXPECT_STATIC)
     endif()
 endforeach()
 
-qwk_run_step("msbuild" "${MSBUILD_EXECUTABLE}" "${PROJECT_FILE}"
+qwk_run_step("msbuild" 25 "${MSBUILD_EXECUTABLE}" "${PROJECT_FILE}"
     /nologo
     /verbosity:minimal
     "/p:Configuration=${BUILD_CONFIG}"

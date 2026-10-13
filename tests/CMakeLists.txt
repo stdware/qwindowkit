@@ -1,3 +1,10 @@
+add_test(NAME testpolicy.timeouts
+    COMMAND ${CMAKE_COMMAND}
+        "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+        "-DBUILD_CONFIG=$<CONFIG>"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/CheckTimeouts.cmake")
+set_tests_properties(testpolicy.timeouts PROPERTIES TIMEOUT 10 LABELS infrastructure)
+
 add_subdirectory(unit)
 add_subdirectory(buildsystems)
 

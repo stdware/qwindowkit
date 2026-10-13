@@ -20,7 +20,7 @@ add_test(NAME buildsystems.install
     COMMAND ${CMAKE_COMMAND} --install ${PROJECT_BINARY_DIR}
     --prefix ${_prefix} --config $<CONFIG>
 )
-set_tests_properties(buildsystems.install PROPERTIES FIXTURES_SETUP qwk_install_tree)
+set_tests_properties(buildsystems.install PROPERTIES FIXTURES_SETUP qwk_install_tree TIMEOUT 15)
 
 set(_modules core)
 
@@ -56,8 +56,13 @@ if(_qmake_executable)
         COMMAND ${_qmake_executable} -query QT_INSTALL_PREFIX
         OUTPUT_VARIABLE _qt_prefix
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
+        ERROR_VARIABLE _qt_query_error
+        RESULT_VARIABLE _qt_query_result
+        TIMEOUT 5
     )
+    if(NOT "${_qt_query_result}" STREQUAL "0")
+        message(FATAL_ERROR "qmake prefix query failed (${_qt_query_result}): ${_qt_query_error}")
+    endif()
 elseif(Qt${QT_VERSION_MAJOR}_DIR)
     # <prefix>/lib/cmake/Qt<major>
     get_filename_component(_qt_prefix "${Qt${QT_VERSION_MAJOR}_DIR}/../../.." ABSOLUTE)
@@ -88,7 +93,7 @@ if(_qmake_executable AND QWINDOWKIT_TEST_MAKE_PROGRAM)
         -D "QWK_MODULES=${_modules}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/qmake/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.qmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.qmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
 else()
     message(STATUS "qmake or a make tool was not found, skipping the qmake build system test")
 endif()
@@ -133,7 +138,7 @@ if(QWINDOWKIT_TEST_MSBUILD_EXECUTABLE AND _platform AND _qt_prefix)
         -D "EXPECT_STATIC=${QWINDOWKIT_BUILD_STATIC}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/msbuild/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.msbuild PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.msbuild PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
 elseif(MSVC)
     message(STATUS "MSBuild or the Qt prefix was not found, skipping the MSBuild build system test")
 endif()
@@ -157,7 +162,7 @@ if(_qt_prefix)
         -D "USE_WIDGETS=${_use_widgets}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunBuild.cmake"
     )
-    set_tests_properties(buildsystems.cmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree)
+    set_tests_properties(buildsystems.cmake PROPERTIES FIXTURES_REQUIRED qwk_install_tree TIMEOUT 60)
 else()
     message(STATUS "The Qt prefix was not found, skipping the CMake build system test")
 endif()

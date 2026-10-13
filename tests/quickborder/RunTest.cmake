@@ -1,5 +1,5 @@
 execute_process(COMMAND "${TEST_EXE}" ${TEST_FUNCTIONS} -o "${RESULT_FILE},txt"
-    RESULT_VARIABLE _result TIMEOUT 45)
+    RESULT_VARIABLE _result TIMEOUT 15)
 if(EXISTS "${RESULT_FILE}")
     file(READ "${RESULT_FILE}" _report)
     message("${_report}")

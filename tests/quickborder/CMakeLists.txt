@@ -18,7 +18,7 @@ foreach(_scale IN ITEMS 1 1.25 1.5 2)
         "-DTEST_FUNCTIONS=agentBeforeWindow;windowBeforeAgent;geometryColorAndSceneAttachment"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
     set_tests_properties(quickborder.software.${_scale} PROPERTIES
-        TIMEOUT 60 LABELS "quick;windows;ui" RESOURCE_LOCK desktop)
+        TIMEOUT 20 LABELS "quick;windows;ui" RESOURCE_LOCK desktop)
 endforeach()
 
 if(QT_VERSION_MAJOR GREATER_EQUAL 6)
@@ -33,5 +33,5 @@ if(QT_VERSION_MAJOR GREATER_EQUAL 6)
         "-DTEST_FUNCTIONS=nativeSurfaceLifecycle"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
     set_tests_properties(quickborder.native.d3d11 PROPERTIES
-        TIMEOUT 60 LABELS "quick;windows;ui" RESOURCE_LOCK desktop)
+        TIMEOUT 20 LABELS "quick;windows;ui" RESOURCE_LOCK desktop)
 endif()

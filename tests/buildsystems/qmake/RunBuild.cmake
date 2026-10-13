@@ -17,10 +17,10 @@ file(MAKE_DIRECTORY "${WORK_DIR}")
 # qmake takes a list as a whitespace separated value.
 string(REPLACE ";" " " _modules "${QWK_MODULES}")
 
-qwk_run_step("qmake" "${QMAKE_EXECUTABLE}" "${PROJECT_FILE}"
+qwk_run_step("qmake" 15 "${QMAKE_EXECUTABLE}" "${PROJECT_FILE}"
     "QWK_PREFIX=${INSTALL_PREFIX}"
     "QWK_MODULES=${_modules}"
     "CONFIG+=${BUILD_CONFIG}"
 )
 
-qwk_run_step("make" "${MAKE_PROGRAM}")
+qwk_run_step("make" 25 "${MAKE_PROGRAM}")
