@@ -10,6 +10,10 @@ namespace QWK {
 
     WindowItemDelegate::~WindowItemDelegate() = default;
 
+    bool WindowItemDelegate::containsScenePoint(const QObject *obj, const QPoint &pos) const {
+        return mapGeometryToScene(obj).contains(pos);
+    }
+
     void WindowItemDelegate::resetQtGrabbedControl(QObject *host) const {
         Q_UNUSED(host);
     }

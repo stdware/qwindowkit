@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/hittest">
+        <file>TransformFixture.qml</file>
+    </qresource>
+</RCC>
