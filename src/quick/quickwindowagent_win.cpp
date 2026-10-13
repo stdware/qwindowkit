@@ -75,7 +75,7 @@ namespace QWK {
     }
 
     BorderItem::BorderItem(QQuickItem *parent, AbstractWindowContext *context)
-        : QQuickItem(parent), Windows10BorderHandler(context) {
+        : QQuickItem(parent), Windows10BorderHandler(context, this) {
         setFlag(ItemHasContents);
         setAntialiasing(false);
         setAcceptedMouseButtons(Qt::NoButton);
@@ -172,8 +172,9 @@ namespace QWK {
     }
 
     bool BorderItem::sharedEventFilter(QObject *obj, QEvent *event) {
+        const QPointer<BorderItem> guard(this);
         const bool filtered = Windows10BorderHandler::sharedEventFilter(obj, event);
-        if (event->type() == QEvent::WindowStateChange || event->type() == QEvent::WinIdChange) {
+        if (guard && (event->type() == QEvent::WindowStateChange || event->type() == QEvent::WinIdChange)) {
             updateGeometry();
         }
         return filtered;
@@ -183,7 +184,10 @@ namespace QWK {
                                        QT_NATIVE_EVENT_RESULT_TYPE *result) {
         if (!message)
             return false;
+        const QPointer<BorderItem> guard(this);
         const bool filtered = Windows10BorderHandler::nativeEventFilter(eventType, message, result);
+        if (!guard)
+            return filtered;
         const auto msg = static_cast<const MSG *>(message);
         switch (msg->message) {
             case WM_THEMECHANGED:
