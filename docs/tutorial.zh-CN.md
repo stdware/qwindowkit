@@ -311,6 +311,14 @@ connect(closeButton, &QPushButton::clicked, window, &QWidget::close);
 setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 ```
 
+在 macOS 和 Qt fallback 上，QWindowKit 自定义标题栏仅在设置了
+`Qt::WindowMaximizeButtonHint`、窗口不是固定尺寸或全屏、且指针位于标题栏可拖拽区域时，
+通过左键双击切换最大化/普通状态。清除该标志也会禁止通过双击还原已最大化的窗口。
+Quick 窗口的 `flags` 遵循相同规则。应用代码或自定义按钮处理函数仍可直接修改窗口状态。
+
+macOS 自定义标题栏使用上述 QWindowKit 策略，不读取“桌面与程序坞”中的原生标题栏双击
+操作偏好。原生红绿灯按钮与此自定义标题栏行为相互独立。
+
 固定大小窗口：
 
 ```cpp
