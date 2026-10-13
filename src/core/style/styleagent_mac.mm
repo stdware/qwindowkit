@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "styleagent_p.h"
+#include "styleagentregistry_p.h"
+
+#include <utility>
 
 #include <Cocoa/Cocoa.h>
 
@@ -74,18 +77,12 @@ namespace QWK {
 
 namespace QWK {
 
-    using StyleAgentSet = QSet<StyleAgentPrivate *>;
-    Q_GLOBAL_STATIC(StyleAgentSet, g_styleAgentSet)
+    Q_GLOBAL_STATIC(Private::StyleAgentRegistry, g_styleAgentSet)
 
     static QWK_SystemThemeObserver *g_systemThemeObserver = nil;
 
     void notifyAllStyleAgents() {
-        auto theme = getSystemTheme();
-        auto color = getAccentColor();
-        for (auto &&ap : std::as_const(*g_styleAgentSet())) {
-            ap->notifyThemeChanged(theme);
-            ap->notifyAccentColorChanged(color);
-        }
+        g_styleAgentSet->notify([] { return std::make_pair(getSystemTheme(), getAccentColor()); });
     }
 
     void StyleAgentPrivate::setupSystemThemeHook() {
