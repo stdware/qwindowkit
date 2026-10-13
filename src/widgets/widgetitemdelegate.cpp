@@ -91,11 +91,29 @@ namespace QWK {
     }
 
     void WidgetItemDelegate::setCursorShape(QObject *host, Qt::CursorShape shape) const {
-        static_cast<QWidget *>(host)->setCursor(QCursor(shape));
+        auto widget = static_cast<QWidget *>(host);
+        if (!m_savedCursor) {
+            m_savedCursor = widget->cursor();
+            m_hadExplicitCursor = widget->testAttribute(Qt::WA_SetCursor);
+        }
+        widget->setCursor(QCursor(shape));
     }
 
     void WidgetItemDelegate::restoreCursorShape(QObject *host) const {
-        static_cast<QWidget *>(host)->unsetCursor();
+        if (!m_savedCursor)
+            return;
+        const auto cursor = *m_savedCursor;
+        const bool explicitCursor = m_hadExplicitCursor;
+        // Clear before QWidget sends CursorChange, which can reenter or delete the agent.
+        m_savedCursor.reset();
+        auto widget = static_cast<QWidget *>(host);
+        if (explicitCursor)
+            widget->setCursor(cursor);
+        else {
+            // unsetCursor() only clears this attribute on non-window widgets.
+            widget->setAttribute(Qt::WA_SetCursor, false);
+            widget->unsetCursor();
+        }
     }
 
     Qt::WindowFlags WidgetItemDelegate::getWindowFlags(const QObject *host) const {

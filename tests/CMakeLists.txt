@@ -8,6 +8,10 @@ set_tests_properties(testpolicy.timeouts PROPERTIES TIMEOUT 10 LABELS infrastruc
 add_subdirectory(unit)
 add_subdirectory(buildsystems)
 
+if(WIN32 AND (QWINDOWKIT_BUILD_WIDGETS OR QWINDOWKIT_BUILD_QUICK))
+    add_subdirectory(fallbackcursor)
+endif()
+
 if(WIN32 AND QWINDOWKIT_BUILD_WIDGETS AND NOT QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT)
     add_subdirectory(windows/windowproc)
 endif()

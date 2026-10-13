@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtGui/QWindow>
+#include <QtGui/QCursor>
+#include <optional>
 
 #include <QWKCore/private/windowitemdelegate_p.h>
 #include <QWKWidgets/qwkwidgetsglobal.h>
@@ -50,6 +52,10 @@ namespace QWK {
 
         WinIdChangeEventFilter *
             createWinIdEventFilter(QObject *host, AbstractWindowContext *context) const override;
+
+    private:
+        mutable std::optional<QCursor> m_savedCursor;
+        mutable bool m_hadExplicitCursor = false;
     };
 
 }

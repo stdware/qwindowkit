@@ -47,6 +47,10 @@ namespace QWK {
         // Callbacks
         virtual void resetQtGrabbedControl(QObject *host) const;
         virtual void setWindowState(QObject *host, Qt::WindowStates state) const = 0;
+        // Temporarily own the cursor until restoreCursorShape: save the complete initial
+        // cursor (and widget inheritance) once, even across consecutive edge changes.
+        // Application writes during ownership are temporary; restoring reinstates the
+        // initial snapshot. Implementations must clear it before calling back into Qt.
         virtual void setCursorShape(QObject *host, Qt::CursorShape shape) const = 0;
         virtual void restoreCursorShape(QObject *host) const = 0;
         virtual void setWindowFlags(QObject *host, Qt::WindowFlags flags) const = 0;

@@ -27,6 +27,10 @@ namespace QWK {
         QString key() const override;
         void virtual_hook(int id, void *data) override;
 
+        // Internal platform boundary; event decisions can be tested without native input.
+        virtual void systemMove();
+        virtual void systemResize(Qt::Edges edges);
+
     protected:
         void winIdChanged(WId winId, WId oldWinId) override;
 

@@ -62,11 +62,18 @@ namespace QWK {
     }
 
     void QuickItemDelegate::setCursorShape(QObject *host, const Qt::CursorShape shape) const {
-        static_cast<QQuickWindow *>(host)->setCursor(QCursor(shape));
+        auto window = static_cast<QQuickWindow *>(host);
+        if (!m_savedCursor)
+            m_savedCursor = window->cursor();
+        window->setCursor(QCursor(shape));
     }
 
     void QuickItemDelegate::restoreCursorShape(QObject *host) const {
-        static_cast<QQuickWindow *>(host)->unsetCursor();
+        if (!m_savedCursor)
+            return;
+        const auto cursor = *m_savedCursor;
+        m_savedCursor.reset();
+        static_cast<QQuickWindow *>(host)->setCursor(cursor);
     }
 
     Qt::WindowFlags QuickItemDelegate::getWindowFlags(const QObject *host) const {
