@@ -96,6 +96,34 @@ namespace {
             event->ignore();
         }
     };
+
+    class AttributeWindow : public QWindow {
+    public:
+        std::function<void()> action;
+        std::function<bool()> ready;
+        int moves = 0;
+        UINT trigger = WM_WINDOWPOSCHANGING;
+        bool consumeTrigger = false;
+    protected:
+        bool nativeEvent(const QByteArray &, void *message,
+                         QT_NATIVE_EVENT_RESULT_TYPE *result) override {
+            const auto msg = static_cast<MSG *>(message);
+            if (msg->message == WM_WINDOWPOSCHANGING) {
+                ++moves;
+            }
+            if (msg->message == trigger && action && ready()) {
+                const auto callback = std::exchange(action, {});
+                callback();
+                if (consumeTrigger) {
+                    // The old QPA window was destroyed. Do not let Qt continue
+                    // delivering this native message to that obsolete receiver.
+                    *result = 0;
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
 }
 
 class WindowLifetimeTest : public QObject {
@@ -125,6 +153,85 @@ private:
                  output.constData());
     }
 private Q_SLOTS:
+    void attributes_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto name : {"delete-context", "replace", "remove", "other-keys",
+                               "recreate", "replay-delete", "replay-replace", "handle-delete"})
+            QTest::newRow(name) << QString::fromLatin1(name);
+    }
+
+    void attributes() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(QString, scenario);
+        AttributeWindow window;
+        window.setGeometry(100, 100, 320, 240);
+        auto context = std::make_unique<Context>();
+        context->setup(&window, new WindowDelegate(&window));
+        window.create();
+        QVERIFY(context->windowId());
+        context->setProperty("_qwk_effectBugWorkaround1", true);
+        QVERIFY(context->setWindowAttribute("dwm-blur", false));
+        context->setProperty("_qwk_effectBugWorkaround1", false);
+        bool visited = false;
+        bool nestedResult = false;
+        window.ready = [&] {
+            return context && (scenario == "handle-delete" ? context->windowId() != 0
+                : context->property("_qwk_effectBugWorkaround1").toBool());
+        };
+        if (scenario == "handle-delete")
+            window.trigger = WM_STYLECHANGING;
+        window.consumeTrigger = scenario == "recreate";
+        window.action = [&] {
+            visited = true;
+            if (scenario == "delete-context" || scenario == "replay-delete" || scenario == "handle-delete") {
+                context.reset();
+            } else if (scenario == "recreate") {
+                window.destroy();
+                window.create();
+            } else if (scenario == "other-keys") {
+                // Write other supported keys while the outer platform operation is active.
+                nestedResult = context->setWindowAttribute("no-system-menu", true) &&
+                    context->setWindowAttribute("dark-mode", true) &&
+                    context->setWindowAttribute("extra-margins", QVariant::fromValue(QMargins(1, 1, 1, 1)));
+            } else {
+                nestedResult = context->setWindowAttribute("dwm-blur",
+                    scenario == "remove" ? QVariant{} : QVariant(true));
+            }
+        };
+        window.moves = 0;
+        RECT before{};
+        QVERIFY(::GetWindowRect(reinterpret_cast<HWND>(window.winId()), &before));
+        bool accepted = false;
+        if (scenario.startsWith("replay-") || scenario == "handle-delete") {
+            window.destroy();
+            window.create();
+        } else {
+            accepted = context->setWindowAttribute("dwm-blur", false);
+        }
+        QVERIFY(visited); // Must be reached through a real synchronous Windows call.
+        if (!context) {
+            QVERIFY(!accepted);
+            if (scenario == "delete-context")
+                QCOMPARE(window.moves, 1); // No later movement after deleting the context.
+            return;
+        }
+        if (scenario != "recreate")
+            QVERIFY(nestedResult);
+        QCOMPARE(accepted, scenario == "other-keys");
+        QCOMPARE(context->windowAttribute("dwm-blur"), scenario == "remove" ? QVariant{}
+            : scenario == "other-keys" || scenario == "recreate" ? QVariant(false) : QVariant(true));
+        if (!scenario.startsWith("replay-") && scenario != "recreate") {
+            RECT after{};
+            QVERIFY(::GetWindowRect(reinterpret_cast<HWND>(window.winId()), &after));
+            QCOMPARE(after.left, before.left);
+            QCOMPARE(after.top, before.top);
+            QCOMPARE(after.right, before.right);
+            QCOMPARE(after.bottom, before.bottom);
+        }
+        QVERIFY(context->setWindowAttribute("no-system-menu", false));
+        QCOMPARE(context->windowId(), window.winId());
+    }
+
     void menus_data() {
         QTest::addColumn<QString>("scenario");
         for (const auto name : {"cancel", "select-close", "double-click", "delete-agent",

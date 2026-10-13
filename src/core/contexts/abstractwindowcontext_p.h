@@ -52,6 +52,9 @@ namespace QWK {
         bool setHitTestVisible(QObject *obj, bool visible);
 
         inline QObject *systemButton(WindowAgentBase::SystemButton button) const;
+        static constexpr bool isValidSystemButton(WindowAgentBase::SystemButton button) {
+            return button >= WindowAgentBase::WindowIcon && button <= WindowAgentBase::Close;
+        }
         bool setSystemButton(WindowAgentBase::SystemButton button, QObject *obj);
 
         inline QObject *titleBar() const;
@@ -109,10 +112,38 @@ namespace QWK {
 #endif
 
         QPointer<QObject> m_titleBar{};
+        bool m_titleBarAssigned = false;
         std::array<QPointer<QObject>, WindowAgentBase::Close + 1> m_systemButtons{};
 
-        std::list<std::pair<QString, QVariant>> m_windowAttributesOrder;
+        struct WindowAttribute {
+            QString key;
+            QVariant value;
+            quint64 revision;
+        };
+        std::list<WindowAttribute> m_windowAttributesOrder;
         QHash<QString, decltype(m_windowAttributesOrder)::iterator> m_windowAttributes;
+
+        // Frames live on the caller's stack, including when a callback deletes us.
+        struct AttributeChange {
+            AttributeChange(AbstractWindowContext *context, const QString &key);
+            ~AttributeChange();
+            AttributeChange(const AttributeChange &) = delete;
+            AttributeChange &operator=(const AttributeChange &) = delete;
+            bool isWindowCurrent() const {
+                return context && context->m_windowRevision == windowRevision;
+            }
+            bool isCurrent() const { return !superseded && isWindowCurrent(); }
+            void supersedePrevious();
+
+            QPointer<AbstractWindowContext> context;
+            QString key;
+            quint64 windowRevision;
+            AttributeChange *previous;
+            bool superseded = false;
+        };
+        AttributeChange *m_attributeChange = nullptr;
+        quint64 m_attributeRevision = 0;
+        quint64 m_windowRevision = 0;
 
         std::unique_ptr<WinIdChangeEventFilter> m_winIdChangeEventFilter;
 
@@ -141,7 +172,7 @@ namespace QWK {
 
     inline QObject *
         AbstractWindowContext::systemButton(WindowAgentBase::SystemButton button) const {
-        return m_systemButtons[button];
+        return isValidSystemButton(button) ? m_systemButtons[button].data() : nullptr;
     }
 
     inline QObject *AbstractWindowContext::titleBar() const {

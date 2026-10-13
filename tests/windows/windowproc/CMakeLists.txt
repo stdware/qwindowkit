@@ -46,7 +46,30 @@ add_test(NAME windows.windowlifetime
     ${CMAKE_COMMAND}
     "-DTEST_EXE=$<TARGET_FILE:tst_windowlifetime>"
     "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/windowlifetime-$<CONFIG>"
-    "-DEXPECTED_PASSES=15"
+    "-DEXPECTED_PASSES=23"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
 set_tests_properties(windows.windowlifetime PROPERTIES
     TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)
+
+add_executable(tst_titlebar tst_titlebar.cpp)
+set_target_properties(tst_titlebar PROPERTIES AUTOMOC ON)
+target_compile_features(tst_titlebar PRIVATE cxx_std_17)
+target_link_libraries(tst_titlebar PRIVATE QWKWidgets Qt${QT_VERSION_MAJOR}::Test user32)
+set(_titlebar_passes 5)
+if(QWINDOWKIT_BUILD_QUICK)
+    target_compile_definitions(tst_titlebar PRIVATE TEST_QUICK)
+    target_link_libraries(tst_titlebar PRIVATE QWKQuick)
+    set(_titlebar_passes 8)
+endif()
+add_test(NAME windows.titlebar
+    COMMAND ${CMAKE_COMMAND} -E env
+    "PATH=$<TARGET_FILE_DIR:QWKCore>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+    "QT_QPA_PLATFORM=windows" "QT_QUICK_BACKEND=software" "QT_SCALE_FACTOR=1"
+    ${CMAKE_COMMAND}
+    "-DTEST_EXE=$<TARGET_FILE:tst_titlebar>"
+    "-DRESULT_FILE=${CMAKE_CURRENT_BINARY_DIR}/titlebar-$<CONFIG>"
+    "-DEXPECTED_PASSES=${_titlebar_passes}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/RunTest.cmake")
+set_tests_properties(windows.titlebar PROPERTIES
+    TIMEOUT 20 LABELS "windows;integration" RESOURCE_LOCK desktop)
+unset(_titlebar_passes)
