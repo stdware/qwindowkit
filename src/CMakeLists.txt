@@ -73,7 +73,19 @@ endif()
 # ----------------------------------
 # Install
 # ----------------------------------
-qwk_install()
+# Keep the helper's header installation, but generate our component-aware package
+# without its NO_CHECK_REQUIRED_COMPONENTS_MACRO option.
+qwk_install(NO_EXPORT)
+if(QWINDOWKIT_INSTALL AND QWINDOWKIT_DEVEL)
+    qm_basic_install(
+        NAME ${QWINDOWKIT_INSTALL_NAME}
+        VERSION ${QWINDOWKIT_INSTALL_VERSION}
+        INSTALL_DIR ${QWINDOWKIT_INSTALL_CMAKE_DIR}
+        CONFIG_TEMPLATE ${QWINDOWKIT_INSTALL_CONFIG_TEMPLATE}
+        NAMESPACE ${QWINDOWKIT_INSTALL_NAMESPACE}::
+        EXPORT ${QWINDOWKIT_EXPORT}
+    )
+endif()
 
 qwk_finish_buildsystem()
 

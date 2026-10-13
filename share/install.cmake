@@ -23,10 +23,16 @@ if(TRUE)
     set(QMAKE_QWK_WIDGETS_NAME_DEBUG QWKWidgets${CMAKE_DEBUG_POSTFIX})
     set(QMAKE_QWK_QUICK_NAME_DEBUG QWKQuick${CMAKE_DEBUG_POSTFIX})
 
+    set(QMAKE_QWK_CORE_STATIC_LIBS "")
     if(QWINDOWKIT_BUILD_STATIC)
         set(QMAKE_QWK_CORE_STATIC_MACRO "DEFINES += QWK_CORE_STATIC")
         set(QMAKE_QWK_WIDGETS_STATIC_MACRO "DEFINES += QWK_WIDGETS_STATIC")
         set(QMAKE_QWK_QUICK_STATIC_MACRO "DEFINES += QWK_QUICK_STATIC")
+        if(WIN32)
+            # Static consumers must resolve QWKCore's native calls themselves.
+            # Qt's shared import libraries do not propagate these system libraries.
+            set(QMAKE_QWK_CORE_STATIC_LIBS "LIBS += -luser32 -lgdi32 -lshell32 -luxtheme")
+        endif()
     endif()
 
     # Only the modules that were built. A `.pri` naming a library that was never installed sends
@@ -37,12 +43,17 @@ if(TRUE)
         list(APPEND _qmake_components "${CMAKE_CURRENT_LIST_DIR}/qmake/${_target}.pri.in")
     endforeach()
 
+    set(_qmake_files)
     foreach(_item IN LISTS _qmake_components)
         get_filename_component(_name ${_item} NAME_WLE)
-        configure_file(${_item} ${_build_data_dir}/qmake/${_name} @ONLY)
+        set(_file "${_build_data_dir}/qmake/${_name}")
+        configure_file("${_item}" "${_file}" @ONLY)
+        list(APPEND _qmake_files "${_file}")
     endforeach()
 
-    install(DIRECTORY ${_build_data_dir}/qmake/
+    # A reconfigured build may still contain files for disabled modules.
+    # Install exactly this configure's outputs, leaving historical outputs alone.
+    install(FILES ${_qmake_files}
         DESTINATION ${_qmake_install_dir}
     )
 endif()
