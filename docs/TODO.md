@@ -1,53 +1,30 @@
 # TODO
 
-## Wayland: `showSystemMenu()` may be passing the wrong coordinate space
+## Wayland: validate system menu placement on a compositor
 
-**File:** `src/core/contexts/linuxwaylandcontext.cpp`
-**Introduced by:** the Wayland/X11 backend contribution (Wing-summer), needs the original author's eyes.
-**Status:** unverified — reported from code reading only, no Wayland machine was available to test.
+**File:** `src/core/contexts/waylandcontext.cpp`
+**Status:** coordinate conversion fixed and statically reviewed; Wayland runtime validation pending.
 
-`LinuxWaylandContext::virtual_hook()` forwards the incoming point straight to the
-xdg-shell request:
+`showSystemMenu()` accepts global Qt device-independent coordinates. The Wayland backend maps
+them to window-local coordinates and uses Qt's native local conversion before issuing
+`xdg_toplevel.show_window_menu`, which requires surface-local coordinates. QWindowKit sets
+`Qt::FramelessWindowHint`, so there is no Qt client-side decoration offset to add. Wayland's
+buffer scale must not be applied to the request coordinates.
 
-```cpp
-auto pos = static_cast<const QPoint *>(data);
-xdg_toplevel_show_window_menu(toplevel, seat, serial, pos->x(), pos->y());
-```
+References:
 
-The point that arrives here is a **global** position. `AbstractWindowContext::showSystemMenu()`
-is fed from `QtWindowEventFilter::sharedEventFilter()`, which passes
-`getMouseEventGlobalPos(me)`, and the public `WindowAgentBase::showSystemMenu()` is documented
-in terms of global coordinates too.
+- [xdg-shell protocol](https://raw.githubusercontent.com/wayland-mirror/wayland-protocols/main/stable/xdg-shell/xdg-shell.xml), `show_window_menu`.
+- [Qt Wayland window implementation](https://github.com/qt/qtwayland/blob/6.8/src/client/qwaylandwindow.cpp), `mapFromWlSurface()` and `createDecoration()`.
+- [Qt window coordinate mapping](https://github.com/qt/qtbase/blob/6.8/src/gui/kernel/qwindow.cpp), `mapFromGlobal()`.
 
-`xdg_toplevel.show_window_menu` is believed to expect **surface-local** coordinates (relative to
-the top-left of the window geometry). If that is right, the menu pops up displaced by the
-window's own position on screen, and the error disappears only when the window happens to sit at
-the origin.
+On a Wayland compositor that supports this menu, check both Widgets and Quick windows:
 
-Circumstantial evidence that the two Linux backends disagree about what they are handed: the X11
-path in `linuxx11context.cpp` treats the same argument as global and converts it to root
-coordinates,
+1. Right-click different title-bar positions, then move the window and repeat. The menu anchor
+   should follow the click, subject to compositor placement constraints.
+2. Repeat with compositor scaling at 100%, 150%, and 200%, and with `QT_SCALE_FACTOR=2` to
+   exercise Qt's extra coordinate scaling separately from the Wayland buffer scale.
+3. Trigger the public `showSystemMenu()` API during a valid input event using a point obtained
+   from `QWindow::mapToGlobal()`, and confirm the corresponding local anchor is used.
 
-```cpp
-qreal dpr = m_windowHandle->devicePixelRatio();
-int root_x = qRound(pos->x() * dpr);
-int root_y = qRound(pos->y() * dpr);
-```
-
-which is the correct thing to do for `_GTK_SHOW_WINDOW_MENU`. Both backends implement the same
-hook and receive the same input, so at most one of them can be right.
-
-### To check
-
-1. Confirm against the xdg-shell protocol XML which coordinate space `show_window_menu` wants.
-2. If it is surface-local, subtract the window position before sending, e.g.
-   `*pos - m_windowHandle->position()`, and decide whether a device pixel ratio conversion is
-   needed at all (Wayland surface-local coordinates are logical, so probably not).
-3. Test with a window that is **not** at the top-left of the screen — the bug is invisible at the
-   origin.
-
-### Related, same file
-
-`m_windowHandle` is passed to `nativeResourceForWindow()` without a null check. It happens to be
-safe today because a null window yields a null `xdg_toplevel` and the function returns early, but
-the X11 path had the same shape and did crash; it has since been given an explicit guard.
+Record the compositor and Qt versions. Windows builds and tests do not execute this backend;
+no Wayland compile or runtime result is claimed for the fix.
