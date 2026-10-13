@@ -28,11 +28,6 @@ namespace QWK {
         WidgetWindowAgentPrivate();
         ~WidgetWindowAgentPrivate();
 
-        void init();
-
-        // Host
-        QWidget *hostWidget{};
-
 #ifdef Q_OS_MAC
         QPointer<QWidget> systemButtonAreaWidget;
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;

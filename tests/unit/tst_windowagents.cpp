@@ -96,14 +96,39 @@ private Q_SLOTS:
             using Item = std::remove_pointer_t<decltype(agent.titleBar())>;
             Window other;
             Item title;
+#if defined(QT_NO_DEBUG) && !defined(QT_FORCE_ASSERTS)
+            // Debug builds intentionally assert on invalid input.
+            QVERIFY(!agent.setup(nullptr));
+#endif
             QVERIFY(agent.setup(&window));
             QVERIFY(!agent.titleBar());
             agent.setTitleBar(&title);
             QVERIFY(!agent.setup(&window));
             QVERIFY(!agent.setup(&other));
+#if defined(QT_NO_DEBUG) && !defined(QT_FORCE_ASSERTS)
+            QVERIFY(!agent.setup(nullptr));
+#endif
             QCOMPARE(agent.titleBar(), &title);
             QVERIFY(!window.isVisible());
             QVERIFY(!other.isVisible());
+        });
+    }
+
+    void setupAfterHostDestruction_data() { agentRows(); }
+    void setupAfterHostDestruction() {
+        QFETCH(bool, quick);
+        withAgent(quick, [](auto &replacement, auto &agent) {
+            using Window = std::decay_t<decltype(replacement)>;
+            using Item = std::remove_pointer_t<decltype(agent.titleBar())>;
+            auto host = std::make_unique<Window>();
+            Item title;
+            QVERIFY(agent.setup(host.get()));
+            agent.setTitleBar(&title);
+            host.reset();
+            // Setup stays single-use even when the original host is gone.
+            QVERIFY(!agent.setup(&replacement));
+            QCOMPARE(agent.titleBar(), &title);
+            QVERIFY(!replacement.isVisible());
         });
     }
 

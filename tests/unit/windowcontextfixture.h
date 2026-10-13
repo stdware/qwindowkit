@@ -35,7 +35,6 @@ namespace QwkTest {
         mutable Qt::WindowFlags flags = Qt::Window | Qt::WindowMaximizeButtonHint;
         mutable QStringList operations;
         QRect geometry{500, 600, 200, 100};
-        QWindow *window(const QObject *) const override { return host; }
         QWindow *hostWindow(const QObject *) const override { return host; }
         bool isEnabled(const QObject *obj) const override { return static_cast<const Item *>(obj)->enabled; }
         bool isVisible(const QObject *obj) const override { return static_cast<const Item *>(obj)->visible; }

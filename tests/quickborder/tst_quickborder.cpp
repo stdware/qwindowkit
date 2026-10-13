@@ -36,14 +36,10 @@ namespace {
             return AbstractWindowContext::windowAttribute(key);
         }
 
-        void virtual_hook(int id, void *data) override {
-            if (id == Windows10BorderColorHook) {
-                if (QThread::currentThread() != qGuiApp->thread())
-                    queriedOffGuiThread = true;
-                *static_cast<QColor *>(data) = testColor;
-                return;
-            }
-            AbstractWindowContext::virtual_hook(id, data);
+        QColor windows10BorderColor() const override {
+            if (QThread::currentThread() != qGuiApp->thread())
+                queriedOffGuiThread = true;
+            return testColor;
         }
 
     protected:

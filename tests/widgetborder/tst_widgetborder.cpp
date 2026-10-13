@@ -24,13 +24,7 @@ namespace {
                 return true;
             return AbstractWindowContext::windowAttribute(key);
         }
-        void virtual_hook(int id, void *data) override {
-            if (id == DrawWindows10BorderHook_Native) {
-                ++draws;
-                return;
-            }
-            AbstractWindowContext::virtual_hook(id, data);
-        }
+        void drawWindows10Border() override { ++draws; }
     protected:
         void winIdChanged(WId, WId) override {}
         bool windowAttributeChanged(const QString &, const QVariant &) override {

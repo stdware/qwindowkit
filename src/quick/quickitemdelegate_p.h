@@ -30,7 +30,6 @@ namespace QWK {
         ~QuickItemDelegate() override;
 
     public:
-        QWindow *window(const QObject *obj) const override;
         bool isEnabled(const QObject *obj) const override;
         bool isVisible(const QObject *obj) const override;
         QRect mapGeometryToScene(const QObject *obj) const override;

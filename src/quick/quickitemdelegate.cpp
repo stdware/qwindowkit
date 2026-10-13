@@ -13,10 +13,6 @@ namespace QWK {
 
     QuickItemDelegate::~QuickItemDelegate() = default;
 
-    QWindow *QuickItemDelegate::window(const QObject *obj) const {
-        return static_cast<const QQuickItem *>(obj)->window();
-    }
-
     bool QuickItemDelegate::isEnabled(const QObject *obj) const {
         return static_cast<const QQuickItem *>(obj)->isEnabled();
     }

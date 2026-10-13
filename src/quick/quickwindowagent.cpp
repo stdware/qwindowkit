@@ -9,6 +9,9 @@
 #include <QtQuick/private/qquickanchors_p.h>
 
 #include "quickitemdelegate_p.h"
+#ifdef Q_OS_MAC
+#  include "quicksystembuttonarea_p.h"
+#endif
 
 namespace QWK {
 
@@ -30,9 +33,6 @@ namespace QWK {
 #endif
     }
 
-    void QuickWindowAgentPrivate::init() {
-    }
-
     QuickWindowAgent::QuickWindowAgent(QObject *parent)
         : QuickWindowAgent(*new QuickWindowAgentPrivate(), parent) {
     }
@@ -46,12 +46,11 @@ namespace QWK {
         }
 
         Q_D(QuickWindowAgent);
-        if (d->hostWindow) {
+        if (d->context) {
             return false;
         }
 
         d->setup(window, new QuickItemDelegate());
-        d->hostWindow = window;
 
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
         d->setupWindows10BorderWorkaround();
@@ -107,7 +106,6 @@ namespace QWK {
     */
     QuickWindowAgent::QuickWindowAgent(QuickWindowAgentPrivate &d, QObject *parent)
         : WindowAgentBase(d, parent) {
-        d.init();
     }
 
 }

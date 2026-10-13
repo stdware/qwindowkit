@@ -9,6 +9,7 @@
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTemporaryDir>
 #include <QtGui/QCloseEvent>
+#include <QtGui/QScreen>
 #include <QtTest/QTest>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QWidget>
@@ -230,6 +231,50 @@ private Q_SLOTS:
         }
         QVERIFY(context->setWindowAttribute("no-system-menu", false));
         QCOMPARE(context->windowId(), window.winId());
+    }
+
+    void windowActions_data() {
+        QTest::addColumn<QString>("action");
+        for (const auto action : {"center", "raise-hidden", "raise-minimized"})
+            QTest::newRow(action) << QString::fromLatin1(action);
+    }
+    void windowActions() {
+        if (!childProcess) { runChild(); return; }
+        QFETCH(QString, action);
+        QWidget window;
+        window.resize(320, 200);
+        Agent agent;
+        QVERIFY(agent.setup(&window));
+        const auto hwnd = reinterpret_cast<HWND>(window.winId());
+        QVERIFY(::IsWindow(hwnd));
+        if (action == "center") {
+            const auto size = window.size();
+            QVERIFY(window.windowHandle()->screen());
+            const auto center = window.windowHandle()->screen()->geometry().center();
+            agent.centralize();
+            QTRY_VERIFY_WITH_TIMEOUT((window.geometry().center() - center).manhattanLength() <= 2, 1000);
+            QCOMPARE(window.size(), size);
+            QVERIFY(!window.isVisible());
+            return;
+        }
+        QWidget foreground;
+        if (action == "raise-minimized") {
+            // The native raise path requires a foreground window to choose the
+            // active monitor. Supply one inside this isolated test process.
+            foreground.resize(160, 100);
+            foreground.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&foreground, 1000));
+            window.showMinimized();
+            QTRY_VERIFY_WITH_TIMEOUT(::IsIconic(hwnd), 1000);
+            QTRY_VERIFY_WITH_TIMEOUT(::GetForegroundWindow(), 1000);
+        } else {
+            QVERIFY(!::IsWindowVisible(hwnd));
+        }
+        agent.raise();
+        QTRY_VERIFY_WITH_TIMEOUT(::IsWindowVisible(hwnd) && !::IsIconic(hwnd), 1000);
+        QVERIFY(window.isVisible());
+        // Foreground ownership depends on OS focus policy; visibility/restoration
+        // are the native effects checked here, without injecting system input.
     }
 
     void menus_data() {

@@ -34,7 +34,7 @@ namespace QWK {
             switch (event->type()) {
                 case QEvent::Move:
                 case QEvent::Resize: {
-                    ctx->virtual_hook(AbstractWindowContext::SystemButtonAreaChangedHook, nullptr);
+                    ctx->updateSystemButtonArea();
                     break;
                 }
 

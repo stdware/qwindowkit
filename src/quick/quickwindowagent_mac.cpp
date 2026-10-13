@@ -9,19 +9,18 @@ namespace QWK {
 
     QQuickItem *QuickWindowAgent::systemButtonArea() const {
         Q_D(const QuickWindowAgent);
-        return d->systemButtonAreaItem;
+        return d->systemButtonAreaItemHandler ? d->systemButtonAreaItemHandler->item() : nullptr;
     }
 
     void QuickWindowAgent::setSystemButtonArea(QQuickItem *item) {
         Q_D(QuickWindowAgent);
-        if (d->systemButtonAreaItem == item && (item || !d->systemButtonAreaItemHandler))
+        if (systemButtonArea() == item && (item || !d->systemButtonAreaItemHandler))
             return;
 
         auto ctx = d->context.get();
         // QPointer is already null during destroyed(); still retire the old registration
         // before installing another area or a custom callback.
         d->systemButtonAreaItemHandler.reset();
-        d->systemButtonAreaItem = item;
         if (!item) {
             ctx->setSystemButtonAreaCallback({});
             return;
@@ -37,7 +36,7 @@ namespace QWK {
                 context->setSystemButtonAreaCallback({});
                 return;
             }
-            context->virtual_hook(AbstractWindowContext::SystemButtonAreaChangedHook, nullptr);
+            context->updateSystemButtonArea();
         });
         ctx->setSystemButtonAreaCallback(
             [context, area = QPointer<QuickSystemButtonArea>(handler)](const QSize &) {
@@ -47,7 +46,7 @@ namespace QWK {
 
     ScreenRectCallback QuickWindowAgent::systemButtonAreaCallback() const {
         Q_D(const QuickWindowAgent);
-        return d->systemButtonAreaItem ? nullptr : d->context->systemButtonAreaCallback();
+        return systemButtonArea() ? nullptr : d->context->systemButtonAreaCallback();
     }
 
     void QuickWindowAgent::setSystemButtonAreaCallback(const ScreenRectCallback &callback) {

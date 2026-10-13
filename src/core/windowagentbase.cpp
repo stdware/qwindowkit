@@ -46,9 +46,6 @@ namespace QWK {
 
     WindowAgentBasePrivate::~WindowAgentBasePrivate() = default;
 
-    void WindowAgentBasePrivate::init() {
-    }
-
     AbstractWindowContext *WindowAgentBasePrivate::createContext() const {
         if (windowContextFactoryMethod) {
             return windowContextFactoryMethod();
@@ -195,7 +192,7 @@ namespace QWK {
     */
     void WindowAgentBase::centralize() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::CentralizeHook, nullptr);
+        d->context->centralizeWindow();
     }
 
     /*!
@@ -203,7 +200,7 @@ namespace QWK {
     */
     void WindowAgentBase::raise() {
         Q_D(WindowAgentBase);
-        d->context->virtual_hook(AbstractWindowContext::RaiseWindowHook, nullptr);
+        d->context->raiseWindow();
     }
 
     /*!
@@ -212,8 +209,6 @@ namespace QWK {
     WindowAgentBase::WindowAgentBase(WindowAgentBasePrivate &d, QObject *parent)
         : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
-
-        d.init();
     }
 
 }

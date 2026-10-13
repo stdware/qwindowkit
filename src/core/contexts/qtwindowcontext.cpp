@@ -334,10 +334,6 @@ namespace QWK {
         return QStringLiteral("qt");
     }
 
-    void QtWindowContext::virtual_hook(int id, void *data) {
-        AbstractWindowContext::virtual_hook(id, data);
-    }
-
     void QtWindowContext::winIdChanged(WId winId, WId oldWinId) {
         if (!m_windowHandle) {
             m_delegate->setWindowFlags(m_host, m_delegate->getWindowFlags(m_host) &
