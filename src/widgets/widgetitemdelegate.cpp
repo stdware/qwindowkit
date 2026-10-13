@@ -27,11 +27,11 @@ namespace QWK {
 
     protected:
         bool eventFilter(QObject *obj, QEvent *event) override {
-            Q_UNUSED(obj)
-            if (event->type() == QEvent::WinIdChange) {
-                context->notifyWinIdChange();
-            }
-            return false;
+            if (event->type() != QEvent::WinIdChange)
+                return false;
+            const QPointer<QObject> receiver(obj);
+            context->notifyWinIdChange();
+            return !receiver;
         }
 
         QWidget *widget;

@@ -5,6 +5,7 @@
 #include "win32windowcontext_p.h"
 
 #include <cstdlib>
+#include <memory>
 #include <optional>
 
 #include <QtCore/QAbstractEventDispatcher>
@@ -66,12 +67,36 @@ namespace QWK {
         const uint32_t inactiveDark = MAKE_RGBA_COLOR(61, 61, 62, 255);     // #3D3D3E
     } kWindowsColorSet;
 
-    // hWnd -> context
-    using WndProcHash = QHash<HWND, Win32WindowContext *>;
+    struct ManagedWindow {
+        QPointer<Win32WindowContext> context;
+        WNDPROC previousProc = nullptr;
+        bool destroying = false;
+    };
+    // Retain inactive entries when a later subclass still calls our procedure.
+    // Active dispatch frames also retain the entry across removal/reentrant messages.
+    using WndProcHash = QHash<HWND, std::shared_ptr<ManagedWindow>>;
     Q_GLOBAL_STATIC(WndProcHash, g_wndProcHash)
 
-    // Original Qt window proc function
-    static WNDPROC g_qtWindowProc = nullptr;
+    // Native calls can run a nested event loop. A live QObject alone is not enough:
+    // its HWND may have been destroyed/recreated, or its registration replaced.
+    class ManagedWindowGuard {
+    public:
+        ManagedWindowGuard(Win32WindowContext *ctx, HWND hwnd)
+            : context(ctx), window(ctx->window()), hwnd(hwnd), entry(g_wndProcHash->value(hwnd)) {}
+
+        bool isCurrent() const {
+            return context && window && entry && !entry->destroying &&
+                   entry->context == context && g_wndProcHash->value(hwnd) == entry &&
+                   context->window() == window &&
+                   context->windowId() == reinterpret_cast<WId>(hwnd) && ::IsWindow(hwnd);
+        }
+
+    private:
+        QPointer<Win32WindowContext> context;
+        QPointer<QWindow> window;
+        HWND hwnd;
+        std::shared_ptr<ManagedWindow> entry;
+    };
 
     static bool isLikelyFrameDriftAfterWinIdChange(HWND hwnd, const RECT &expectedFrameRect,
                                                    const RECT &candidateFrameRect) {
@@ -256,9 +281,10 @@ namespace QWK {
     }
 
     // Returns false if the menu is canceled
-    static bool showSystemMenu_sys(HWND hWnd, const POINT &pos, const bool selectFirstEntry,
-                                   const bool fixedSize) {
+    static bool showSystemMenu_sys(Win32WindowContext *context, HWND hWnd, const POINT &pos,
+                                   const bool selectFirstEntry, const bool fixedSize) {
         Q_ASSERT(hWnd);
+        const ManagedWindowGuard guard(context, hWnd);
         HMENU hMenu = ::GetSystemMenu(hWnd, FALSE);
         if (!hMenu) {
             // The corresponding window doesn't have a system menu, most likely due to the
@@ -320,6 +346,9 @@ namespace QWK {
             (TPM_RETURNCMD | (QGuiApplication::isRightToLeft() ? TPM_RIGHTALIGN : TPM_LEFTALIGN) |
              TPM_RIGHTBUTTON),
             pos.x, pos.y, 0, hWnd, nullptr);
+
+        if (!guard.isCurrent())
+            return false;
 
         // Unhighlight the first menu item after the popup menu is closed, otherwise it will keep
         // highlighting until we unhighlight it manually.
@@ -518,6 +547,14 @@ namespace QWK {
     // handles Windows window messages in the main thread, it is safe to do so.
     class WindowsNativeEventFilter : public AppNativeEventFilter {
     public:
+        struct MessageContext {
+            QPointer<Win32WindowContext> context;
+            HWND hwnd;
+            UINT message;
+            WPARAM wParam;
+            LPARAM lParam;
+        };
+
         bool nativeEventFilter(const QByteArray &eventType, void *message,
                                QT_NATIVE_EVENT_RESULT_TYPE *result) override {
             Q_UNUSED(eventType)
@@ -534,9 +571,15 @@ namespace QWK {
                     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
                     // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been
                     // processed, so we have to process it after Qt acquires the initial data.
-                    if (lastMessageContext) {
+                    const auto frame = currentMessage;
+                    const auto ctx = frame ? frame->context.data() : nullptr;
+                    const auto entry = g_wndProcHash->value(msg->hwnd);
+                    if (ctx && frame->hwnd == msg->hwnd && frame->message == msg->message &&
+                        frame->wParam == msg->wParam && frame->lParam == msg->lParam &&
+                        entry && !entry->destroying && entry->context == ctx && ctx->window() &&
+                        ctx->windowId() == reinterpret_cast<WId>(msg->hwnd)) {
                         LRESULT res;
-                        if (lastMessageContext->nonClientCalcSizeHandler(
+                        if (ctx->nonClientCalcSizeHandler(
                                 msg->hwnd, msg->message, msg->wParam, msg->lParam, &res)) {
                             *result = decltype(*result)(res);
                             return true;
@@ -548,7 +591,7 @@ namespace QWK {
                     // case WM_NCHITTEST: {
                     //     // The child window must return HTTRANSPARENT when processing WM_NCHITTEST for
                     //     // the parent window to receive WM_NCHITTEST.
-                    //     if (!lastMessageContext) {
+                    //     if (!currentMessage || !currentMessage->context) {
                     //         auto rootHWnd = ::GetAncestor(msg->hwnd, GA_ROOT);
                     //         if (rootHWnd != msg->hwnd) {
                     //             if (auto ctx = g_wndProcHash->value(rootHWnd)) {
@@ -564,7 +607,9 @@ namespace QWK {
         }
 
         static inline WindowsNativeEventFilter *instance = nullptr;
-        static inline Win32WindowContext *lastMessageContext = nullptr;
+        // Points into the synchronous WndProc stack. Each frame has its own guarded
+        // context, so nested messages cannot overwrite or resurrect an outer owner.
+        static inline const MessageContext *currentMessage = nullptr;
 
         static inline void install() {
             if (instance) {
@@ -640,31 +685,53 @@ namespace QWK {
             return FALSE;
         }
 
-        // QWindow may have been destroyed before WinIdChange event comes
-        auto ctx = g_wndProcHash->value(hWnd);
-        if (!ctx || !ctx->window()) {
-            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+        const auto entry = g_wndProcHash->value(hWnd);
+        const WindowsNativeEventFilter::MessageContext frame{
+            entry && !entry->destroying && message != WM_NCDESTROY
+                ? entry->context : QPointer<Win32WindowContext>{},
+            hWnd, message, wParam, lParam};
+        const auto previousMessage = WindowsNativeEventFilter::currentMessage;
+        WindowsNativeEventFilter::currentMessage = &frame;
+        const auto contextCleaner = qScopeGuard([previousMessage] {
+            WindowsNativeEventFilter::currentMessage = previousMessage;
+        });
+        if (!entry) {
+            return ::DefWindowProcW(hWnd, message, wParam, lParam);
+        }
+        const auto previousProc = entry->previousProc;
+        // Always deliver native teardown to the original chain, even after the agent is gone.
+        if (message == WM_NCDESTROY) {
+            entry->destroying = true;
+            const auto cleanup = qScopeGuard([hWnd, entry] {
+                if (g_wndProcHash->value(hWnd) == entry) {
+                    g_wndProcHash->remove(hWnd);
+                }
+                if (g_wndProcHash->isEmpty()) {
+                    WindowsNativeEventFilter::uninstall();
+                }
+            });
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
         }
 
-        WindowsNativeEventFilter::lastMessageContext = ctx;
-        const auto &contextCleaner = qScopeGuard([]() {
-            WindowsNativeEventFilter::lastMessageContext = nullptr; //
-        });
+        // QWindow may have been destroyed before WinIdChange event comes.
+        auto ctx = entry->context.data();
+        if (!ctx || !ctx->window()) {
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
+        }
 
         // Since Qt does the necessary processing of the WM_NCCALCSIZE message, we need to
         // forward it right away and process it in our native event filter.
         if (message == WM_NCCALCSIZE) {
-            return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+            return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
         }
 
         // Try hooked procedure and save result
-        const QPointer<Win32WindowContext> contextGuard(ctx);
-        const QPointer<QWindow> windowGuard(ctx->window());
+        const ManagedWindowGuard guard(ctx, hWnd);
         LRESULT result;
-        if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
-            if (!contextGuard || !windowGuard) {
-                return result;
-            }
+        const bool handled = ctx->windowProc(hWnd, message, wParam, lParam, &result);
+        if (!guard.isCurrent())
+            return result;
+        if (handled) {
             // https://github.com/stdware/qwindowkit/issues/45
             // Forward the event to user-defined native event filters, there may be some messages
             // that need to be processed by the user.
@@ -674,7 +741,7 @@ namespace QWK {
         }
 
         // Continue dispatching.
-        return ::CallWindowProcW(g_qtWindowProc, hWnd, message, wParam, lParam);
+        return ::CallWindowProcW(previousProc, hWnd, message, wParam, lParam);
     }
 
     static inline void addManagedWindow(QWindow *window, HWND hWnd, Win32WindowContext *ctx) {
@@ -697,19 +764,29 @@ namespace QWK {
             setInternalWindowFrameMargins(window, QMargins(0, -getTitleBarHeight(hWnd), 0, 0));
         }
 
-        // Store original window proc
-        if (!g_qtWindowProc) {
-            g_qtWindowProc = reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC));
+        auto entry = g_wndProcHash->value(hWnd);
+        if (entry) {
+            // Our procedure is already somewhere in this HWND's chain. Installing it
+            // again over a later subclass would introduce a cycle in that chain.
+            if (entry->destroying || (entry->context && entry->context != ctx)) {
+                qWarning("QWindowKit: window already managed or being destroyed");
+                return;
+            }
+        } else {
+            entry = std::make_shared<ManagedWindow>();
+            ::SetLastError(ERROR_SUCCESS);
+            entry->previousProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtrW(
+                hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc)));
+            if (!entry->previousProc) {
+                qWarning("QWindowKit: failed to subclass window (error %lu)", ::GetLastError());
+                return;
+            }
+            g_wndProcHash->insert(hWnd, entry);
         }
-
-        // Hook window proc
-        ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(QWKHookedWndProc));
+        entry->context = ctx;
 
         // Install global native event filter
         WindowsNativeEventFilter::install();
-
-        // Save window handle mapping
-        g_wndProcHash->insert(hWnd, ctx);
 
         // Force a WM_NCCALCSIZE message manually to avoid the title bar become visible
         // while Qt is re-creating the window (such as setWindowFlag(s) calls). It has
@@ -723,22 +800,30 @@ namespace QWK {
         }
     }
 
-    static inline void removeManagedWindow(HWND hWnd) {
+    static inline void removeManagedWindow(HWND hWnd, Win32WindowContext *ctx) {
         Q_ASSERT(hWnd);
 
-        // Remove window handle mapping
-        if (!g_wndProcHash->remove(hWnd))
+        const auto entry = g_wndProcHash->value(hWnd);
+        // An old context must not remove a new registration for a reused HWND.
+        if (!entry || entry->context != ctx)
             return;
+        entry->context = nullptr;
 
-        // Unhook the window procedure, but only when ours is still the one installed. Anybody
-        // is free to subclass the window after we did, and writing g_qtWindowProc back
-        // unconditionally would silently drop them out of the chain. When that happens we
-        // simply leave QWKHookedWndProc in place: with no context left in g_wndProcHash it
-        // forwards everything straight to g_qtWindowProc anyway.
-        if (g_qtWindowProc &&
-            reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
-                QWKHookedWndProc) {
-            ::SetWindowLongPtrW(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_qtWindowProc));
+        // Never unlink a later subclass. Keep the original procedure available until
+        // we can remove our hook, or until WM_NCDESTROY retires this HWND's entry.
+        if (!::IsWindow(hWnd)) {
+            g_wndProcHash->remove(hWnd);
+        } else if (!entry->destroying &&
+                   reinterpret_cast<WNDPROC>(::GetWindowLongPtrW(hWnd, GWLP_WNDPROC)) ==
+                       QWKHookedWndProc) {
+            ::SetLastError(ERROR_SUCCESS);
+            if (::SetWindowLongPtrW(hWnd, GWLP_WNDPROC,
+                                   reinterpret_cast<LONG_PTR>(entry->previousProc))) {
+                g_wndProcHash->remove(hWnd);
+            } else {
+                qWarning("QWindowKit: failed to restore window procedure (error %lu)",
+                         ::GetLastError());
+            }
         }
 
         // Remove event filter if the all windows has been destroyed
@@ -751,7 +836,7 @@ namespace QWK {
 
     Win32WindowContext::~Win32WindowContext() {
         if (m_windowId) {
-            removeManagedWindow(reinterpret_cast<HWND>(m_windowId));
+            removeManagedWindow(reinterpret_cast<HWND>(m_windowId), this);
         }
     }
 
@@ -781,7 +866,7 @@ namespace QWK {
 #else
                 const QPoint nativeGlobalPos = QHighDpi::toNativePixels(pos, m_windowHandle.data());
 #endif
-                std::ignore = showSystemMenu_sys(hWnd, qpoint2point(nativeGlobalPos), false,
+                std::ignore = showSystemMenu_sys(this, hWnd, qpoint2point(nativeGlobalPos), false,
                                                  isHostSizeFixed());
                 return;
             }
@@ -913,6 +998,8 @@ namespace QWK {
         mouseLeaveBlocked = false;
         lastHitTestResult = WindowPart::Outside;
         lastHitTestResultRaw = HTNOWHERE;
+        iconButtonClickTime = 0;
+        iconButtonClickLevel = 0;
 
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
@@ -922,7 +1009,7 @@ namespace QWK {
                 hasFrameRectBeforeWinIdChange =
                     ::GetWindowRect(oldHWnd, &frameRectBeforeWinIdChange) != FALSE;
             }
-            removeManagedWindow(oldHWnd);
+            removeManagedWindow(oldHWnd, this);
         }
         if (!winId) {
             QTimer::singleShot(0, this, [this]() {
@@ -1597,12 +1684,15 @@ namespace QWK {
                 }
 
                 if (lastHitTestResult == WindowPart::ChromeButton) {
+                    const ManagedWindowGuard guard(this, hWnd);
                     if (message == WM_NCMOUSEMOVE) {
                         // ### FIXME FIXME FIXME
                         // ### FIXME: Calling DefWindowProc() here is really dangerous, investigate
                         // how to avoid doing this.
                         // ### FIXME FIXME FIXME
                         *result = ::DefWindowProcW(hWnd, WM_NCMOUSEMOVE, wParam, lParam);
+                        if (!guard.isCurrent())
+                            return true;
                         emulateClientAreaMessage(hWnd, message, wParam, lParam);
                         return true;
                     }
@@ -1617,6 +1707,8 @@ namespace QWK {
                                     // until the menu returns
                                     iconButtonClickTime = ::GetTickCount64();
                                     *result = ::DefWindowProcW(hWnd, message, wParam, lParam);
+                                    if (!guard.isCurrent())
+                                        return true;
                                     iconButtonClickTime = 0;
                                     if (iconButtonClickLevel & IconButtonTriggersClose) {
                                         ::PostMessageW(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
@@ -2563,10 +2655,19 @@ namespace QWK {
         }
 
         if (shouldShowSystemMenu) {
+            const ManagedWindowGuard guard(this, hWnd);
             static HHOOK mouseHook = nullptr;
             static std::optional<POINT> mouseClickPos;
             static bool mouseDoubleClicked = false;
             bool mouseHookedLocal = false;
+            const auto cleanup = qScopeGuard([&mouseHookedLocal] {
+                if (!mouseHookedLocal)
+                    return;
+                ::UnhookWindowsHookEx(mouseHook);
+                mouseHook = nullptr;
+                mouseClickPos.reset();
+                mouseDoubleClicked = false;
+            });
 
             // The menu is triggered by a click on icon button
             if (iconButtonClickTime > 0) {
@@ -2612,19 +2713,22 @@ namespace QWK {
                             return ::CallNextHookEx(nullptr, nCode, wParam, lParam);
                         },
                         nullptr, ::GetCurrentThreadId());
-                    mouseHookedLocal = true;
+                    mouseHookedLocal = mouseHook != nullptr;
                 }
             }
 
 #undef MOUSE_HOOK
 
             bool res =
-                showSystemMenu_sys(hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
+                showSystemMenu_sys(this, hWnd, nativeGlobalPos, broughtByKeyboard, isHostSizeFixed());
 
-            // Uninstall mouse hook and check if it's a double-click
+            // cleanup owns the hook independently of this context's lifetime.
+            *result = FALSE;
+            if (!guard.isCurrent())
+                return true;
+
+            // Check the recorded click before the scope guard uninstalls the hook.
             if (mouseHookedLocal) {
-                ::UnhookWindowsHookEx(mouseHook);
-
                 // Emulate the Windows icon button's behavior
                 if (!res && mouseClickPos.has_value()) {
                     POINT nativeLocalPos = mouseClickPos.value();
@@ -2644,10 +2748,6 @@ namespace QWK {
                 if (mouseDoubleClicked) {
                     iconButtonClickLevel |= IconButtonDoubleClicked;
                 }
-
-                mouseHook = nullptr;
-                mouseClickPos.reset();
-                mouseDoubleClicked = false;
             }
 
             // QPA's internal code will handle system menu events separately, and its
