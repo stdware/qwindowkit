@@ -892,7 +892,7 @@ namespace QWK {
                 if (!m_windowId || !data)
                     return;
                 windows10BorderInactive = !*static_cast<const bool *>(data);
-                extendFrameMargins(effectiveExtraMargins(
+                applyFrameMargins(effectiveExtraMargins(
                     windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
                 return;
             }
@@ -976,6 +976,8 @@ namespace QWK {
     }
 
     void Win32WindowContext::winIdChanged(WId winId, WId oldWinId) {
+        appliedFrameMargins = {};
+        ++frameMarginsRevision;
         const QPointer<Win32WindowContext> self(this);
         const auto revision = m_windowRevision;
         const auto isCurrent = [self, revision] {
@@ -1011,12 +1013,15 @@ namespace QWK {
 
         // Install window hook
         auto hWnd = reinterpret_cast<HWND>(winId);
-        if (!isSystemBorderEnabled()) {
+        if (!isSystemBorderEnabled() &&
+            !windowAttribute(QStringLiteral("extra-margins")).isValid()) {
             static auto margins = QVariant::fromValue(QMargins(1, 1, 1, 1));
 
             // If we remove the system border, the window will lose its shadow. If dwm is enabled,
             // then we need to set at least 1px margins, otherwise the following operation will
             // fail with no effect.
+            // Install the default only once. Cached user margins and material
+            // ordering must survive native-window recreation and be replayed below.
             setWindowAttribute(QStringLiteral("extra-margins"), margins);
             if (!isCurrent())
                 return;
@@ -1167,6 +1172,71 @@ namespace QWK {
             reinterpret_cast<HWND>(m_windowId), &nativeMargins));
     }
 
+    bool Win32WindowContext::applyFrameMargins(const QMargins &margins) {
+        const QPointer<Win32WindowContext> self(this);
+        const auto windowRevision = m_windowRevision;
+        const auto revision = frameMarginsRevision;
+        const bool applied = extendFrameMargins(margins);
+        if (!self || m_windowRevision != windowRevision || frameMarginsRevision != revision)
+            return false;
+        if (applied) {
+            appliedFrameMargins = margins;
+            ++frameMarginsRevision;
+        }
+        return applied;
+    }
+
+    bool Win32WindowContext::supportsSystemBackdrop() const {
+        // Use the official API on its documented baseline; older builds retain
+        // the project's private ACCENT_POLICY path instead of being rejected.
+        return isWin1122H2OrGreater();
+    }
+
+    HRESULT Win32WindowContext::querySystemBackdrop(int *type) const {
+        return DynamicApis::instance().pDwmGetWindowAttribute(
+            reinterpret_cast<HWND>(m_windowId), _DWMWA_SYSTEMBACKDROP_TYPE, type, sizeof(*type));
+    }
+
+    HRESULT Win32WindowContext::setSystemBackdrop(int type) {
+        return setWindowDwmAttribute(_DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
+    }
+
+    bool Win32WindowContext::supportsLegacyMica() const {
+        return isWin11OrGreater();
+    }
+
+    HRESULT Win32WindowContext::setWindowDwmAttribute(DWORD attribute, const void *value, DWORD size) {
+        return DynamicApis::instance().pDwmSetWindowAttribute(
+            reinterpret_cast<HWND>(m_windowId), attribute, value, size);
+    }
+
+    bool Win32WindowContext::setBlurBehind(bool enable) {
+        if (isWin8OrGreater()) {
+            if (!DynamicApis::instance().pSetWindowCompositionAttribute)
+                return false;
+            ACCENT_POLICY policy{};
+            policy.dwAccentState = enable ? ACCENT_ENABLE_BLURBEHIND : ACCENT_DISABLED;
+            return setAccentPolicy(policy);
+        }
+        DWM_BLURBEHIND blur{};
+        blur.fEnable = enable;
+        blur.dwFlags = DWM_BB_ENABLE;
+        return SUCCEEDED(DynamicApis::instance().pDwmEnableBlurBehindWindow(
+            reinterpret_cast<HWND>(m_windowId), &blur));
+    }
+
+    bool Win32WindowContext::supportsLegacyAcrylic() const {
+        const auto &apis = DynamicApis::instance();
+        return isWin11OrGreater() && apis.pSetWindowCompositionAttribute;
+    }
+
+    bool Win32WindowContext::setAccentPolicy(const ACCENT_POLICY &policy) {
+        auto value = policy;
+        WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &value, sizeof(value)};
+        return DynamicApis::instance().pSetWindowCompositionAttribute(
+            reinterpret_cast<HWND>(m_windowId), &data);
+    }
+
     QMargins Win32WindowContext::effectiveExtraMargins(QMargins margins) const {
         // A negative margin requests full-client glass; do not narrow that request.
         if (windows10BorderInactive && margins.left() >= 0 && margins.top() >= 0 &&
@@ -1180,10 +1250,7 @@ namespace QWK {
         return margins;
     }
 
-    bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                                    const QVariant &oldAttribute) {
-        Q_UNUSED(oldAttribute)
-
+    bool Win32WindowContext::windowAttributeChanged(const QString &key, const QVariant &attribute) {
         const auto hwnd = reinterpret_cast<HWND>(m_windowId);
         Q_ASSERT(hwnd);
 
@@ -1191,35 +1258,49 @@ namespace QWK {
         // a synchronous Windows callback deletes the context.
         const auto *change = m_attributeChange;
         const DynamicApis &apis = DynamicApis::instance();
-        const auto &extendMargins = [&apis, hwnd]() {
-            // For some unknown reason, the window background is totally black and extending
-            // the window frame into the client area seems to fix it magically.
-            // After many times of trying, we found that the Acrylic/Mica/Mica Alt background
-            // only appears on the native Win32 window's background, so naturally we want to
-            // extend the window frame into the whole client area to be able to let the special
-            // material fill the whole window. Previously we are using negative margins because
-            // it's widely known that using negative margins will let the window frame fill
-            // the whole window and that's indeed what we wanted to do, however, later we found
-            // that doing so is causing issues. When the user enabled the "show accent color on
-            // window title bar and borders" option on system personalize settings, a 30px bar
-            // would appear on window top. It has the same color with the system accent color.
-            // Actually it's the original title bar we've already hidden, and it magically
-            // appears again when we use negative margins to extend the window frame. And again
-            // after some experiments, I found that the title bar won't appear if we don't extend
-            // from the top side. In the end I found that we only need to extend from the left
-            // side if we extend long enough. In this way we can see the special material even
-            // when the host object is a QWidget and the title bar still remain hidden. But even
-            // though this solution seems perfect, I really don't know why it works. The following
-            // hack is totally based on experiments.
-            static constexpr const MARGINS margins = {65536, 0, 0, 0};
-            apis.pDwmExtendFrameIntoClientArea(hwnd, &margins);
+        const bool material = key == QStringLiteral("mica") || key == QStringLiteral("mica-alt") ||
+            key == QStringLiteral("acrylic-material") || key == QStringLiteral("dwm-blur");
+        auto revision = materialRevision;
+        const auto isCurrent = [this, change, material, &revision]() {
+            // These keys share native effects and margins. Keep successful nested
+            // effects, and partial state left by a failed nested rollback, intact.
+            return change->isCurrent() && (!material || materialRevision == revision);
         };
-        const auto &restoreMargins = [this]() {
-            extendFrameMargins(effectiveExtraMargins(
-                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>()));
+        const auto ownMaterial = [this, &revision]() { revision = ++materialRevision; };
+        const auto restoredMargins = [this]() {
+            return effectiveExtraMargins(
+                windowAttribute(QStringLiteral("extra-margins")).value<QMargins>());
         };
-
-        const auto &effectBugWorkaround = [this, hwnd, change]() {
+        // Keep the historical left-only extension: full negative margins can expose
+        // the original accent-colored title bar. 65536 covers the client area without
+        // extending from the top, for both Widgets and Quick.
+        const QMargins materialMargins(65536, 0, 0, 0);
+        const auto applyEffect = [this, &isCurrent, &ownMaterial](
+            const QMargins &margins, const auto &setEffect, const char *effectName = "Effect") {
+            // Neither private Mica nor ACCENT_POLICY has a reliable readback contract.
+            // Change margins first, then leave the old effect untouched if they fail.
+            const auto previousMargins = appliedFrameMargins;
+            if (!applyFrameMargins(margins) || !isCurrent())
+                return false;
+            const auto marginRevision = frameMarginsRevision;
+            const bool accepted = setEffect();
+            if (!isCurrent())
+                return false;
+            if (!accepted) {
+                // Preserve any successful newer extra-margins write in the callback.
+                if (frameMarginsRevision == marginRevision) {
+                    const bool restored = applyFrameMargins(previousMargins);
+                    if (isCurrent() && !restored) {
+                        ownMaterial();
+                        qWarning("QWindowKit: %s margins rollback failed; retry the effect update.", effectName);
+                    }
+                }
+                return false;
+            }
+            ownMaterial();
+            return true;
+        };
+        const auto &effectBugWorkaround = [this, hwnd, change, &isCurrent]() {
             // We don't need the following *HACK* for QWidget windows.
             // Completely based on actual experiments, root reason is totally unknown.
 
@@ -1246,7 +1327,7 @@ namespace QWK {
                 return false;
             ::MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
                          FALSE);
-            return change->isCurrent();
+            return isCurrent();
         };
 
         if (key == QStringLiteral("no-system-menu")) {
@@ -1255,181 +1336,106 @@ namespace QWK {
         }
 
         if (key == QStringLiteral("extra-margins")) {
-            return extendFrameMargins(effectiveExtraMargins(attribute.value<QMargins>()));
+            return applyFrameMargins(effectiveExtraMargins(attribute.value<QMargins>()));
         }
 
         if (key == QStringLiteral("dark-mode")) {
-            if (!isWin101809OrGreater()) {
+            if (!isWin101809OrGreater())
                 return false;
-            }
-
-            BOOL enable = attribute.toBool();
-            if (isWin101903OrGreater()) {
-                apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
-            } else {
-                apis.pAllowDarkModeForApp(enable);
-            }
-            if (!change->isCurrent())
-                return false;
+            const BOOL enable = attribute.toBool();
             const auto attr = isWin1020H1OrGreater() ? _DWMWA_USE_IMMERSIVE_DARK_MODE
                                                      : _DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
-            apis.pDwmSetWindowAttribute(hwnd, attr, &enable, sizeof(enable));
-            if (!change->isCurrent())
+            // Reject a failed per-window write before changing process-wide menu policy.
+            if (FAILED(setWindowDwmAttribute(attr, &enable, sizeof(enable))) || !isCurrent())
                 return false;
-
+            if (isWin101903OrGreater())
+                apis.pSetPreferredAppMode(enable ? PAM_AUTO : PAM_DEFAULT);
+            else
+                apis.pAllowDarkModeForApp(enable);
+            if (!isCurrent())
+                return false;
             apis.pFlushMenuThemes();
-            return true;
+            return isCurrent();
         }
 
-        // For Win11 or later
-        if (key == QStringLiteral("mica")) {
-            if (!isWin11OrGreater()) {
+        if (key == QStringLiteral("mica") || key == QStringLiteral("mica-alt")) {
+            const bool modern = supportsSystemBackdrop();
+            if (!isCurrent())
                 return false;
-            }
-            if (attribute.toBool()) {
-                extendMargins();
-                if (!change->isCurrent())
-                    return false;
-                if (isWin1122H2OrGreater()) {
-                    // Use official DWM API to enable Mica, available since Windows 11 22H2
-                    // (10.0.22621).
-                    const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_MAINWINDOW;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                                sizeof(backdropType));
-                } else {
-                    // Use undocumented DWM API to enable Mica, available since Windows 11
-                    // (10.0.22000).
-                    const BOOL enable = TRUE;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
-                }
-            } else {
-                if (isWin1122H2OrGreater()) {
-                    const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                                sizeof(backdropType));
-                } else {
-                    const BOOL enable = FALSE;
-                    apis.pDwmSetWindowAttribute(hwnd, _DWMWA_MICA_EFFECT, &enable, sizeof(enable));
-                }
-                if (!change->isCurrent())
-                    return false;
-                restoreMargins();
-            }
-            return change->isCurrent() && effectBugWorkaround();
-        }
-
-        if (key == QStringLiteral("mica-alt")) {
-            if (!isWin1122H2OrGreater()) {
+            if (!modern && (key == QStringLiteral("mica-alt") || !supportsLegacyMica() || !isCurrent()))
                 return false;
-            }
-            if (attribute.toBool()) {
-                extendMargins();
-                if (!change->isCurrent())
-                    return false;
-                // Use official DWM API to enable Mica Alt, available since Windows 11 22H2
-                // (10.0.22621).
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TABBEDWINDOW;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-            } else {
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-                if (!change->isCurrent())
-                    return false;
-                restoreMargins();
-            }
-            return change->isCurrent() && effectBugWorkaround();
+            const BOOL enable = attribute.toBool();
+            const int backdrop = !enable ? _DWMSBT_AUTO
+                : key == QStringLiteral("mica") ? _DWMSBT_MAINWINDOW : _DWMSBT_TABBEDWINDOW;
+            if (!applyEffect(enable ? materialMargins : restoredMargins(), [&]() {
+                    // Retain the undocumented 22000 Mica attribute 1029 for both
+                    // enable and disable. Do not gate it on the official API baseline.
+                    return SUCCEEDED(modern ? setSystemBackdrop(backdrop)
+                        : setWindowDwmAttribute(_DWMWA_MICA_EFFECT, &enable, sizeof(enable)));
+                }))
+                return false;
+            return isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("acrylic-material")) {
-            if (!isWin11OrGreater()) {
+            const bool modern = supportsSystemBackdrop();
+            if (!isCurrent())
+                return false;
+            if (!modern && (!supportsLegacyAcrylic() || !isCurrent())) {
                 return false;
             }
-            if (attribute.toBool()) {
-                extendMargins();
-                if (!change->isCurrent())
+
+            // Preserve the project's original private-API hack (0e9c2e4) on 21H2.
+            // Unlike the official backdrop attribute, ACCENT_POLICY works before 22621.
+            // The zero gradient uses the historical #AABBGGRR value; luminosity flags
+            // are deliberately retained rather than replacing this with ordinary blur.
+            ACCENT_POLICY requestedAccent{};
+            requestedAccent.dwAccentState = attribute.toBool()
+                ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
+            requestedAccent.dwAccentFlags = attribute.toBool()
+                ? ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY : ACCENT_NONE;
+            const auto margins = attribute.toBool() ? materialMargins : restoredMargins();
+            if (!modern) {
+                if (!applyEffect(margins, [&]() { return setAccentPolicy(requestedAccent); }, "Acrylic"))
                     return false;
-
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_TRANSIENTWINDOW;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-
-                // PRIVATE API REFERENCE:
-                //     QColor gradientColor = {};
-                //     ACCENT_POLICY policy{};
-                //     policy.dwAccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
-                //     policy.dwAccentFlags = ACCENT_ENABLE_ACRYLIC_WITH_LUMINOSITY;
-                //     // This API expects the #AABBGGRR format.
-                //     policy.dwGradientColor =
-                //         DWORD(qRgba(gradientColor.blue(), gradientColor.green(),
-                //                     gradientColor.red(), gradientColor.alpha()));
-                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                //     wcad.Attrib = WCA_ACCENT_POLICY;
-                //     wcad.pvData = &policy;
-                //     wcad.cbData = sizeof(policy);
-                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-            } else {
-                const _DWM_SYSTEMBACKDROP_TYPE backdropType = _DWMSBT_AUTO;
-                apis.pDwmSetWindowAttribute(hwnd, _DWMWA_SYSTEMBACKDROP_TYPE, &backdropType,
-                                            sizeof(backdropType));
-
-                // PRIVATE API REFERENCE:
-                //     ACCENT_POLICY policy{};
-                //     policy.dwAccentState = ACCENT_DISABLED;
-                //     policy.dwAccentFlags = ACCENT_NONE;
-                //     WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                //     wcad.Attrib = WCA_ACCENT_POLICY;
-                //     wcad.pvData = &policy;
-                //     wcad.cbData = sizeof(policy);
-                //     apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-
-                if (!change->isCurrent())
-                    return false;
-                restoreMargins();
+                return effectBugWorkaround();
             }
-            return change->isCurrent() && effectBugWorkaround();
+
+            // Snapshot the actual backdrop, which may have been set by Mica/Mica Alt
+            // or by the application. The cached acrylic boolean cannot describe it.
+            int previous = _DWMSBT_AUTO;
+            if (FAILED(querySystemBackdrop(&previous)) || !isCurrent())
+                return false;
+            const int requested = attribute.toBool() ? _DWMSBT_TRANSIENTWINDOW : _DWMSBT_AUTO;
+            // A failed backdrop write must not leave newly extended margins behind.
+            if (FAILED(setSystemBackdrop(requested)) || !isCurrent())
+                return false;
+
+            // Use the same left-only extension as the other materials (see above).
+            const bool extended = applyFrameMargins(margins);
+            // Never roll back onto a replacement HWND or over a successful inner write.
+            if (!isCurrent())
+                return false;
+            if (!extended) {
+                const bool restored = SUCCEEDED(setSystemBackdrop(previous));
+                if (isCurrent() && !restored) {
+                    ownMaterial();
+                    // DWM has no atomic backdrop+margins operation. Keep the cache at
+                    // its last successful value, report failure and make drift visible.
+                    // A subsequent explicit write re-queries DWM and can repair it.
+                    qWarning("QWindowKit: Acrylic backdrop rollback failed; retry the effect update.");
+                }
+                return false;
+            }
+            ownMaterial();
+            return isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("dwm-blur")) {
             // Extending window frame would break this effect for some unknown reason.
-            restoreMargins();
-            if (!change->isCurrent())
+            if (!applyEffect(restoredMargins(), [&]() { return setBlurBehind(attribute.toBool()); }))
                 return false;
-            if (attribute.toBool()) {
-                if (isWin8OrGreater()) {
-                    ACCENT_POLICY policy{};
-                    policy.dwAccentState = ACCENT_ENABLE_BLURBEHIND;
-                    policy.dwAccentFlags = ACCENT_NONE;
-                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                    wcad.Attrib = WCA_ACCENT_POLICY;
-                    wcad.pvData = &policy;
-                    wcad.cbData = sizeof(policy);
-                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-                } else {
-                    DWM_BLURBEHIND bb{};
-                    bb.fEnable = TRUE;
-                    bb.dwFlags = DWM_BB_ENABLE;
-                    apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
-                }
-            } else {
-                if (isWin8OrGreater()) {
-                    ACCENT_POLICY policy{};
-                    policy.dwAccentState = ACCENT_DISABLED;
-                    policy.dwAccentFlags = ACCENT_NONE;
-                    WINDOWCOMPOSITIONATTRIBDATA wcad{};
-                    wcad.Attrib = WCA_ACCENT_POLICY;
-                    wcad.pvData = &policy;
-                    wcad.cbData = sizeof(policy);
-                    apis.pSetWindowCompositionAttribute(hwnd, &wcad);
-                } else {
-                    DWM_BLURBEHIND bb{};
-                    bb.fEnable = FALSE;
-                    bb.dwFlags = DWM_BB_ENABLE;
-                    apis.pDwmEnableBlurBehindWindow(hwnd, &bb);
-                }
-            }
-            return change->isCurrent() && effectBugWorkaround();
+            return isCurrent() && effectBugWorkaround();
         }
 
         if (key == QStringLiteral("dwm-border-color")) {
@@ -1442,8 +1448,8 @@ namespace QWK {
 
             QColor color = attribute.value<QColor>();
             COLORREF colorRef = RGB(color.red(), color.green(), color.blue());
-            apis.pDwmSetWindowAttribute(hwnd, _DWMWA_BORDER_COLOR, &colorRef, sizeof(colorRef));
-            return true;
+            return SUCCEEDED(setWindowDwmAttribute(_DWMWA_BORDER_COLOR, &colorRef, sizeof(colorRef))) &&
+                isCurrent();
         }
         return false;
     }

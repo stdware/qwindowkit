@@ -19,6 +19,8 @@
 
 namespace QWK {
 
+    struct ACCENT_POLICY;
+
     class Win32WindowContext : public AbstractWindowContext {
         Q_OBJECT
     public:
@@ -42,10 +44,19 @@ namespace QWK {
 
     protected:
         void winIdChanged(WId winId, WId oldWinId) override;
-        bool windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                    const QVariant &oldAttribute) override;
+        bool windowAttributeChanged(const QString &key, const QVariant &attribute) override;
         QMargins effectiveExtraMargins(QMargins margins) const;
         virtual bool extendFrameMargins(const QMargins &margins);
+        bool applyFrameMargins(const QMargins &margins);
+        // Narrow DWM boundary for backdrop capability and failure-path regression tests.
+        virtual bool supportsSystemBackdrop() const;
+        virtual HRESULT querySystemBackdrop(int *type) const;
+        virtual HRESULT setSystemBackdrop(int type);
+        virtual bool supportsLegacyMica() const;
+        virtual HRESULT setWindowDwmAttribute(DWORD attribute, const void *value, DWORD size);
+        virtual bool setBlurBehind(bool enable);
+        virtual bool supportsLegacyAcrylic() const;
+        virtual bool setAccentPolicy(const ACCENT_POLICY &policy);
 
     public:
         bool windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result);
@@ -82,6 +93,9 @@ namespace QWK {
         // Attributes
         bool noSystemMenu = false;
         bool windows10BorderInactive = false;
+        QMargins appliedFrameMargins;
+        quint64 frameMarginsRevision = 0;
+        quint64 materialRevision = 0;
 
         // Native HWNDs can be recreated while the logical QWindow stays alive. Keep the last
         // stable native frame rect so we can prevent Qt's recreate path from applying a stale

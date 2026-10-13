@@ -25,7 +25,6 @@ namespace {
     struct AttributeCall {
         QString key;
         QVariant value;
-        QVariant oldValue;
     };
 
     class Context : public QWK::AbstractWindowContext {
@@ -34,7 +33,7 @@ namespace {
         QStringList rejectedKeys;
         QList<QPair<WId, WId>> handles;
         QStringList sequence;
-        std::function<bool(const QString &, const QVariant &, const QVariant &)> onAttribute;
+        std::function<bool(const QString &, const QVariant &)> onAttribute;
         std::function<void()> onHandle;
         bool storageHasSize(int size) const {
             return int(m_windowAttributesOrder.size()) == size && m_windowAttributes.size() == size;
@@ -53,13 +52,12 @@ namespace {
             if (callback)
                 callback();
         }
-        bool windowAttributeChanged(const QString &key, const QVariant &value,
-                                    const QVariant &oldValue) override {
-            calls.append({key, value, oldValue});
+        bool windowAttributeChanged(const QString &key, const QVariant &value) override {
+            calls.append({key, value});
             sequence.append("attribute:" + key);
             const auto callback = onAttribute;
             if (callback)
-                return callback(key, value, oldValue);
+                return callback(key, value);
             return !rejectedKeys.contains(key);
         }
     };
@@ -172,12 +170,10 @@ private Q_SLOTS:
         bool inside = false;
         bool nestedResult = false;
         bool argumentsStable = false;
-        QVariant observedOld;
-        f.context.onAttribute = [&](const QString &key, const QVariant &value, const QVariant &old) {
+        f.context.onAttribute = [&](const QString &key, const QVariant &value) {
             if (inside)
                 return scenario != "failed-inner";
             inside = true;
-            observedOld = old;
             if (scenario == "grow-hash") {
                 for (int i = 0; i < 300; ++i)
                     nestedResult = f.context.setWindowAttribute(QString::number(i), i);
@@ -189,7 +185,7 @@ private Q_SLOTS:
                     scenario.endsWith("remove") ? QVariant{} : QVariant(3));
             }
             // Callback arguments remain valid across erasure and hash growth.
-            argumentsStable = key == "alpha" && old == (initiallyAbsent ? QVariant{} : QVariant(1)) &&
+            argumentsStable = key == "alpha" &&
                 value == (scenario == "remove-reinsert" ? QVariant{} : QVariant(2));
             return scenario != "failed-outer";
         };
@@ -197,7 +193,6 @@ private Q_SLOTS:
             scenario == "remove-reinsert" ? QVariant{} : QVariant(2));
         f.context.onAttribute = {};
         QVERIFY(argumentsStable);
-        QCOMPARE(observedOld, initiallyAbsent ? QVariant{} : QVariant(1));
         const bool outerWins = scenario == "failed-inner" || scenario == "grow-hash";
         QCOMPARE(result, outerWins);
         if (scenario != "recreate")
@@ -239,7 +234,7 @@ private Q_SLOTS:
             return false;
         };
         f.context.installSharedEventFilter(&observer);
-        f.context.onAttribute = [&](const QString &, const QVariant &, const QVariant &) {
+        f.context.onAttribute = [&](const QString &, const QVariant &) {
             if (!std::exchange(first, false))
                 return true;
             if (scenario == "recreate") {
@@ -297,7 +292,7 @@ private Q_SLOTS:
             delegate->id = 1;
             context->notifyWinIdChange();
         }
-        context->onAttribute = [&](const QString &, const QVariant &, const QVariant &) {
+        context->onAttribute = [&](const QString &, const QVariant &) {
             context.reset();
             return true;
         };
@@ -475,12 +470,10 @@ private Q_SLOTS:
         f.changeHandle(1);
         QVERIFY(f.context.setWindowAttribute("alpha", 7));
         QCOMPARE(f.context.calls.size(), 1);
-        QVERIFY(!f.context.calls.first().oldValue.isValid());
         f.context.rejectedKeys << "alpha" << "beta";
         QVERIFY(!f.context.setWindowAttribute("alpha", 9));
         QCOMPARE(f.context.windowAttribute("alpha").toInt(), 7);
         QCOMPARE(f.context.calls.last().value.toInt(), 9);
-        QCOMPARE(f.context.calls.last().oldValue.toInt(), 7);
         QVERIFY(!f.context.setWindowAttribute("alpha", {}));
         QCOMPARE(f.context.windowAttribute("alpha").toInt(), 7);
         QVERIFY(!f.context.calls.last().value.isValid());
@@ -488,7 +481,6 @@ private Q_SLOTS:
         QVERIFY(!f.context.windowAttribute("beta").isValid());
         f.context.rejectedKeys.clear();
         QVERIFY(f.context.setWindowAttribute("alpha", 13));
-        QCOMPARE(f.context.calls.last().oldValue.toInt(), 7);
         QCOMPARE(f.context.windowAttribute("alpha").toInt(), 13);
         QVERIFY(f.context.setWindowAttribute("alpha", {}));
         QVERIFY(!f.context.windowAttribute("alpha").isValid());
@@ -503,8 +495,6 @@ private Q_SLOTS:
         f.changeHandle(1);
         QCOMPARE(f.context.keys(), QStringList({"beta", "gamma", "alpha"}));
         QCOMPARE(f.context.calls.last().value.toInt(), 4);
-        for (const auto &call : f.context.calls)
-            QVERIFY(!call.oldValue.isValid());
 
         f.context.rejectedKeys << "beta";
         QVERIFY(!f.context.setWindowAttribute("beta", 5));
@@ -558,7 +548,6 @@ private Q_SLOTS:
         QCOMPARE(f.context.handles.size(), 3);
         QCOMPARE(f.context.keys(), QStringList({"alpha"}));
         QCOMPARE(f.context.calls.first().value.toInt(), 2);
-        QVERIFY(!f.context.calls.first().oldValue.isValid());
     }
 
     void replacingTitleClearsRegistrations() {

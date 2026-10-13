@@ -98,8 +98,7 @@ namespace QWK {
 
     protected:
         virtual void winIdChanged(WId winId, WId oldWinId) = 0;
-        virtual bool windowAttributeChanged(const QString &key, const QVariant &attribute,
-                                            const QVariant &oldAttribute);
+        virtual bool windowAttributeChanged(const QString &key, const QVariant &attribute);
 
     protected:
         QObject *m_host{};

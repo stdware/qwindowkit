@@ -105,7 +105,8 @@ namespace QWK {
         them. Without one, values are cached for replay when the window is created. A successful
         reentrant write or removal of the same key takes precedence over an outer
         call; that outer call returns false. A rejected inner call leaves the outer
-        call eligible to commit. Changes to other keys are independent.
+        call eligible to commit. Changes to other keys are independent except
+        Windows material attributes sharing native effects and frame margins.
 
         If the context is destroyed or the native window changes during the call,
         the interrupted call returns false without committing its cached value.
@@ -115,6 +116,15 @@ namespace QWK {
         Unchanged entries rejected during replay are removed from the cache.
 
         Available attributes:
+
+        Windows effect updates return false when a required platform call fails.
+        Mica and blur restore the last successfully applied QWK frame margins if
+        their effect setter fails. A failed restoration emits a warning; the cache
+        retains its last successful value, while native state may differ. Retry an
+        explicit value to repair it. Successful nested material updates, or partial
+        state left by a failed nested rollback, take precedence over older material
+        updates. A rejected inner call with restored state leaves the outer eligible.
+        Removing an absent cached value is a no-op, not a native-state reset.
 
         On Windows,
             \li \c no-system-menu: Specify a boolean value to disable the system menu.
@@ -129,7 +139,11 @@ namespace QWK {
                    follow the system again. These APIs affect the entire application;
                    QStyleHints::colorScheme() is available for reading since Qt 6.5.
             \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
-                   this attribute is only available on Windows 11.
+                   this attribute is only available on Windows 11. Builds before 22621 use
+                   the private ACCENT_POLICY compatibility path; newer builds use DWM's
+                   system backdrop API. Failed platform operations return false. If rollback
+                   also fails, a warning is emitted and the last successful cached value
+                   is retained; retry an explicit boolean to repair the platform state.
             \li \c mica: Specify a boolean value to enable or disable mica material,
                    this attribute is only available on Windows 11.
             \li \c mica-alt: Specify a boolean value to enable or disable mica-alt material,
