@@ -25,7 +25,17 @@ function(qwk_add_unit_test target name expected_passes)
 endfunction()
 
 qwk_add_unit_test(tst_eventdispatch core.eventdispatch.unit 24)
-qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 17)
+qwk_add_unit_test(tst_objecteventfilters core.objecteventfilters.unit 7)
+qwk_add_unit_test(tst_windowcontext core.windowcontext.unit 28)
+qwk_add_unit_test(tst_qtwindowcontext core.qtwindowcontext.unit 24)
+if(NOT QWINDOWKIT_BUILD_STATIC)
+    # The fallback class is private and not exported by shared QWKCore. Compile its
+    # unchanged implementation here, using the exported production base/delegate.
+    # Static builds already contain these symbols (including moc), so link them directly.
+    target_sources(tst_qtwindowcontext PRIVATE
+        ../../src/core/contexts/qtwindowcontext.cpp ../../src/core/contexts/qtwindowcontext_p.h)
+    target_include_directories(tst_qtwindowcontext PRIVATE ../../src/core ../../src/core/shared)
+endif()
 
 if(QWINDOWKIT_ENABLE_STYLE_AGENT)
     # StyleAgentPrivate is not exported. Compile the real notification implementation into
