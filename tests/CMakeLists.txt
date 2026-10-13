@@ -8,6 +8,10 @@ set_tests_properties(testpolicy.timeouts PROPERTIES TIMEOUT 10 LABELS infrastruc
 add_subdirectory(unit)
 add_subdirectory(buildsystems)
 
+if(WIN32 AND QWINDOWKIT_BUILD_WIDGETS AND QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS)
+    add_subdirectory(widgetborder)
+endif()
+
 if(WIN32 AND QWINDOWKIT_BUILD_QUICK)
     add_subdirectory(quickgeometry)
 endif()

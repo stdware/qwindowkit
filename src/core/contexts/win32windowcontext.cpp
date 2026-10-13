@@ -658,8 +658,13 @@ namespace QWK {
         }
 
         // Try hooked procedure and save result
+        const QPointer<Win32WindowContext> contextGuard(ctx);
+        const QPointer<QWindow> windowGuard(ctx->window());
         LRESULT result;
         if (ctx->windowProc(hWnd, message, wParam, lParam, &result)) {
+            if (!contextGuard || !windowGuard) {
+                return result;
+            }
             // https://github.com/stdware/qwindowkit/issues/45
             // Forward the event to user-defined native event filters, there may be some messages
             // that need to be processed by the user.
@@ -1064,7 +1069,7 @@ namespace QWK {
         }
 
         // Forward to native event filter subscribers
-        if (!m_nativeEventFilters.isEmpty()) {
+        if (!m_nativeDispatch.isEmpty()) {
             MSG msg = createMessageBlock(hWnd, message, wParam, lParam);
             QT_NATIVE_EVENT_RESULT_TYPE res = 0;
             if (nativeDispatch(nativeEventType(), &msg, &res)) {

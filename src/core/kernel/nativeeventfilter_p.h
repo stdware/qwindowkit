@@ -15,6 +15,7 @@
 //
 
 #include <QWKCore/qwkglobal.h>
+#include <QWKCore/private/eventdispatch_p.h>
 
 namespace QWK {
 
@@ -34,9 +35,7 @@ namespace QWK {
         void removeNativeEventFilter(NativeEventFilter *filter);
 
     protected:
-        QList<NativeEventFilter *> m_nativeEventFilters;
-
-        int m_nativeDispatchDepth = 0;
+        Private::EventDispatchState<NativeEventFilter> m_nativeDispatch;
 
         friend class NativeEventFilter;
 

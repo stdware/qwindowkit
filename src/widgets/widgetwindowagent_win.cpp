@@ -73,8 +73,12 @@ namespace QWK {
 
         inline void forwardEventToWidgetAndDraw(QWidget *w, QEvent *event) {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
-            // Deliver the event
-            if (!forwardObjectEventFilters(this, w, event)) {
+            const QPointer<QObject> handlerGuard(this);
+            const QPointer<QWidget> receiverGuard(w);
+            const QPointer<AbstractWindowContext> contextGuard(ctx);
+            // Filters may destroy the window or just its agent (and this handler).
+            // A surviving receiver still needs its event even if the agent is gone.
+            if (!forwardObjectEventFilters(this, w, event) && receiverGuard) {
                 // Let the widget paint first
                 std::ignore = static_cast<QObject *>(w)->event(event);
                 QCoreApplicationPrivate::setEventSpontaneous(event, false);
@@ -83,13 +87,18 @@ namespace QWK {
             // Due to the timer or user action, Qt will repaint some regions spontaneously,
             // even if there is no WM_PAINT message, we must wait for it to finish painting
             // and then update the top border area.
-            drawBorderNative();
+            if (handlerGuard && receiverGuard && contextGuard) {
+                contextGuard->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native,
+                                           nullptr);
+            }
         }
 
         inline void forwardEventToWindowAndDraw(QWindow *window, QEvent *event) {
             // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/widgets/kernel/qapplication.cpp#L3286
-            // Deliver the event
-            if (!forwardObjectEventFilters(ctx, window, event)) {
+            const QPointer<QObject> handlerGuard(this);
+            const QPointer<QWindow> receiverGuard(window);
+            const QPointer<AbstractWindowContext> contextGuard(ctx);
+            if (!forwardObjectEventFilters(ctx, window, event) && receiverGuard) {
                 // Let Qt paint first
                 std::ignore = static_cast<QObject *>(window)->event(event);
                 QCoreApplicationPrivate::setEventSpontaneous(event, false);
@@ -97,7 +106,10 @@ namespace QWK {
 
             // Upon receiving the WM_PAINT message, Qt will repaint the entire view, and we
             // must wait for it to finish painting before drawing this top border area.
-            drawBorderNative();
+            if (handlerGuard && receiverGuard && contextGuard) {
+                contextGuard->virtual_hook(AbstractWindowContext::DrawWindows10BorderHook_Native,
+                                           nullptr);
+            }
         }
 
     protected:
