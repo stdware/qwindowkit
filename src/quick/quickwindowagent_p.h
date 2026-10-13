@@ -14,7 +14,7 @@
 // version without notice, or may even be removed.
 //
 
-#include <QPointer>
+#include <QtCore/QPointer>
 
 #include <QWKCore/qwkconfig.h>
 #include <QWKCore/private/windowagentbase_p.h>
@@ -34,7 +34,7 @@ namespace QWK {
         QQuickWindow *hostWindow{};
 
 #ifdef Q_OS_MAC
-        QQuickItem *systemButtonAreaItem{};
+        QPointer<QQuickItem> systemButtonAreaItem;
         std::unique_ptr<QObject> systemButtonAreaItemHandler;
 #endif
 

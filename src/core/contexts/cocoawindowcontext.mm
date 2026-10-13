@@ -15,9 +15,11 @@
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QColor>
+#include <QtCore/QScopeGuard>
 
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
+#include "screenrectcallback_p.h"
 
 // https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
 // https://nyrra33.com/2019/03/26/changing-titlebars-height/
@@ -188,10 +190,13 @@ namespace QWK {
 
         // Delegate
         void windowEvent(NSEventType eventType) override {
+            const auto alive = lifetimeToken;
             switch (eventType) {
                 case WillExitFullScreen: {
                     auto nswindow = [nsview window];
                     nswindow.titleVisibility = NSWindowTitleHidden;
+                    if (!alive->load(std::memory_order_acquire))
+                        return;
                     if (!screenRectCallback || !systemButtonVisible)
                         return;
 
@@ -207,6 +212,8 @@ namespace QWK {
                         return;
 
                     setButtonsVisible(systemButtonVisible);
+                    if (!alive->load(std::memory_order_acquire))
+                        return;
 
                     updateSystemButtonRect();
                     break;
@@ -233,10 +240,11 @@ namespace QWK {
 
         // System buttons visibility
         void setSystemButtonVisible(bool visible) {
+            const auto alive = lifetimeToken;
             systemButtonVisible = visible;
             setButtonsVisible(visible);
 
-            if (!screenRectCallback || !visible) {
+            if (!alive->load(std::memory_order_acquire) || !screenRectCallback || !systemButtonVisible) {
                 return;
             }
             updateSystemButtonRect();
@@ -244,16 +252,23 @@ namespace QWK {
 
         // System buttons area
         void setScreenRectCallback(const ScreenRectCallback &callback) {
-            screenRectCallback = callback;
+            const auto alive = lifetimeToken;
+            screenRectCallback.set(callback);
 
-            if (!callback || !systemButtonVisible) {
+            if (!alive->load(std::memory_order_acquire) || !screenRectCallback || !systemButtonVisible) {
                 return;
             }
             updateSystemButtonRect();
         }
 
         void updateSystemButtonRect() {
-            if (!screenRectCallback || !systemButtonVisible) {
+            const auto callback = screenRectCallback.snapshot();
+            const auto alive = lifetimeToken;
+            const auto isCurrent = [this, callback, alive] {
+                return alive->load(std::memory_order_acquire) && callback.isCurrent() &&
+                       systemButtonVisible;
+            };
+            if (!callback || !isCurrent()) {
                 return;
             }
             const auto &buttons = systemButtons();
@@ -299,7 +314,12 @@ namespace QWK {
             auto height = refButton.frame.size.height;
 
             auto viewSize = nsview.frame.size;
-            QPoint center = screenRectCallback(QSize(viewSize.width, titlebarHeight)).center();
+            const QRect area = callback(QSize(viewSize.width, titlebarHeight));
+            // A Quick area can be detached, destroyed or moved to another window.
+            // Keep the existing native layout until the callback has a usable host area.
+            if (area.isEmpty() || !isCurrent())
+                return;
+            QPoint center = area.center();
 
             // The origin of the NSWindow coordinate system is in the lower left corner, we
             // do the necessary transformations
@@ -312,6 +332,8 @@ namespace QWK {
             };
             if (midButton) {
                 [midButton setFrameOrigin:centerOrigin];
+                if (!isCurrent())
+                    return;
             }
 
             // Left button
@@ -321,6 +343,8 @@ namespace QWK {
                     centerOrigin.y,
                 };
                 [leftButton setFrameOrigin:leftOrigin];
+                if (!isCurrent())
+                    return;
             }
 
             // Right button
@@ -345,14 +369,23 @@ namespace QWK {
         }
 
         void setButtonsVisible(bool visible) {
+            const auto alive = lifetimeToken;
+            const auto revision = ++buttonVisibilityRevision;
+            const bool previousCheck = checkButton;
             checkButton = false;
+            const auto restoreCheck = qScopeGuard([this, alive, previousCheck] {
+                if (alive->load(std::memory_order_acquire))
+                    checkButton = previousCheck;
+            });
 
             for (NSButton * button : systemButtons()) {
                 button.hidden = !visible;
+                if (!alive->load(std::memory_order_acquire) || buttonVisibilityRevision != revision)
+                    return;
             }
-
-            checkButton = true;
         }
+
+        std::shared_ptr<std::atomic_bool> lifetimeGuard() const { return lifetimeToken; }
 
         bool hasButtonVisible() const { return systemButtonVisible; }
 
@@ -607,40 +640,61 @@ namespace QWK {
 
         // System title bar
         void setSystemTitleBarVisible(const bool visible) {
+            const auto lifetimeToken_ = lifetimeToken;
+            const auto isAlive = [lifetimeToken_] {
+                return lifetimeToken_->load(std::memory_order_acquire);
+            };
             auto nswindow = [nsview window];
             if (!nswindow) {
                 return;
             }
 
             nsview.wantsLayer = YES;
+            if (!isAlive())
+                return;
             nswindow.styleMask |= NSWindowStyleMaskResizable;
+            if (!isAlive())
+                return;
             if (visible) {
                 nswindow.styleMask &= ~NSWindowStyleMaskFullSizeContentView;
             } else {
                 nswindow.styleMask |= NSWindowStyleMaskFullSizeContentView;
             }
+            if (!isAlive())
+                return;
             nswindow.titlebarAppearsTransparent = (visible ? NO : YES);
+            if (!isAlive())
+                return;
             nswindow.titleVisibility = (visible || (nswindow.styleMask & NSWindowStyleMaskFullScreen) ? NSWindowTitleVisible : NSWindowTitleHidden);
+            if (!isAlive())
+                return;
             nswindow.hasShadow = YES;
+            if (!isAlive())
+                return;
             // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
+            if (!isAlive())
+                return;
             // Keep Fill/Center enabled; Qt's event filter owns title-bar dragging.
             // See https://developer.apple.com/documentation/appkit/nswindow/ismovable?language=objc
             nswindow.movable = YES;
+            if (!isAlive())
+                return;
 
             NSWindowProxy *self_ = this;
-            const auto lifetimeToken_ = lifetimeToken;
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (!lifetimeToken_->load(std::memory_order_acquire)) {
                     return;
                 }
                 
+                self_->setButtonsVisible(self_->systemButtonVisible);
+                if (!lifetimeToken_->load(std::memory_order_acquire))
+                    return;
                 NSMutableArray<NSButton *> *array = [NSMutableArray arrayWithCapacity:3];
                 for (NSButton *button : self_->systemButtons()) {
                     if (!button) {
                         continue;
                     }
-                    button.hidden = !self_->systemButtonVisible;
                     [array addObject:button];
                 }
 
@@ -815,7 +869,8 @@ namespace QWK {
         
         bool systemButtonVisible = true;
         bool checkButton = true;
-        ScreenRectCallback screenRectCallback;
+        quint64 buttonVisibilityRevision = 0;
+        Private::ScreenRectCallbackState screenRectCallback;
 
         GlassMode glassMode = GlassMode::None;
         qreal glassCornerRadius = 0;
@@ -1059,20 +1114,31 @@ namespace QWK {
     }
 
     void CocoaWindowContext::winIdChanged(WId winId, WId oldWinId) {
+        const QPointer<CocoaWindowContext> guard(this);
+        const auto revision = m_windowRevision;
         // If the original window id is valid, remove all resources related
         if (oldWinId) {
             releaseWindowProxy(oldWinId);
         }
 
-        if (!winId) {
+        if (!guard || guard->m_windowRevision != revision || !winId) {
             return;
         }
 
         // Allocate new resources
         const auto proxy = ensureWindowProxy(winId);
         if (proxy) {
+            const auto alive = proxy->lifetimeGuard();
+            const auto isCurrent = [guard, revision, winId, proxy, alive] {
+                return alive->load(std::memory_order_acquire) && guard &&
+                       guard->m_windowRevision == revision && g_proxyList->value(winId) == proxy;
+            };
             proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
+            if (!isCurrent())
+                return;
             proxy->setScreenRectCallback(m_systemButtonAreaCallback);
+            if (!isCurrent())
+                return;
             proxy->setSystemTitleBarVisible(false);
         }
     }
@@ -1219,8 +1285,11 @@ namespace QWK {
         NSWindow* newWindow = change[NSKeyValueChangeNewKey];
         // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
         if (newWindow) {
-            _proxy->setSystemTitleBarVisible(false);
-            _proxy->updateSystemButtonRect();
+            auto *proxy = _proxy;
+            const auto alive = proxy->lifetimeGuard();
+            proxy->setSystemTitleBarVisible(false);
+            if (alive->load(std::memory_order_acquire))
+                proxy->updateSystemButtonRect();
         }
     }
 }

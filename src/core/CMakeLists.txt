@@ -20,6 +20,7 @@ set(_src
     kernel/winidchangeeventfilter_p.h
     kernel/winidchangeeventfilter.cpp
     shared/systemwindow_p.h
+    shared/screenrectcallback_p.h
     contexts/abstractwindowcontext_p.h
     contexts/abstractwindowcontext.cpp
     contexts/qtwindowcontext_p.h

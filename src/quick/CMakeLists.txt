@@ -11,6 +11,8 @@ set(_src
     quickwindowagent.h
     quickwindowagent_p.h
     quickwindowagent.cpp
+    quicksystembuttonarea_p.h
+    quicksystembuttonarea.cpp
 )
 
 if(WIN32)
