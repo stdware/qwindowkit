@@ -65,6 +65,22 @@ extern "C" {
 
 namespace QWK {
 
+    // Takes only a native handle so the Quick render thread never needs a window context.
+    inline void drawWindows10BorderNative(HWND hwnd) {
+        if (!hwnd)
+            return;
+        HDC hdc = ::GetDC(hwnd);
+        if (!hdc)
+            return;
+        RECT clientRect{};
+        if (::GetClientRect(hwnd, &clientRect)) {
+            RECT borderRect{0, 0, RECT_WIDTH(clientRect), 1};
+            ::FillRect(hdc, &borderRect,
+                       reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
+        }
+        ::ReleaseDC(hwnd, hdc);
+    }
+
     enum _DWMWINDOWATTRIBUTE {
         // [set] BOOL, Allows the use of host backdrop brushes for the window.
         _DWMWA_USE_HOSTBACKDROPBRUSH = 17,
