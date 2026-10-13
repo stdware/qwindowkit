@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-#ifndef LINUXWAYLANDCONTEXT_P_H
-#define LINUXWAYLANDCONTEXT_P_H
+#ifndef WAYLANDCONTEXT_P_H
+#define WAYLANDCONTEXT_P_H
 
 //
 //  W A R N I N G !!!
@@ -19,19 +19,29 @@
 
 #include "qtwindowcontext_p.h"
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+// QWaylandApplication was introduced in Qt 6.5. Since Qt 6.7 its declaration
+// also depends on the wayland feature, which older Qt versions do not define.
+#if defined(Q_OS_LINUX) && QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#  if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+#    define QWK_HAS_WAYLAND_CONTEXT
+#  elif QT_CONFIG(wayland)
+#    define QWK_HAS_WAYLAND_CONTEXT
+#  endif
+#endif
+
+#ifdef QWK_HAS_WAYLAND_CONTEXT
 namespace QWK {
 
-    class LinuxWaylandContext : public QtWindowContext {
+    class WaylandContext : public QtWindowContext {
         Q_OBJECT
     public:
-        LinuxWaylandContext();
-        ~LinuxWaylandContext() override;
+        WaylandContext();
+        ~WaylandContext() override;
 
         QString key() const override;
         void virtual_hook(int id, void *data) override;
     };
 
 }
-#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#endif // LINUXWAYLANDCONTEXT_P_H
+#endif // QWK_HAS_WAYLAND_CONTEXT
+#endif // WAYLANDCONTEXT_P_H

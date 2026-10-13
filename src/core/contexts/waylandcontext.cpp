@@ -3,11 +3,11 @@
 // Copyright (C) 2025-2027 Wing-summer (wingsummer)
 // SPDX-License-Identifier: Apache-2.0
 
-#include "linuxwaylandcontext_p.h"
+#include "waylandcontext_p.h"
 
-#include "qwindowkit_linux.h"
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef QWK_HAS_WAYLAND_CONTEXT
+#include "qwindowkit_wayland.h"
+#include <QtGui/private/qhighdpiscaling_p.h>
 #include <QtGui/qpa/qplatformnativeinterface.h>
 
 namespace QWK {
@@ -23,16 +23,19 @@ namespace QWK {
             seat, serial, x, y);
     }
 
-    LinuxWaylandContext::LinuxWaylandContext() = default;
+    WaylandContext::WaylandContext() = default;
 
-    LinuxWaylandContext::~LinuxWaylandContext() = default;
+    WaylandContext::~WaylandContext() = default;
 
-    QString LinuxWaylandContext::key() const {
+    QString WaylandContext::key() const {
         return QStringLiteral("wayland");
     }
 
-    void LinuxWaylandContext::virtual_hook(int id, void *data) {
+    void WaylandContext::virtual_hook(int id, void *data) {
         if (id == ShowSystemMenuHook) {
+            if (!m_windowId || !m_windowHandle) {
+                return;
+            }
             auto *waylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
             if (!waylandApp) {
                 return;
@@ -43,14 +46,22 @@ namespace QWK {
                 return;
             }
 
+            auto *nativeInterface = QGuiApplication::platformNativeInterface();
+            if (!nativeInterface) {
+                return;
+            }
             auto toplevel = static_cast<xdg_toplevel *>(
-                QGuiApplication::platformNativeInterface()->nativeResourceForWindow(
-                    "xdg_toplevel", m_windowHandle));
+                nativeInterface->nativeResourceForWindow("xdg_toplevel", m_windowHandle));
             if (!toplevel) {
                 return;
             }
-            auto pos = static_cast<const QPoint *>(data);
-            xdg_toplevel_show_window_menu(toplevel, seat, serial, pos->x(), pos->y());
+            const auto &globalPos = *static_cast<const QPoint *>(data);
+            const QPointF localPos = m_windowHandle->mapFromGlobal(QPointF(globalPos));
+            // QtWindowContext uses FramelessWindowHint, so the content and surface origins
+            // coincide. Undo Qt's coordinate scaling, without applying Wayland's buffer scale.
+            const QPoint surfacePos =
+                QHighDpi::toNativeLocalPosition(localPos, m_windowHandle.data()).toPoint();
+            xdg_toplevel_show_window_menu(toplevel, seat, serial, surfacePos.x(), surfacePos.y());
 
             wl_display *d = waylandApp->display();
             if (d) {
@@ -63,4 +74,4 @@ namespace QWK {
         }
     }
 }
-#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#endif // QWK_HAS_WAYLAND_CONTEXT

@@ -3,8 +3,8 @@
 // Copyright (C) 2025-2027 Wing-summer (wingsummer)
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef LINUXX11CONTEXT_P_H
-#define LINUXX11CONTEXT_P_H
+#ifndef X11CONTEXT_P_H
+#define X11CONTEXT_P_H
 
 //
 //  W A R N I N G !!!
@@ -16,20 +16,21 @@
 //
 
 #include "qtwindowcontext_p.h"
+#include "qwindowkit_x11.h"
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#ifdef QWK_HAS_X11_CONTEXT
 namespace QWK {
 
-    class LinuxX11Context : public QtWindowContext {
+    class X11Context : public QtWindowContext {
         Q_OBJECT
     public:
-        LinuxX11Context();
-        ~LinuxX11Context() override;
+        X11Context();
+        ~X11Context() override;
 
         QString key() const override;
         void virtual_hook(int id, void *data) override;
     };
 
 }
-#endif // QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#endif // LINUXX11CONTEXT_P_H
+#endif // QWK_HAS_X11_CONTEXT
+#endif // X11CONTEXT_P_H
