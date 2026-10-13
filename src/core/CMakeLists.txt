@@ -51,7 +51,7 @@ if(WIN32)
         contexts/win32windowcontext_p.h
         contexts/win32windowcontext.cpp
     )
-    list(APPEND _links_private uxtheme)
+    list(APPEND _links_private uxtheme advapi32)
 elseif(APPLE)
     list(APPEND _src
         contexts/cocoawindowcontext_p.h

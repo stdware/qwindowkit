@@ -16,9 +16,8 @@
 #include <QtCore/qt_windows.h>
 #include <QtCore/qglobal.h>
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-#  include <QtCore/private/qwinregistry_p.h>
-#endif
+#include <cwchar>
+#include <optional>
 
 #include <QWKCore/qwkglobal.h>
 
@@ -89,6 +88,10 @@ namespace QWK {
 
         QWK_CORE_EXPORT QWK_OSVERSIONINFOW GetRealOSVersion();
 
+        // A missing, unreadable or non-DWORD value is distinct from a valid zero.
+        QWK_CORE_EXPORT std::optional<DWORD> readRegistryDword(HKEY parent, const wchar_t *subKey,
+                                                               const wchar_t *valueName);
+
         inline bool IsWindows1122H2OrGreater_Real() {
             QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
@@ -110,10 +113,6 @@ namespace QWK {
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 19041));
         }
 
-        inline bool IsWindows102004OrGreater_Real() {
-            return IsWindows1020H1OrGreater_Real();
-        }
-
         inline bool IsWindows101903OrGreater_Real() {
             QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
@@ -121,19 +120,11 @@ namespace QWK {
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 18362));
         }
 
-        inline bool IsWindows1019H1OrGreater_Real() {
-            return IsWindows101903OrGreater_Real();
-        }
-
         inline bool IsWindows101809OrGreater_Real() {
             QWK_OSVERSIONINFOW rovi = GetRealOSVersion();
             return (rovi.dwMajorVersion > 10) ||
                    (rovi.dwMajorVersion == 10 &&
                     (rovi.dwMinorVersion > 0 || rovi.dwBuildNumber >= 17763));
-        }
-
-        inline bool IsWindows10RS5OrGreater_Real() {
-            return IsWindows101809OrGreater_Real();
         }
 
         inline bool IsWindows10OrGreater_Real() {
@@ -153,65 +144,7 @@ namespace QWK {
                    (rovi.dwMajorVersion == 6 && rovi.dwMinorVersion >= 2);
         }
 
-        inline bool IsWindows10Only_Real() {
-            return IsWindows10OrGreater_Real() && !IsWindows11OrGreater_Real();
-        }
-
     }
-
-    //
-    // Registry Helpers
-    //
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    class QWK_CORE_EXPORT WindowsRegistryKey {
-    public:
-        WindowsRegistryKey(HKEY parentHandle, QStringView subKey, REGSAM permissions = KEY_READ,
-                           REGSAM access = 0);
-
-        ~WindowsRegistryKey();
-
-        inline bool isValid() const;
-
-        void close();
-        QString stringValue(QStringView subKey) const;
-        std::pair<DWORD, bool> dwordValue(QStringView subKey) const;
-
-    private:
-        HKEY m_key;
-
-        Q_DISABLE_COPY(WindowsRegistryKey)
-    };
-
-    inline bool WindowsRegistryKey::isValid() const {
-        return m_key != nullptr;
-    }
-#elif QT_VERSION < QT_VERSION_CHECK(6, 8, 1)
-    using WindowsRegistryKey = QWinRegistryKey;
-#else
-    class WindowsRegistryKey : public QWinRegistryKey {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 1)
-        using SubKeyType = const wchar_t*;
-#else
-        using SubKeyType = QStringView;
-#endif
-    public:
-        WindowsRegistryKey(HKEY parentHandle, SubKeyType subKey,
-            REGSAM permissions = KEY_READ, REGSAM access = 0)
-            : QWinRegistryKey(parentHandle, subKey, permissions, access) {
-        }
-
-        inline std::pair<DWORD, bool> dwordValue(SubKeyType subKey) const;
-    };
-
-    inline std::pair<DWORD, bool> WindowsRegistryKey::dwordValue(SubKeyType subKey) const {
-        const auto val = value<DWORD>(subKey);
-        if (!val) {
-            return {0, false};
-        }
-        return {val.value(), true};
-    }
-#endif
 
     //
     // Version Helpers
@@ -237,26 +170,14 @@ namespace QWK {
         return result;
     }
 
-    inline bool isWin10RS5OrGreater() {
-        return isWin101809OrGreater();
-    }
-
     inline bool isWin101903OrGreater() {
         static const bool result = Private::IsWindows101903OrGreater_Real();
         return result;
     }
 
-    inline bool isWin1019H1OrGreater() {
-        return isWin101903OrGreater();
-    }
-
     inline bool isWin1020H1OrGreater() {
         static const bool result = Private::IsWindows1020H1OrGreater_Real();
         return result;
-    }
-
-    inline bool isWin102004OrGreater() {
-        return isWin1020H1OrGreater();
     }
 
     inline bool isWin11OrGreater() {
@@ -268,11 +189,6 @@ namespace QWK {
         static const bool result = Private::IsWindows1122H2OrGreater_Real();
         return result;
     }
-
-    inline bool isWin10Only() {
-        static const bool result = Private::IsWindows10Only_Real();
-        return result;
-    };
 
     //
     // Native Event Helpers
