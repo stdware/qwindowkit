@@ -8,6 +8,10 @@
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
+#  include <QtQml/qqmlregistration.h>
+#endif
+
 #include <QWKCore/windowagentbase.h>
 #include <QWKQuick/qwkquickglobal.h>
 
@@ -17,6 +21,9 @@ namespace QWK {
 
     class QWK_QUICK_EXPORT QuickWindowAgent : public WindowAgentBase {
         Q_OBJECT
+#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
+        QML_NAMED_ELEMENT(WindowAgent)
+#endif
         Q_DECLARE_PRIVATE(QuickWindowAgent)
     public:
         explicit QuickWindowAgent(QObject *parent = nullptr);

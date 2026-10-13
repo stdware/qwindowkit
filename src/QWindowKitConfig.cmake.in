@@ -1,5 +1,10 @@
 @PACKAGE_INIT@
 
+# Resolve before find_dependency(), which can change PACKAGE_PREFIX_DIR on older CMake.
+if("@QWINDOWKIT_HAS_QML_MODULE@")
+    set_and_check(QWindowKit_QML_IMPORT_PATH "${PACKAGE_PREFIX_DIR}/qml")
+endif()
+
 include(CMakeFindDependencyMacro)
 
 find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Core Gui REQUIRED)
@@ -13,6 +18,25 @@ endif()
 if ("Quick" IN_LIST QWindowKit_FIND_COMPONENTS)
     find_dependency(QT NAMES Qt6 Qt5 COMPONENTS Quick REQUIRED)
     find_dependency(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
+endif()
+
+# Static archives expose their private Qt link dependencies to consumers. Recent
+# Qt 6 releases put these targets in separate packages instead of loading them
+# with the public components.
+if("@QWINDOWKIT_BUILD_STATIC@" AND QT_VERSION_MAJOR EQUAL 6)
+    set(_qwk_private_modules Core Gui)
+    foreach(_module Widgets Quick)
+        if("${_module}" IN_LIST QWindowKit_FIND_COMPONENTS)
+            list(APPEND _qwk_private_modules "${_module}")
+        endif()
+    endforeach()
+    foreach(_module IN LISTS _qwk_private_modules)
+        if(NOT TARGET Qt6::${_module}Private)
+            find_dependency(Qt6 COMPONENTS ${_module}Private REQUIRED)
+        endif()
+    endforeach()
+    unset(_qwk_private_modules)
+    unset(_module)
 endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/QWindowKitTargets.cmake")

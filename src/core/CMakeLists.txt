@@ -99,5 +99,10 @@ qwk_add_library(${PROJECT_NAME} QT_AUTOGEN
 
 qwk_sync_include(${PROJECT_NAME} FORCE ${_sync_include_options})
 
+# QWKQuick's type registrar needs the inherited methods and SystemButton enum.
+if(QWINDOWKIT_BUILD_QUICK AND QT_VERSION VERSION_GREATER_EQUAL 6.3)
+    qt6_extract_metatypes(${PROJECT_NAME})
+endif()
+
 set(QWINDOWKIT_ENABLED_TARGETS ${QWINDOWKIT_ENABLED_TARGETS} ${PROJECT_NAME} PARENT_SCOPE)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES ${QWINDOWKIT_ENABLED_SUBDIRECTORIES} core PARENT_SCOPE)
