@@ -34,6 +34,10 @@ namespace QWK {
         QWidget *hostWidget{};
 
 #ifdef Q_OS_MAC
+        void setupCocoaWindow();
+        void updateCocoaTitleBar();
+
+        std::unique_ptr<QObject> safeAreaHandler;
         QPointer<QWidget> systemButtonAreaWidget;
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;
 #endif
