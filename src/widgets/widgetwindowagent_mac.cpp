@@ -16,10 +16,13 @@ namespace QWK {
     public:
         SystemButtonAreaWidgetEventFilter(QWidget *widget, AbstractWindowContext *ctx,
                                           QObject *parent = nullptr)
-            : QObject(parent), widget(widget), ctx(ctx) {
+            : QObject(parent), ctx(ctx) {
             widget->installEventFilter(this);
-            ctx->setSystemButtonAreaCallback([widget](const QSize &) {
-                return getWidgetSceneRect(widget); //
+            connect(widget, &QObject::destroyed, this, [ctx] {
+                ctx->setSystemButtonAreaCallback({});
+            });
+            ctx->setSystemButtonAreaCallback([area = QPointer<QWidget>(widget)](const QSize &) {
+                return area ? getWidgetSceneRect(area) : QRect();
             });
         }
         ~SystemButtonAreaWidgetEventFilter() override = default;
@@ -41,7 +44,6 @@ namespace QWK {
         }
 
     protected:
-        QWidget *widget;
         AbstractWindowContext *ctx;
     };
 
@@ -61,7 +63,9 @@ namespace QWK {
     */
     void WidgetWindowAgent::setSystemButtonArea(QWidget *widget) {
         Q_D(WidgetWindowAgent);
-        if (d->systemButtonAreaWidget == widget)
+        // A destroyed area's QPointer is null, but its handler still needs to be disconnected.
+        if (d->systemButtonAreaWidget == widget &&
+            (widget || !d->systemButtonAreaWidgetEventFilter))
             return;
 
         auto ctx = d->context.get();
