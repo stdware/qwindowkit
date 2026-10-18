@@ -191,6 +191,9 @@ namespace QWK {
     };
 
     void WidgetWindowAgentPrivate::setupCocoaWindow() {
+        // Set QWK_DISABLE_SAFE_AREA_WORKAROUND=1 to keep Qt's default safe-area margins.
+        if (qEnvironmentVariableIntValue("QWK_DISABLE_SAFE_AREA_WORKAROUND"))
+            return;
         if (context->key() == QStringLiteral("cocoa"))
             safeAreaHandler = std::make_unique<CocoaWidgetSafeAreaHandler>(hostWidget);
     }
