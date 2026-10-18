@@ -330,10 +330,17 @@ namespace QWK {
                 center.x() - width / 2,
                 center.y() - height / 2,
             };
+            
+            const auto moveButton = [](NSButton *button, NSPoint origin) {
+                if (!NSEqualPoints(button.frame.origin, origin)) {
+                    [button setFrameOrigin:origin];
+                }
+            };
+
             // Our own frame notifications must not schedule another positioning pass.
             updatingSystemButtonRect = true;
             if (midButton) {
-                [midButton setFrameOrigin:centerOrigin];
+                moveButton(midButton, centerOrigin);
             }
 
             // Left button
@@ -342,7 +349,7 @@ namespace QWK {
                     centerOrigin.x - spacing,
                     centerOrigin.y,
                 };
-                [leftButton setFrameOrigin:leftOrigin];
+                moveButton(leftButton, leftOrigin);
             }
 
             // Right button
@@ -351,7 +358,7 @@ namespace QWK {
                     centerOrigin.x + spacing,
                     centerOrigin.y,
                 };
-                [rightButton setFrameOrigin:rightOrigin];
+                moveButton(rightButton, rightOrigin);
             }
             updatingSystemButtonRect = false;
         }
