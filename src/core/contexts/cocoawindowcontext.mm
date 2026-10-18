@@ -163,7 +163,7 @@ namespace QWK {
         };
 
         NSWindowProxy(NSView *macView) {
-            nsview = macView;
+            nsview = [macView retain];
 
             observer = [[QWK_NSViewObserver alloc] initWithProxy:this];
             [nsview addObserver:observer
@@ -181,6 +181,8 @@ namespace QWK {
 
             [nsview removeObserver:observer forKeyPath:@"window"];
             [observer release];
+
+            [nsview release];
         }
 
         // Delegate
