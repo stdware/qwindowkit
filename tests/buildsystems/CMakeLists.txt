@@ -39,14 +39,20 @@ set(_msbuild_config $<IF:$<CONFIG:Debug>,Debug,Release>)
 # ----------------------------------
 # Qt
 # ----------------------------------
-qm_find_qt(Core)
+# Found again here, because neither the Qt targets nor QT_VERSION_MAJOR of src/ reach this
+# directory.
+if(NOT QT_VERSION_MAJOR)
+    find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
+endif()
+
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 
 set(_qmake_executable)
 
 if(QT_QMAKE_EXECUTABLE)
     set(_qmake_executable ${QT_QMAKE_EXECUTABLE})
 elseif(TARGET Qt${QT_VERSION_MAJOR}::qmake)
-    qm_get_executable_location(Qt${QT_VERSION_MAJOR}::qmake _qmake_executable)
+    qwk_get_imported_location(Qt${QT_VERSION_MAJOR}::qmake _qmake_executable)
 endif()
 
 set(_qt_prefix)

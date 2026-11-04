@@ -106,7 +106,11 @@ set(QWINDOWKIT_DESCRIPTION ${PROJECT_DESCRIPTION})
 # Build Functions
 # ----------------------------------
 include(cmake/WriteIfDifferent.cmake)
+include(cmake/GetImportedLocation.cmake)
+include(cmake/ConfigureTarget.cmake)
 include(cmake/AddWinRC.cmake)
+include(cmake/AddWinManifest.cmake)
+include(cmake/AddMacBundle.cmake)
 include(cmake/AddLibrary.cmake)
 include(cmake/AddInstallPackageRule.cmake)
 include(cmake/GenerateConfigHeader.cmake)

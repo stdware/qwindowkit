@@ -8,7 +8,7 @@ file(GLOB _src *.h *.cpp)
 
 add_library(${PROJECT_NAME} STATIC)
 
-qm_configure_target(${PROJECT_NAME}
+qwk_configure_target(${PROJECT_NAME}
     FEATURES cxx_std_17
     SOURCES ${_src}
     QT_LINKS Core Gui Widgets
