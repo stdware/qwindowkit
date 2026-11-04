@@ -45,7 +45,7 @@ if(QWINDOWKIT_INSTALL)
 endif()
 
 function(_qwk_common_configure_target _target)
-    qm_add_win_rc(${_target}
+    qwk_add_win_rc(${_target}
         NAME ${QWINDOWKIT_INSTALL_NAME}
         DESCRIPTION "${QWINDOWKIT_DESCRIPTION}"
         COPYRIGHT "${QWINDOWKIT_COPYRIGHT}"

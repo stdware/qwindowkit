@@ -103,6 +103,12 @@ set(QWINDOWKIT_COPYRIGHT "Copyright 2023-present Stdware Collections")
 set(QWINDOWKIT_DESCRIPTION ${PROJECT_DESCRIPTION})
 
 # ----------------------------------
+# Build Functions
+# ----------------------------------
+include(cmake/WriteIfDifferent.cmake)
+include(cmake/AddWinRC.cmake)
+
+# ----------------------------------
 # Find basic dependencies
 # ----------------------------------
 # `qmsetup` runs on the build machine, so it is never searched in the target sysroot
