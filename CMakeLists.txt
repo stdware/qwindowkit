@@ -107,6 +107,7 @@ set(QWINDOWKIT_DESCRIPTION ${PROJECT_DESCRIPTION})
 # ----------------------------------
 include(cmake/WriteIfDifferent.cmake)
 include(cmake/AddWinRC.cmake)
+include(cmake/AddLibrary.cmake)
 include(cmake/AddInstallPackageRule.cmake)
 include(cmake/GenerateConfigHeader.cmake)
 include(cmake/SyncHeaders.cmake)

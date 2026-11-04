@@ -24,7 +24,7 @@ qwk_add_library(${PROJECT_NAME} QT_AUTOGEN
     LINKS QWKCore
     QT_LINKS Core Gui Widgets
     QT_INCLUDE_PRIVATE Core Gui Widgets
-    INCLUDE_PRIVATE *
+    INCLUDE_PRIVATE .
     MACRO_PREFIX QWK_WIDGETS
 )
 

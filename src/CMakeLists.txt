@@ -1,7 +1,5 @@
 include("conf.cmake")
 
-qwk_init_buildsystem(QWINDOWKIT)
-
 set(QWINDOWKIT_ENABLED_TARGETS)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES)
 
@@ -81,8 +79,7 @@ endif()
 # Install
 # ----------------------------------
 if(QWINDOWKIT_INSTALL)
-    # QWINDOWKIT_EXPORT and QWINDOWKIT_INSTALL_NAMESPACE are set by qwk_init_buildsystem, which
-    # adds the library targets to that export set.
+    # qwk_add_library adds the library targets to the export set.
     qwk_add_install_package_rule(
         NAME ${QWINDOWKIT_INSTALL_NAME}
         VERSION ${QWINDOWKIT_VERSION}
@@ -95,8 +92,6 @@ if(QWINDOWKIT_INSTALL)
 
     install(FILES ${_config_header} DESTINATION ${QWINDOWKIT_INSTALL_INCLUDE_DIR}/QWKCore)
 endif()
-
-qwk_finish_buildsystem()
 
 if(QWINDOWKIT_INSTALL)
     # Install shared files
