@@ -59,18 +59,24 @@ if(QWINDOWKIT_BUILD_DOCUMENTATIONS)
         CACHE FILEPATH "QWindowKit doxygen tag file path" FORCE
     )
 
-    qm_import(Doxygen)
-    qm_setup_doxygen(QWindowKit_RunDoxygen
+    # Q_SIGNALS and Q_SLOTS are defined as themselves, so that Doxygen receives the tokens it
+    # recognizes as signal and slot sections instead of their expansion by the Qt headers. The
+    # other macros expand to nothing, because their expansions are member declarations that
+    # Doxygen misreads.
+    qwk_add_doxygen_docs(QWindowKit_RunDoxygen
         NAME "QWindowKit"
         DESCRIPTION "${QWINDOWKIT_DESCRIPTION}"
-        MDFILE ../README.md
+        MAINPAGE ../README.md
         OUTPUT_DIR ${QWINDOWKIT_BUILD_DOC_DIR}
         INPUT ${QWINDOWKIT_ENABLED_SUBDIRECTORIES}
         TARGETS ${_doc_targets}
-        DEPENDS ${_doc_targets}
-        NO_EXPAND_MACROS Q_OBJECT Q_GADGET Q_DECLARE_TR_FUNCTIONS
-        COMPILE_DEFINITIONS Q_SIGNALS=Q_SIGNALS Q_SLOTS=Q_SLOTS
-        GENERATE_TAGFILE "${QWINDOWKIT_DOXYGEN_TAGFILE}"
+        PREDEFINED
+            Q_SIGNALS=Q_SIGNALS
+            Q_SLOTS=Q_SLOTS
+            Q_OBJECT=
+            Q_GADGET=
+            Q_DECLARE_TR_FUNCTIONS=
+        TAGFILE "${QWINDOWKIT_DOXYGEN_TAGFILE}"
         ${_install_options}
     )
 endif()

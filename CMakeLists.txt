@@ -111,6 +111,7 @@ include(cmake/AddLibrary.cmake)
 include(cmake/AddInstallPackageRule.cmake)
 include(cmake/GenerateConfigHeader.cmake)
 include(cmake/SyncHeaders.cmake)
+include(cmake/AddDoxygenDocs.cmake)
 
 # ----------------------------------
 # Find basic dependencies

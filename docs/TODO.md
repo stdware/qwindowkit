@@ -51,3 +51,10 @@ hook and receive the same input, so at most one of them can be right.
 `m_windowHandle` is passed to `nativeResourceForWindow()` without a null check. It happens to be
 safe today because a null window yields a null `xdg_toplevel` and the function returns early, but
 the X11 path had the same shape and did crash; it has since been given an explicit guard.
+
+## Documentation install ignores `DESTDIR`
+
+**File:** `cmake/AddDoxygenDocs.cmake`
+**Status:** unchanged behavior, carried over from `qm_setup_doxygen` of qmsetup.
+
+The installation rule of the documentation runs Doxygen with an output directory derived from `CMAKE_INSTALL_PREFIX` alone. `cmake --install` with `DESTDIR` set therefore writes the HTML and the tag file outside the staging directory, while every other installed file is staged. Prefixing the output directory with `$ENV{DESTDIR}` fixes it on Unix. The fix is deferred because the migration from qmsetup keeps the installation behavior unchanged, and because no staged installation with the documentation enabled has been tested.
