@@ -84,7 +84,10 @@ if(QWINDOWKIT_ENABLE_STYLE_AGENT)
         list(APPEND _src style/styleagent_linux.cpp)
     endif()
 else()
-    list(APPEND _sync_include_options EXCLUDE "src/core/style/\\.+")
+    # Matched against the path relative to this directory. The pattern used to be
+    # "src/core/style/\\.+", which requires a literal dot after the slash and therefore excluded
+    # nothing, so the headers were installed without the implementation.
+    list(APPEND _sync_include_options EXCLUDE "^style/")
 endif()
 
 qwk_add_library(${PROJECT_NAME} QT_AUTOGEN
