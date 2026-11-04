@@ -14,9 +14,6 @@ else()
     set(QWINDOWKIT_BUILD_SHARED on)
 endif()
 
-# Generated from the definitions added in `CMakeLists.txt`, and installed with the other headers.
-set(QWINDOWKIT_CONFIG_HEADER_PATH QWKCore/qwkconfig.h)
-
 set(QWINDOWKIT_INSTALL_CONFIG_TEMPLATE
     "${CMAKE_CURRENT_LIST_DIR}/${QWINDOWKIT_INSTALL_NAME}Config.cmake.in"
 )

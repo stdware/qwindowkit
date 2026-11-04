@@ -6,21 +6,6 @@ set(QWINDOWKIT_ENABLED_TARGETS)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES)
 
 # ----------------------------------
-# Configurations
-# ----------------------------------
-set(QMSETUP_DEFINITION_NUMERICAL on)
-
-qm_add_definition(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
-    CONDITION QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
-)
-qm_add_definition(QWINDOWKIT_ENABLE_STYLE_AGENT
-    CONDITION QWINDOWKIT_ENABLE_STYLE_AGENT
-)
-qm_add_definition(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
-    CONDITION QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
-)
-
-# ----------------------------------
 # Main Project
 # ----------------------------------
 add_subdirectory(core)
@@ -32,6 +17,21 @@ endif()
 if(QWINDOWKIT_BUILD_QUICK)
     add_subdirectory(quick)
 endif()
+
+# ----------------------------------
+# Configurations
+# ----------------------------------
+# Written after the modules, because the header synchronization of QWKCore deletes the directory
+# that holds this header.
+set(_config_header ${QWINDOWKIT_BUILD_INCLUDE_DIR}/QWKCore/qwkconfig.h)
+
+qwk_generate_config_header(${_config_header}
+    GUARD QWINDOWKIT_QWKCONFIG_H
+    FEATURES
+        QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
+        QWINDOWKIT_ENABLE_STYLE_AGENT
+        QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
+)
 
 # ----------------------------------
 # Documentation
@@ -85,6 +85,8 @@ if(QWINDOWKIT_INSTALL)
         EXPORT ${QWINDOWKIT_EXPORT}
         WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
     )
+
+    install(FILES ${_config_header} DESTINATION ${QWINDOWKIT_INSTALL_INCLUDE_DIR}/QWKCore)
 endif()
 
 qwk_finish_buildsystem()
