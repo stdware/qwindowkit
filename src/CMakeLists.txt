@@ -73,7 +73,19 @@ endif()
 # ----------------------------------
 # Install
 # ----------------------------------
-qwk_install()
+if(QWINDOWKIT_INSTALL)
+    # QWINDOWKIT_EXPORT and QWINDOWKIT_INSTALL_NAMESPACE are set by qwk_init_buildsystem, which
+    # adds the library targets to that export set.
+    qwk_add_install_package_rule(
+        NAME ${QWINDOWKIT_INSTALL_NAME}
+        VERSION ${QWINDOWKIT_VERSION}
+        INSTALL_DIR ${QWINDOWKIT_INSTALL_CMAKE_DIR}
+        CONFIG_TEMPLATE ${QWINDOWKIT_INSTALL_CONFIG_TEMPLATE}
+        NAMESPACE ${QWINDOWKIT_INSTALL_NAMESPACE}::
+        EXPORT ${QWINDOWKIT_EXPORT}
+        WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
+    )
+endif()
 
 qwk_finish_buildsystem()
 
