@@ -102,7 +102,12 @@ namespace QWK {
                    attribute is available on Windows 10 or later.
             \li \c dark-mode: Specify a boolean value to enable or disable the dark mode, it is
                    enabled by default on Windows 10 if the system borders config is enabled. This
-                   attribute is available on Windows 10 or later.
+                   attribute is available on Windows 10 or later. It configures the native Windows
+                   appearance and does not synchronize the theme used by Qt controls. Applications
+                   should set QStyleHints::setColorScheme() separately on Qt 6.8 or later when
+                   switching their application theme, and use QStyleHints::unsetColorScheme() to
+                   follow the system again. These APIs affect the entire application;
+                   QStyleHints::colorScheme() is available for reading since Qt 6.5.
             \li \c acrylic-material: Specify a boolean value to enable or disable acrylic material,
                    this attribute is only available on Windows 11.
             \li \c mica: Specify a boolean value to enable or disable mica material,

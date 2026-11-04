@@ -489,6 +489,32 @@ qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 
 Do not enable `QT_QPA_DISABLE_REDIRECTION_SURFACE` with OpenGL or Vulkan.
 
+### Synchronizing Light and Dark Themes
+
+QWK's `dark-mode` attribute configures the native Windows appearance. It does not call `QStyleHints::setColorScheme()` or change the application's palette, QSS, or explicit Qt Quick Controls theme settings. Changing only this attribute can leave the window border and Qt controls using different color schemes.
+
+`QStyleHints::colorScheme()` can read the current color scheme since Qt 6.5; the setter and resetter require Qt 6.8 or later. After creating `QGuiApplication` or `QApplication`, set Qt's color scheme where the application switches its theme, and update each window's QWK attribute separately:
+
+```cpp
+#include <QtGui/QGuiApplication>
+#include <QtGui/QStyleHints>
+
+// dark is the application's selected theme; windowAgent has completed setup().
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+QGuiApplication::styleHints()->setColorScheme(
+    dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#endif
+#ifdef Q_OS_WIN
+windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), dark);
+#endif
+```
+
+`setColorScheme()` affects the entire application, so it should not be set automatically from a single window's attribute. Windows can use different appearances, and QWK also enables `dark-mode` internally to handle Windows borders.
+
+When the user selects "Follow system", call `QGuiApplication::styleHints()->unsetColorScheme()` on Qt 6.8 or later, and update window attributes and custom application colors when the system color scheme changes. The public API in Qt 6.5–6.7 only reads the color scheme. On older versions, applications need to manage control colors through palettes, QSS, or the theme mechanism of their Qt Quick Controls style.
+
+Color scheme overrides are not supported on all platforms, and Qt does not overwrite palette colors explicitly set by the application. Custom QSS and explicit Qt Quick Controls theme settings still need to be synchronized by the application. See the [official QStyleHints documentation](https://doc.qt.io/qt-6/qstylehints.html#colorScheme-prop).
+
 ## macOS Platform Effects
 
 On macOS, prefer native system buttons unless you have a strong reason to draw your own.

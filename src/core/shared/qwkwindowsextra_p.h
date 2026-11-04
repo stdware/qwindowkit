@@ -410,9 +410,6 @@ namespace QWK {
     }
 
     inline QColor getAccentColor() {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-        return QGuiApplication::palette().color(QPalette::Accent);
-#else
         WindowsRegistryKey registry(HKEY_CURRENT_USER, LR"(Software\Microsoft\Windows\DWM)");
         if (!registry.isValid()) {
             return {};
@@ -428,7 +425,6 @@ namespace QWK {
             return {};
         }
         return QColor::fromRgb(color.blue(), color.green(), color.red(), color.alpha());
-#endif
     }
 
     inline quint32 getSystemDpi() {
