@@ -84,10 +84,10 @@ QWindowKit 使用了 Qt 私有 API 和平台相关窗口行为。较旧 Qt 版�
 
 ## 构建和安装
 
-克隆仓库及 submodule：
+克隆仓库：
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 ```
 
@@ -103,8 +103,6 @@ cmake -S . -B build \
 cmake --build build --config Release
 cmake --install build --config Release
 ```
-
-项目依赖 `qmsetup`。如果 CMake 找不到已安装的 `qmsetup` package，会自动使用仓库中的 submodule。
 
 ## 集成到你的项目
 

@@ -84,10 +84,10 @@ Tested compilers:
 
 ## Build And Install
 
-Clone the repository with submodules:
+Clone the repository:
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 ```
 
@@ -103,8 +103,6 @@ cmake -S . -B build \
 cmake --build build --config Release
 cmake --install build --config Release
 ```
-
-`qmsetup` is required. If CMake cannot find an installed `qmsetup` package, the bundled submodule is used automatically.
 
 ## Integrate With Your Project
 

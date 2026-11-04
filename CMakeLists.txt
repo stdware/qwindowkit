@@ -118,45 +118,35 @@ include(cmake/SyncHeaders.cmake)
 include(cmake/AddDoxygenDocs.cmake)
 
 # ----------------------------------
-# Find basic dependencies
+# Build Output Directories
 # ----------------------------------
-# `qmsetup` runs on the build machine, so it is never searched in the target sysroot
-find_package(qmsetup QUIET NO_CMAKE_FIND_ROOT_PATH)
-
-if(NOT TARGET qmsetup::library)
-    # Modify this variable according to your project structure
-    set(_source_dir ${CMAKE_CURRENT_SOURCE_DIR}/qmsetup)
-
-    # Import install function
-    include("${_source_dir}/cmake/modules/private/InstallPackage.cmake")
-
-    # Install package in place
-    set(_package_path)
-    qm_install_package(qmsetup HOST
-        SOURCE_DIR ${_source_dir}
-        CMAKE_PACKAGE_SUBDIR lib/cmake/qmsetup
-        CONFIGURE_ARGS -DCMAKE_INSTALL_LIBDIR=lib
-        BUILD_TYPE Release
-        RESULT_PATH _package_path
-    )
-
-    # Find package again
-    find_package(qmsetup REQUIRED PATHS ${_package_path}
-        NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH
-    )
-
-    # Update import path
-    set(qmsetup_DIR ${_package_path} CACHE PATH "" FORCE)
+# Root of the build outputs: binaries, forwarding headers, the configuration header and the
+# generated qmake and MSBuild files. A parent project that embeds QWindowKit sets it beforehand to
+# collect the outputs in a directory of its own. It is the only way to do so, because the
+# CMAKE_*_OUTPUT_DIRECTORY variables of a parent project are not followed.
+if(NOT DEFINED QWINDOWKIT_BUILD_DIR)
+    set(QWINDOWKIT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
 endif()
 
-qm_import(Filesystem)
+# Files are written under it at configure time, where a generator expression is not evaluated and
+# would become part of a directory name.
+string(GENEX_STRIP "${QWINDOWKIT_BUILD_DIR}" _stripped_build_dir)
 
-if(NOT DEFINED QMSETUP_BUILD_DIR)
-    set(QMSETUP_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
+if(NOT _stripped_build_dir STREQUAL "${QWINDOWKIT_BUILD_DIR}")
+    message(FATAL_ERROR "QWINDOWKIT_BUILD_DIR must not contain generator expressions: "
+        "${QWINDOWKIT_BUILD_DIR}")
 endif()
 
-qm_init_directories()
+# For the examples. The library targets set their output directories themselves.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/lib)
 
+# ----------------------------------
+# Qt
+# ----------------------------------
+# Qt warns about every private module that a project uses unless this is set. QWindowKit uses the
+# private modules on purpose.
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
 
 # ----------------------------------

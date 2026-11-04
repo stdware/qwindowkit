@@ -8,23 +8,12 @@ set(QWINDOWKIT_INSTALL_CONFIG_TEMPLATE
     "${CMAKE_CURRENT_LIST_DIR}/${QWINDOWKIT_INSTALL_NAME}Config.cmake.in"
 )
 
-# QMSETUP_BUILD_DIR is set by the root, unless a parent project has already set it, in which case
-# the libraries are built into the output directory of that project.
-set(QWINDOWKIT_BUILD_RUNTIME_DIR ${QMSETUP_BUILD_DIR}/bin)
-set(QWINDOWKIT_BUILD_LIBRARY_DIR ${QMSETUP_BUILD_DIR}/lib)
-set(QWINDOWKIT_BUILD_DATA_DIR ${QMSETUP_BUILD_DIR}/share/${QWINDOWKIT_INSTALL_NAME})
-set(QWINDOWKIT_BUILD_DOC_DIR ${QMSETUP_BUILD_DIR}/share/doc/${QWINDOWKIT_INSTALL_NAME})
-
-# The forwarding headers and the configuration header are written at configure time, so they can
-# go under `QMSETUP_BUILD_DIR` only while it holds a plain path. A parent project may set a value
-# that contains `$<CONFIG>`, and this is the fallback for that case.
-string(GENEX_STRIP "${QMSETUP_BUILD_DIR}" _stripped_build_dir)
-
-if(_stripped_build_dir STREQUAL "${QMSETUP_BUILD_DIR}")
-    set(QWINDOWKIT_BUILD_INCLUDE_DIR ${QMSETUP_BUILD_DIR}/include)
-else()
-    set(QWINDOWKIT_BUILD_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
-endif()
+# QWINDOWKIT_BUILD_DIR is set by the root, unless a parent project has already set it.
+set(QWINDOWKIT_BUILD_RUNTIME_DIR ${QWINDOWKIT_BUILD_DIR}/bin)
+set(QWINDOWKIT_BUILD_LIBRARY_DIR ${QWINDOWKIT_BUILD_DIR}/lib)
+set(QWINDOWKIT_BUILD_INCLUDE_DIR ${QWINDOWKIT_BUILD_DIR}/include)
+set(QWINDOWKIT_BUILD_DATA_DIR ${QWINDOWKIT_BUILD_DIR}/share/${QWINDOWKIT_INSTALL_NAME})
+set(QWINDOWKIT_BUILD_DOC_DIR ${QWINDOWKIT_BUILD_DIR}/share/doc/${QWINDOWKIT_INSTALL_NAME})
 
 if(QWINDOWKIT_INSTALL)
     # The headers go under a directory named after the package, so that an include reads
