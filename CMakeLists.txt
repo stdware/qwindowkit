@@ -109,6 +109,7 @@ include(cmake/WriteIfDifferent.cmake)
 include(cmake/AddWinRC.cmake)
 include(cmake/AddInstallPackageRule.cmake)
 include(cmake/GenerateConfigHeader.cmake)
+include(cmake/SyncHeaders.cmake)
 
 # ----------------------------------
 # Find basic dependencies

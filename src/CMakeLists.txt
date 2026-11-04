@@ -5,6 +5,14 @@ qwk_init_buildsystem(QWINDOWKIT)
 set(QWINDOWKIT_ENABLED_TARGETS)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES)
 
+# Passed to qwk_sync_headers by each module. Empty if nothing is installed, which adds no
+# installation rule for the headers.
+set(QWINDOWKIT_HEADER_INSTALL_DIR)
+
+if(QWINDOWKIT_INSTALL)
+    set(QWINDOWKIT_HEADER_INSTALL_DIR ${QWINDOWKIT_INSTALL_INCLUDE_DIR})
+endif()
+
 # ----------------------------------
 # Main Project
 # ----------------------------------
@@ -21,8 +29,7 @@ endif()
 # ----------------------------------
 # Configurations
 # ----------------------------------
-# Written after the modules, because the header synchronization of QWKCore deletes the directory
-# that holds this header.
+# Shares the directory of the forwarding headers of QWKCore, which qwk_sync_headers never empties.
 set(_config_header ${QWINDOWKIT_BUILD_INCLUDE_DIR}/QWKCore/qwkconfig.h)
 
 qwk_generate_config_header(${_config_header}
