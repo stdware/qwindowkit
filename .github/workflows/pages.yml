@@ -32,9 +32,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # qmsetup carries the Doxyfile and the CMake modules the build is driven by.
-          submodules: recursive
 
       - name: Install dependencies
         run: |

@@ -61,13 +61,7 @@ jobs:
             qt_version: '6.8.1'
 
     steps:
-      # qmsetup is a submodule, and the root CMakeLists falls back to building it in place when no
-      # installed copy is found. Recursive rather than true: qmsetup has a submodule of its own,
-      # stdcorelib, which it falls back to in the same way, and a checkout that stops one level up
-      # leaves that directory empty and the nested configure with nothing to add_subdirectory.
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - uses: ./.github/actions/setup
 
@@ -134,8 +128,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       # mingw-w64-x86_64-make is what puts mingw32-make on the path, which is the tool the qmake
       # consumer test drives. Ninja builds this project, that one builds the consumer.
