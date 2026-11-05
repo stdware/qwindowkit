@@ -121,11 +121,16 @@ include(cmake/AddDoxygenDocs.cmake)
 # Build Output Directories
 # ----------------------------------
 # Root of the build outputs: binaries, forwarding headers, the configuration header and the
-# generated qmake and MSBuild files. A parent project that embeds QWindowKit sets it beforehand to
-# collect the outputs in a directory of its own. It is the only way to do so, because the
-# CMAKE_*_OUTPUT_DIRECTORY variables of a parent project are not followed.
+# generated qmake and MSBuild files. Per-directory QWINDOWKIT_BUILD_*_DIR settings take
+# precedence over this root. Accept the former root variables for existing parent projects.
 if(NOT DEFINED QWINDOWKIT_BUILD_DIR)
-    set(QWINDOWKIT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
+    if(DEFINED QWINDOWKIT_BUILD_BASE_DIR)
+        set(QWINDOWKIT_BUILD_DIR "${QWINDOWKIT_BUILD_BASE_DIR}")
+    elseif(DEFINED QMSETUP_BUILD_DIR)
+        set(QWINDOWKIT_BUILD_DIR "${QMSETUP_BUILD_DIR}")
+    else()
+        set(QWINDOWKIT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/out")
+    endif()
 endif()
 
 # Files are written under it at configure time, where a generator expression is not evaluated and
@@ -137,10 +142,19 @@ if(NOT _stripped_build_dir STREQUAL "${QWINDOWKIT_BUILD_DIR}")
         "${QWINDOWKIT_BUILD_DIR}")
 endif()
 
-# For the examples. The library targets set their output directories themselves.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QWINDOWKIT_BUILD_DIR}/lib)
+# Defaults for the examples. Preserve the parent's CMake output directories; the library
+# targets use the QWINDOWKIT_BUILD_*_DIR settings in src/conf.cmake.
+if(NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${QWINDOWKIT_BUILD_DIR}/bin")
+endif()
+
+if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${QWINDOWKIT_BUILD_DIR}/lib")
+endif()
+
+if(NOT DEFINED CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${QWINDOWKIT_BUILD_DIR}/lib")
+endif()
 
 # ----------------------------------
 # Qt

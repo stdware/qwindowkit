@@ -104,6 +104,14 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
+构建产物默认位于 `<build>/out`。可以通过 `QWINDOWKIT_BUILD_DIR` 修改根目录，也可以在父项目中
+或通过 `-D` 单独设置 `QWINDOWKIT_BUILD_RUNTIME_DIR`、`QWINDOWKIT_BUILD_LIBRARY_DIR`、
+`QWINDOWKIT_BUILD_INCLUDE_DIR`、`QWINDOWKIT_BUILD_DATA_DIR` 和 `QWINDOWKIT_BUILD_DOC_DIR`，
+单独设置的目录优先。未设置 `QWINDOWKIT_BUILD_DIR` 时，依次使用旧变量
+`QWINDOWKIT_BUILD_BASE_DIR`、`QMSETUP_BUILD_DIR` 作为后备。示例程序也会保留外部设置的
+`CMAKE_RUNTIME_OUTPUT_DIRECTORY`、`CMAKE_LIBRARY_OUTPUT_DIRECTORY` 和
+`CMAKE_ARCHIVE_OUTPUT_DIRECTORY`。
+
 ## 集成到你的项目
 
 ### CMake
