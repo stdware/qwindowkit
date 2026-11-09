@@ -1,24 +1,15 @@
 include("conf.cmake")
 
-qwk_init_buildsystem(QWINDOWKIT)
-
 set(QWINDOWKIT_ENABLED_TARGETS)
 set(QWINDOWKIT_ENABLED_SUBDIRECTORIES)
 
-# ----------------------------------
-# Configurations
-# ----------------------------------
-set(QMSETUP_DEFINITION_NUMERICAL on)
+# Passed to qwk_sync_headers by each module. Empty if nothing is installed, which adds no
+# installation rule for the headers.
+set(QWINDOWKIT_HEADER_INSTALL_DIR)
 
-qm_add_definition(QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
-    CONDITION QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
-)
-qm_add_definition(QWINDOWKIT_ENABLE_STYLE_AGENT
-    CONDITION QWINDOWKIT_ENABLE_STYLE_AGENT
-)
-qm_add_definition(QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
-    CONDITION QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
-)
+if(QWINDOWKIT_INSTALL)
+    set(QWINDOWKIT_HEADER_INSTALL_DIR ${QWINDOWKIT_INSTALL_INCLUDE_DIR})
+endif()
 
 # ----------------------------------
 # Main Project
@@ -32,6 +23,20 @@ endif()
 if(QWINDOWKIT_BUILD_QUICK)
     add_subdirectory(quick)
 endif()
+
+# ----------------------------------
+# Configurations
+# ----------------------------------
+# Shares the directory of the forwarding headers of QWKCore, which qwk_sync_headers never empties.
+set(_config_header ${QWINDOWKIT_BUILD_INCLUDE_DIR}/QWKCore/qwkconfig.h)
+
+qwk_generate_config_header(${_config_header}
+    GUARD QWINDOWKIT_QWKCONFIG_H
+    FEATURES
+        QWINDOWKIT_FORCE_QT_WINDOW_CONTEXT
+        QWINDOWKIT_ENABLE_STYLE_AGENT
+        QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS
+)
 
 # ----------------------------------
 # Documentation
@@ -54,18 +59,24 @@ if(QWINDOWKIT_BUILD_DOCUMENTATIONS)
         CACHE FILEPATH "QWindowKit doxygen tag file path" FORCE
     )
 
-    qm_import(Doxygen)
-    qm_setup_doxygen(QWindowKit_RunDoxygen
+    # Q_SIGNALS and Q_SLOTS are defined as themselves, so that Doxygen receives the tokens it
+    # recognizes as signal and slot sections instead of their expansion by the Qt headers. The
+    # other macros expand to nothing, because their expansions are member declarations that
+    # Doxygen misreads.
+    qwk_add_doxygen_docs(QWindowKit_RunDoxygen
         NAME "QWindowKit"
         DESCRIPTION "${QWINDOWKIT_DESCRIPTION}"
-        MDFILE ../README.md
+        MAINPAGE ../README.md
         OUTPUT_DIR ${QWINDOWKIT_BUILD_DOC_DIR}
         INPUT ${QWINDOWKIT_ENABLED_SUBDIRECTORIES}
         TARGETS ${_doc_targets}
-        DEPENDS ${_doc_targets}
-        NO_EXPAND_MACROS Q_OBJECT Q_GADGET Q_DECLARE_TR_FUNCTIONS
-        COMPILE_DEFINITIONS Q_SIGNALS=Q_SIGNALS Q_SLOTS=Q_SLOTS
-        GENERATE_TAGFILE "${QWINDOWKIT_DOXYGEN_TAGFILE}"
+        PREDEFINED
+            Q_SIGNALS=Q_SIGNALS
+            Q_SLOTS=Q_SLOTS
+            Q_OBJECT=
+            Q_GADGET=
+            Q_DECLARE_TR_FUNCTIONS=
+        TAGFILE "${QWINDOWKIT_DOXYGEN_TAGFILE}"
         ${_install_options}
     )
 endif()
@@ -73,9 +84,20 @@ endif()
 # ----------------------------------
 # Install
 # ----------------------------------
-qwk_install()
+if(QWINDOWKIT_INSTALL)
+    # qwk_add_library adds the library targets to the export set.
+    qwk_add_install_package_rule(
+        NAME ${QWINDOWKIT_INSTALL_NAME}
+        VERSION ${QWINDOWKIT_VERSION}
+        INSTALL_DIR ${QWINDOWKIT_INSTALL_CMAKE_DIR}
+        CONFIG_TEMPLATE ${QWINDOWKIT_INSTALL_CONFIG_TEMPLATE}
+        NAMESPACE ${QWINDOWKIT_INSTALL_NAMESPACE}::
+        EXPORT ${QWINDOWKIT_EXPORT}
+        WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
+    )
 
-qwk_finish_buildsystem()
+    install(FILES ${_config_header} DESTINATION ${QWINDOWKIT_INSTALL_INCLUDE_DIR}/QWKCore)
+endif()
 
 if(QWINDOWKIT_INSTALL)
     # Install shared files

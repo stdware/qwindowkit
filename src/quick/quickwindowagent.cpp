@@ -91,10 +91,11 @@ namespace QWK {
     }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const {
+    bool QuickWindowAgent::isHitTestVisible(QQuickItem *item) const
 #else
-    bool QuickWindowAgent::isHitTestVisible(const QQuickItem *item) const {
+    bool QuickWindowAgent::isHitTestVisible(const QQuickItem *item) const
 #endif
+    {
         Q_D(const QuickWindowAgent);
         return d->context->isHitTestVisible(item);
     }

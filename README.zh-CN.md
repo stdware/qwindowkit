@@ -84,10 +84,10 @@ QWindowKit 使用了 Qt 私有 API 和平台相关窗口行为。较旧 Qt 版�
 
 ## 构建和安装
 
-克隆仓库及 submodule：
+克隆仓库：
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 ```
 
@@ -104,7 +104,13 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-项目依赖 `qmsetup`。如果 CMake 找不到已安装的 `qmsetup` package，会自动使用仓库中的 submodule。
+构建产物默认位于 `<build>/out`。可以通过 `QWINDOWKIT_BUILD_DIR` 修改根目录，也可以在父项目中
+或通过 `-D` 单独设置 `QWINDOWKIT_BUILD_RUNTIME_DIR`、`QWINDOWKIT_BUILD_LIBRARY_DIR`、
+`QWINDOWKIT_BUILD_INCLUDE_DIR`、`QWINDOWKIT_BUILD_DATA_DIR` 和 `QWINDOWKIT_BUILD_DOC_DIR`，
+单独设置的目录优先。未设置 `QWINDOWKIT_BUILD_DIR` 时，依次使用旧变量
+`QWINDOWKIT_BUILD_BASE_DIR`、`QMSETUP_BUILD_DIR` 作为后备。示例程序也会保留外部设置的
+`CMAKE_RUNTIME_OUTPUT_DIRECTORY`、`CMAKE_LIBRARY_OUTPUT_DIRECTORY` 和
+`CMAKE_ARCHIVE_OUTPUT_DIRECTORY`。
 
 ## 集成到你的项目
 

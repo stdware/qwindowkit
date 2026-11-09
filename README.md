@@ -84,10 +84,10 @@ Tested compilers:
 
 ## Build And Install
 
-Clone the repository with submodules:
+Clone the repository:
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 ```
 
@@ -104,7 +104,14 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-`qmsetup` is required. If CMake cannot find an installed `qmsetup` package, the bundled submodule is used automatically.
+Build outputs default to `<build>/out`. Set `QWINDOWKIT_BUILD_DIR` to change that root, or
+override individual `QWINDOWKIT_BUILD_RUNTIME_DIR`, `QWINDOWKIT_BUILD_LIBRARY_DIR`,
+`QWINDOWKIT_BUILD_INCLUDE_DIR`, `QWINDOWKIT_BUILD_DATA_DIR` and `QWINDOWKIT_BUILD_DOC_DIR`
+paths in a parent project or with `-D`. Explicit directory settings take precedence.
+When `QWINDOWKIT_BUILD_DIR` is unset, the legacy `QWINDOWKIT_BUILD_BASE_DIR` and then
+`QMSETUP_BUILD_DIR` are used as fallbacks. The examples also preserve externally set
+`CMAKE_RUNTIME_OUTPUT_DIRECTORY`, `CMAKE_LIBRARY_OUTPUT_DIRECTORY` and
+`CMAKE_ARCHIVE_OUTPUT_DIRECTORY` values.
 
 ## Integrate With Your Project
 

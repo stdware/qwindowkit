@@ -24,7 +24,7 @@ QWindowKit 分为三个模块：
 从源码构建并安装：
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -S . -B build ^

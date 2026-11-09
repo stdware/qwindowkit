@@ -24,7 +24,7 @@ QWindowKit provides three modules:
 Build from source:
 
 ```sh
-git clone --recursive https://github.com/stdware/qwindowkit
+git clone https://github.com/stdware/qwindowkit
 cd qwindowkit
 
 cmake -S . -B build ^
