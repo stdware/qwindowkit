@@ -34,7 +34,7 @@ namespace QWK {
         QQuickWindow *hostWindow{};
 
 #ifdef Q_OS_MAC
-        QQuickItem *systemButtonAreaItem{};
+        QPointer<QQuickItem> systemButtonAreaItem;
         std::unique_ptr<QObject> systemButtonAreaItemHandler;
 #endif
 
