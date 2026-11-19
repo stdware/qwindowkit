@@ -534,7 +534,15 @@ namespace QWK {
                     // https://github.com/qt/qtbase/blob/e26a87f1ecc40bc8c6aa5b889fce67410a57a702/src/plugins/platforms/windows/qwindowscontext.cpp#L1546
                     // Qt needs to refer to the WM_NCCALCSIZE message data that hasn't been
                     // processed, so we have to process it after Qt acquires the initial data.
-                    if (lastMessageContext) {
+                    //
+                    // Only handle the managed window's own message. While its hooked window
+                    // procedure is on the stack, Qt may lay out the widgets synchronously (e.g.
+                    // when Windows maximizes or restores the window on a caption double-click,
+                    // Win+Up or snapping) and native child windows then receive WM_NCCALCSIZE
+                    // too. They must keep the default handling, otherwise they get the top-level
+                    // frame adjustments and their client area is shifted.
+                    if (lastMessageContext &&
+                        g_wndProcHash->value(msg->hwnd) == lastMessageContext) {
                         LRESULT res;
                         if (lastMessageContext->nonClientCalcSizeHandler(
                                 msg->hwnd, msg->message, msg->wParam, msg->lParam, &res)) {
