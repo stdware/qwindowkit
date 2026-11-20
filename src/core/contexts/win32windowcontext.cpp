@@ -1388,8 +1388,14 @@ namespace QWK {
                 const auto xButtonMask = GET_XBUTTON_WPARAM(wParam);
                 return MAKEWPARAM(keyState, xButtonMask);
             }
-            if (myMsg == WM_NCPOINTERDOWN) {
+            // The physical button may already have been released when we dispatch
+            // a queued press. Preserve the transition in the client message.
+            if (myMsg == WM_NCLBUTTONDOWN || myMsg == WM_NCLBUTTONDBLCLK ||
+                myMsg == WM_NCPOINTERDOWN) {
                 return keyState | MK_LBUTTON;
+            }
+            if (myMsg == WM_NCLBUTTONUP || myMsg == WM_NCPOINTERUP) {
+                return keyState & ~quint64(MK_LBUTTON);
             }
             return keyState;
         }();
