@@ -19,9 +19,6 @@
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
 
-// https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
-// https://nyrra33.com/2019/03/26/changing-titlebars-height/
-
 namespace QWK {
 
     struct NSWindowProxy;
@@ -137,13 +134,13 @@ public:
 - (instancetype)initWithProxy:(QWK::NSWindowProxy*)proxy;
 @end
 
-// AppKit re-shows the traffic-light buttons after panels close, so we use this to detect that and
-// re-hide them.
+// Observe AppKit changes to the traffic-light buttons' visibility and position.
 @interface QWK_NSButtonObserver : NSObject
 - (instancetype)initWithProxy:(QWK::NSWindowProxy *)proxy;
 
 - (void)attach:(NSArray<NSButton *> *)buttons;
 - (void)detach;
+- (void)setObservesFrames:(BOOL)enabled;
 @end
 
 //
@@ -166,7 +163,7 @@ namespace QWK {
         };
 
         NSWindowProxy(NSView *macView) {
-            nsview = macView;
+            nsview = [macView retain];
 
             observer = [[QWK_NSViewObserver alloc] initWithProxy:this];
             [nsview addObserver:observer
@@ -184,6 +181,8 @@ namespace QWK {
 
             [nsview removeObserver:observer forKeyPath:@"window"];
             [observer release];
+
+            [nsview release];
         }
 
         // Delegate
@@ -245,6 +244,7 @@ namespace QWK {
         // System buttons area
         void setScreenRectCallback(const ScreenRectCallback &callback) {
             screenRectCallback = callback;
+            [buttonObserver setObservesFrames:bool(callback)];
 
             if (!callback || !systemButtonVisible) {
                 return;
@@ -252,8 +252,30 @@ namespace QWK {
             updateSystemButtonRect();
         }
 
+        void requestSystemButtonRectUpdate() {
+            if (!screenRectCallback || !systemButtonVisible || updatingSystemButtonRect ||
+                systemButtonRectUpdatePending) {
+                return;
+            }
+
+            // AppKit moves the buttons one at a time during title-bar layout. Restore the
+            // custom area after that layout returns, coalescing notifications from all buttons.
+            systemButtonRectUpdatePending = true;
+            NSWindowProxy *self_ = this;
+            const auto lifetimeToken_ = lifetimeToken;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (!lifetimeToken_->load(std::memory_order_acquire)) {
+                    return;
+                }
+                self_->systemButtonRectUpdatePending = false;
+                self_->updateSystemButtonRect();
+            });
+        }
+
         void updateSystemButtonRect() {
-            if (!screenRectCallback || !systemButtonVisible) {
+            // Let AppKit position the buttons while the window is in native fullscreen.
+            if (!screenRectCallback || !systemButtonVisible ||
+                updatingSystemButtonRect || ([nsview window].styleMask & NSWindowStyleMaskFullScreen)) {
                 return;
             }
             const auto &buttons = systemButtons();
@@ -310,8 +332,17 @@ namespace QWK {
                 center.x() - width / 2,
                 center.y() - height / 2,
             };
+            
+            const auto moveButton = [](NSButton *button, NSPoint origin) {
+                if (!NSEqualPoints(button.frame.origin, origin)) {
+                    [button setFrameOrigin:origin];
+                }
+            };
+
+            // Our own frame notifications must not schedule another positioning pass.
+            updatingSystemButtonRect = true;
             if (midButton) {
-                [midButton setFrameOrigin:centerOrigin];
+                moveButton(midButton, centerOrigin);
             }
 
             // Left button
@@ -320,7 +351,7 @@ namespace QWK {
                     centerOrigin.x - spacing,
                     centerOrigin.y,
                 };
-                [leftButton setFrameOrigin:leftOrigin];
+                moveButton(leftButton, leftOrigin);
             }
 
             // Right button
@@ -329,8 +360,9 @@ namespace QWK {
                     centerOrigin.x + spacing,
                     centerOrigin.y,
                 };
-                [rightButton setFrameOrigin:rightOrigin];
+                moveButton(rightButton, rightOrigin);
             }
+            updatingSystemButtonRect = false;
         }
 
         inline std::array<NSButton *, 3> systemButtons() {
@@ -357,6 +389,8 @@ namespace QWK {
         bool hasButtonVisible() const { return systemButtonVisible; }
 
         bool hasCheckButton() const { return checkButton; }
+
+        bool hasSystemButtonArea() const { return bool(screenRectCallback); }
 
         inline int titleBarHeight() const {
             auto nswindow = [nsview window];
@@ -644,8 +678,9 @@ namespace QWK {
                     [array addObject:button];
                 }
 
-                // Attach observer to get notified when AppKit reshows buttons.
+                // AppKit can lay out the buttons again during the first display cycle.
                 [self_->buttonObserver attach:array];
+                self_->updateSystemButtonRect();
             });
         }
 
@@ -815,6 +850,8 @@ namespace QWK {
         
         bool systemButtonVisible = true;
         bool checkButton = true;
+        bool updatingSystemButtonRect = false;
+        bool systemButtonRectUpdatePending = false;
         ScreenRectCallback screenRectCallback;
 
         GlassMode glassMode = GlassMode::None;
@@ -1071,9 +1108,9 @@ namespace QWK {
         // Allocate new resources
         const auto proxy = ensureWindowProxy(winId);
         if (proxy) {
+            proxy->setSystemTitleBarVisible(false);
             proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
             proxy->setScreenRectCallback(m_systemButtonAreaCallback);
-            proxy->setSystemTitleBarVisible(false);
         }
     }
 
@@ -1230,12 +1267,15 @@ namespace QWK {
 @implementation QWK_NSButtonObserver {
     QWK::NSWindowProxy *_proxy;
     NSMutableArray<NSButton *> *_buttons;
+    NSMutableArray<NSNumber *> *_originalFrameNotifications;
+    BOOL _observesFrames;
 }
 
 - (instancetype)initWithProxy:(QWK::NSWindowProxy *)proxy {
     if (self = [super init]) {
         _proxy = proxy;
         _buttons = [[NSMutableArray alloc] init];
+        _originalFrameNotifications = [[NSMutableArray alloc] init];
     }
     return self;
 }
@@ -1243,10 +1283,12 @@ namespace QWK {
 - (void)dealloc {
     [self detach];
     [_buttons release];
+    [_originalFrameNotifications release];
     [super dealloc];
 }
 
 - (void)detach {
+    [self setObservesFrames:NO];
     for (NSButton *button in _buttons) {
         [button removeObserver:self forKeyPath:@"hidden"];
     }
@@ -1259,6 +1301,34 @@ namespace QWK {
         [button addObserver:self forKeyPath:@"hidden" options:0 context:nil];
         [_buttons addObject:button];
     }
+    [self setObservesFrames:_proxy->hasSystemButtonArea()];
+}
+
+- (void)setObservesFrames:(BOOL)enabled {
+    if (_observesFrames == enabled) {
+        return;
+    }
+    _observesFrames = enabled;
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    if (enabled) {
+        for (NSButton *button in _buttons) {
+            [_originalFrameNotifications addObject:@(button.postsFrameChangedNotifications)];
+            button.postsFrameChangedNotifications = YES;
+            [center addObserver:self selector:@selector(buttonFrameDidChange:)
+                           name:NSViewFrameDidChangeNotification object:button];
+        }
+    } else {
+        NSUInteger index = 0;
+        for (NSButton *button in _buttons) {
+            [center removeObserver:self name:NSViewFrameDidChangeNotification object:button];
+            button.postsFrameChangedNotifications = [_originalFrameNotifications[index++] boolValue];
+        }
+        [_originalFrameNotifications removeAllObjects];
+    }
+}
+
+- (void)buttonFrameDidChange:(NSNotification *)notification {
+    _proxy->requestSystemButtonRectUpdate();
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath

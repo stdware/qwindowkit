@@ -70,7 +70,21 @@ Window {
         height: 32
         //color: window.active ? "#3C3C3C" : "#505050"
         color: "transparent"
-        Component.onCompleted: windowAgent.setTitleBar(titleBar)
+        Component.onCompleted: {
+            windowAgent.setTitleBar(titleBar)
+            // tested by seiuryuu on 18/10/2026
+            //if (window.isMacOS) {
+                //windowAgent.setSystemButtonArea(systemButtonArea)
+            //}
+        }
+
+        Item {
+            id: systemButtonArea
+            anchors.right: parent.right
+            anchors.top: parent.top
+            width: 75
+            height: parent.height
+        }
 
         Image {
             id: iconButton
