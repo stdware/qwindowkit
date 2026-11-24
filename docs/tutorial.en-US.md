@@ -2,7 +2,7 @@
 
 **Language:** English | [简体中文](./tutorial.zh-CN.md)
 
-**Project README:** [English](../README.md) | [简体中文](../README.zh-CN.md)
+**Project README:** [English](../README.md) | [简体中文](./README.zh-CN.md)
 
 This tutorial shows how to use QWindowKit in Qt Widgets and Qt Quick applications to build a custom title bar while keeping native behaviors such as moving, resizing, system menus, and Windows Snap Layout.
 

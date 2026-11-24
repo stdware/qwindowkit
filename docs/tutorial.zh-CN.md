@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](./tutorial.en-US.md)
 
-**项目 README：** [简体中文](../README.zh-CN.md) | [English](../README.md)
+**项目 README：** [简体中文](./README.zh-CN.md) | [English](../README.md)
 
 本文面向希望在 Qt Widgets 或 Qt Quick 应用中自定义系统标题栏、实现无边框窗口、保留拖拽/缩放/系统菜单等原生行为的用户。
 

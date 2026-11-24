@@ -1,6 +1,6 @@
 # QWindowKit
 
-**Language:** English | [简体中文](./README.zh-CN.md)
+**Language:** English | [简体中文](./docs/README.zh-CN.md)
 
 **Tutorials:** [English tutorial](./docs/tutorial.en-US.md) | [简体中文教程](./docs/tutorial.zh-CN.md)
 
