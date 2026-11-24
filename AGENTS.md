@@ -29,13 +29,36 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 构建输出的根目录为 `QWINDOWKIT_BUILD_DIR`，默认 `<构建目录>/out`。父项目改变输出位置的唯一方式是事先设置该变量，不跟随父项目的 `CMAKE_*_OUTPUT_DIRECTORY`，也不读取 `QMSETUP_BUILD_DIR`（作者 2026-11-04 决定）。
 
-新增或替换的 CMake 函数按 stdcorelib 的方式组织：
+新增或替换的 CMake 函数按以下方式组织，沿用 stdware/stdcorelib 的约定：
 
 - **按功能分文件，放在根目录的 `cmake/` 下。** 一个文件提供一项功能，文件名为大驼峰，以功能命名，例如 `AddWinRC.cmake`、`AddInstallPackageRule.cmake`。由根目录的 `CMakeLists.txt` 显式 `include()`。
 - **不要在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏**，也不要为替换 qmsetup 而重新编写一个生成整套函数的 helper。`examples/CMakeLists.txt` 中的 `qwk_add_example` 暂时保留（作者 2026-11-04 决定）。
 - **`cmake/` 不随包安装**（作者 2026-11-04 决定），因为消费者不调用本仓库的构建函数。
 - **生成文件在内容未变时不得重写**，否则依赖它的翻译单元全部重新编译。做法是读取已有文件、比较、不同时才 `file(WRITE)`，不要先删除目录再全部写出。不要用 `file(CONFIGURE)` 或 `configure_file()` 批量生成，二者先写临时文件再比较，2000 个文件时实测为 6.6 s。
-- 文件开头以 `#[[ ... ]]` 写明调用形式与使用前提，格式参照 stdcorelib 的 `cmake/AddWinRC.cmake`。
+- 文件开头以 `#[[ ... ]]` 写明调用形式与使用前提。第一行以动词开头说明功能，其后给出调用形式，可选参数加方括号，再说明默认值、相对路径的解析方式、不生效的情况及其理由。依赖其他 `cmake/` 文件时，最后以 `Requires` 逐一列出。以 `cmake/AddWinRC.cmake` 为例：
+
+  ```cmake
+  #[[
+  # Adds Windows version information and an optional icon to an executable or a shared library.
+  #
+  # qwk_add_win_rc(<target>
+  #     [NAME <name>]
+  #     [VERSION <version>]
+  #     [DESCRIPTION <description>]
+  #     [COPYRIGHT <copyright>]
+  #     [ICON <ico>]
+  # )
+  #
+  # NAME defaults to the target name, VERSION to PROJECT_VERSION, DESCRIPTION to
+  # PROJECT_DESCRIPTION, and COPYRIGHT to NAME. A relative ICON is resolved against the current
+  # source directory. The function has no effect on other platforms and on other target types,
+  # because a static library has no binary of its own to carry the resource.
+  #
+  # A changed icon compiles the resource again at the next build without a configure.
+  #
+  # Requires cmake/WriteIfDifferent.cmake.
+  #]]
+  ```
 - `cmake_parse_arguments` 之前以 `set(options ...)`、`set(oneValueArgs ...)`、`set(multiValueArgs ...)` 三行声明关键字，再以 `"${options}" "${oneValueArgs}" "${multiValueArgs}"` 传入，不直接写字面量（作者 2026-11-04 要求）。函数与宏均适用。
 - `cmake_parse_arguments` 一律使用 `FUNC` 前缀。**`FUNC_UNPARSED_ARGUMENTS` 非空时以 `FATAL_ERROR` 拒绝**，必需参数缺失时同样报错，原因见「已知问题」的第一条。
 
