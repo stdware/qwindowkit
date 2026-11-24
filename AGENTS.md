@@ -16,9 +16,7 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 | 内容 | 位置 |
 |---|---|
-| 本机的配置、构建与测试命令 | `.cache/claude/build.md` |
-| 构建系统、测试与 CI 的现状 | `.cache/claude/buildsystem.md` |
-| 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md`，例如 `2026-11-04-1202-remove-qmsetup.md` |
+| 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md` |
 | 待办事项、已知未验证的问题、不测试的内容及其理由 | `docs/TODO.md` |
 | 面向用户的说明 | `README.md`、`README.zh-CN.md`、`docs/tutorial.*.md` |
 | 公开接口的参考文档 | 源文件中的 qdoc 注释，由文档 CI 发布到 <https://stdware.github.io/qwindowkit> |
@@ -27,11 +25,11 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 ## 构建系统
 
-**qmsetup 已移除**（作者 2026-11-04 决定，同日完成），过程与各步的验证见 `.cache/claude/2026-11-04-1202-remove-qmsetup.md`。构建所需的函数全部位于 `cmake/`，`src/conf.cmake` 只设置项目常量并在目录作用域查找 Qt。配置不需要任何外部的 CMake 包，也没有子模块。
+**qmsetup 已移除**（作者 2026-11-04 决定，同日完成）。构建所需的函数全部位于 `cmake/`，`src/conf.cmake` 只设置项目常量并在目录作用域查找 Qt。配置不需要任何外部的 CMake 包，也没有子模块。
 
 构建输出的根目录为 `QWINDOWKIT_BUILD_DIR`，默认 `<构建目录>/out`。父项目改变输出位置的唯一方式是事先设置该变量，不跟随父项目的 `CMAKE_*_OUTPUT_DIRECTORY`，也不读取 `QMSETUP_BUILD_DIR`（作者 2026-11-04 决定）。
 
-新增或替换的 CMake 函数按 stdcorelib（`D:\GitHub\stdcorelib`）的方式组织：
+新增或替换的 CMake 函数按 stdcorelib 的方式组织：
 
 - **按功能分文件，放在根目录的 `cmake/` 下。** 一个文件提供一项功能，文件名为大驼峰，以功能命名，例如 `AddWinRC.cmake`、`AddInstallPackageRule.cmake`。由根目录的 `CMakeLists.txt` 显式 `include()`。
 - **不要在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏**，也不要为替换 qmsetup 而重新编写一个生成整套函数的 helper。`examples/CMakeLists.txt` 中的 `qwk_add_example` 暂时保留（作者 2026-11-04 决定）。
@@ -127,8 +125,7 @@ CMake 中，函数和不显然的赋值上方须写明其作用，以及不能�
 - 用户的质疑通常是正确的，**应先重新验证，而不是辩护**。
 - 发现自己有误时直接更正，将结论写回 `docs/TODO.md` 或 `.cache/claude/` 笔记的对应条目，并注明原判断的错误所在。
 - 不确定时明确说明不确定，不要以推测填补。
-- **本机只有 Windows 与 MSVC。** macOS 与 Linux 的实现在本机不参与编译，修改后只能依靠阅读确认。报告「验证通过」时须写明哪些平台未经验证。
-- 配置、构建与测试的方法见 `.cache/claude/build.md`，不要每次重新尝试。
+- **只有当前机器所在平台的实现参与编译。** 作者在 Windows（MSVC）与 macOS（Apple Clang）上开发，Linux 的实现在两者上均不参与编译。其他平台的实现修改后只能依靠阅读确认。报告「验证通过」时须写明哪些平台未经验证。
 
 ## 已知问题
 
