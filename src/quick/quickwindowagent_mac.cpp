@@ -15,14 +15,13 @@ namespace QWK {
         void updateSystemButtonArea();
 
     protected:
-        QQuickItem *item;
         AbstractWindowContext *ctx;
     };
 
     SystemButtonAreaItemHandler::SystemButtonAreaItemHandler(QQuickItem *item,
                                                              AbstractWindowContext *ctx,
                                                              QObject *parent)
-        : QObject(parent), item(item), ctx(ctx) {
+        : QObject(parent), ctx(ctx) {
         connect(item, &QQuickItem::xChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
         connect(item, &QQuickItem::yChanged, this,
@@ -32,8 +31,11 @@ namespace QWK {
         connect(item, &QQuickItem::heightChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
 
-        ctx->setSystemButtonAreaCallback([item](const QSize &) {
-            return QRectF(item->mapToScene(QPointF(0, 0)), item->size()).toRect(); //
+        connect(item, &QObject::destroyed, this, [ctx] {
+            ctx->setSystemButtonAreaCallback({});
+        });
+        ctx->setSystemButtonAreaCallback([area = QPointer<QQuickItem>(item)](const QSize &) {
+            return area ? QRectF(area->mapToScene(QPointF(0, 0)), area->size()).toRect() : QRect();
         });
     }
 
@@ -48,7 +50,8 @@ namespace QWK {
 
     void QuickWindowAgent::setSystemButtonArea(QQuickItem *item) {
         Q_D(QuickWindowAgent);
-        if (d->systemButtonAreaItem == item)
+        // A destroyed area's QPointer is null, but its handler still needs to be disconnected.
+        if (d->systemButtonAreaItem == item && (item || !d->systemButtonAreaItemHandler))
             return;
 
         auto ctx = d->context.get();
