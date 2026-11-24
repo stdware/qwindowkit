@@ -19,6 +19,9 @@
 #include "qwkglobal_p.h"
 #include "systemwindow_p.h"
 
+// https://forgetsou.github.io/2020/11/06/macos%E5%BC%80%E5%8F%91-%E5%85%B3%E9%97%AD-%E6%9C%80%E5%B0%8F%E5%8C%96-%E5%85%A8%E5%B1%8F%E5%B1%85%E4%B8%AD%E5%A4%84%E7%90%86(%E4%BB%BFMac%20QQ)/
+// https://nyrra33.com/2019/03/26/changing-titlebars-height/
+
 namespace QWK {
 
     struct NSWindowProxy;
@@ -176,7 +179,7 @@ namespace QWK {
 
         ~NSWindowProxy() override {
             lifetimeToken->store(false, std::memory_order_release);
-            
+
             [buttonObserver release];
 
             [nsview removeObserver:observer forKeyPath:@"window"];
@@ -261,21 +264,20 @@ namespace QWK {
             // AppKit moves the buttons one at a time during title-bar layout. Restore the
             // custom area after that layout returns, coalescing notifications from all buttons.
             systemButtonRectUpdatePending = true;
-            NSWindowProxy *self_ = this;
-            const auto lifetimeToken_ = lifetimeToken;
+            const auto token = lifetimeToken;
             dispatch_async(dispatch_get_main_queue(), ^{
-                if (!lifetimeToken_->load(std::memory_order_acquire)) {
+                if (!token->load(std::memory_order_acquire)) {
                     return;
                 }
-                self_->systemButtonRectUpdatePending = false;
-                self_->updateSystemButtonRect();
+                systemButtonRectUpdatePending = false;
+                updateSystemButtonRect();
             });
         }
 
         void updateSystemButtonRect() {
             // Let AppKit position the buttons while the window is in native fullscreen.
-            if (!screenRectCallback || !systemButtonVisible ||
-                updatingSystemButtonRect || ([nsview window].styleMask & NSWindowStyleMaskFullScreen)) {
+            if (!screenRectCallback || !systemButtonVisible || updatingSystemButtonRect ||
+                ([nsview window].styleMask & NSWindowStyleMaskFullScreen)) {
                 return;
             }
             const auto &buttons = systemButtons();
@@ -332,7 +334,7 @@ namespace QWK {
                 center.x() - width / 2,
                 center.y() - height / 2,
             };
-            
+
             const auto moveButton = [](NSButton *button, NSPoint origin) {
                 if (!NSEqualPoints(button.frame.origin, origin)) {
                     [button setFrameOrigin:origin];
@@ -662,25 +664,24 @@ namespace QWK {
             // See https://developer.apple.com/documentation/appkit/nswindow/ismovable?language=objc
             nswindow.movable = YES;
 
-            NSWindowProxy *self_ = this;
-            const auto lifetimeToken_ = lifetimeToken;
+            const auto token = lifetimeToken;
             dispatch_async(dispatch_get_main_queue(), ^{
-                if (!lifetimeToken_->load(std::memory_order_acquire)) {
+                if (!token->load(std::memory_order_acquire)) {
                     return;
                 }
-                
+
                 NSMutableArray<NSButton *> *array = [NSMutableArray arrayWithCapacity:3];
-                for (NSButton *button : self_->systemButtons()) {
+                for (NSButton *button : systemButtons()) {
                     if (!button) {
                         continue;
                     }
-                    button.hidden = !self_->systemButtonVisible;
+                    button.hidden = !systemButtonVisible;
                     [array addObject:button];
                 }
 
                 // AppKit can lay out the buttons again during the first display cycle.
-                [self_->buttonObserver attach:array];
-                self_->updateSystemButtonRect();
+                [buttonObserver attach:array];
+                updateSystemButtonRect();
             });
         }
 
@@ -1314,14 +1315,17 @@ namespace QWK {
         for (NSButton *button in _buttons) {
             [_originalFrameNotifications addObject:@(button.postsFrameChangedNotifications)];
             button.postsFrameChangedNotifications = YES;
-            [center addObserver:self selector:@selector(buttonFrameDidChange:)
-                           name:NSViewFrameDidChangeNotification object:button];
+            [center addObserver:self
+                       selector:@selector(buttonFrameDidChange:)
+                           name:NSViewFrameDidChangeNotification
+                         object:button];
         }
     } else {
         NSUInteger index = 0;
         for (NSButton *button in _buttons) {
             [center removeObserver:self name:NSViewFrameDidChangeNotification object:button];
-            button.postsFrameChangedNotifications = [_originalFrameNotifications[index++] boolValue];
+            button.postsFrameChangedNotifications =
+                [_originalFrameNotifications[index++] boolValue];
         }
         [_originalFrameNotifications removeAllObjects];
     }

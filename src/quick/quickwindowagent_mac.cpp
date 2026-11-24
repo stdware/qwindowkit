@@ -31,9 +31,7 @@ namespace QWK {
         connect(item, &QQuickItem::heightChanged, this,
                 &SystemButtonAreaItemHandler::updateSystemButtonArea);
 
-        connect(item, &QObject::destroyed, this, [ctx] {
-            ctx->setSystemButtonAreaCallback({});
-        });
+        connect(item, &QObject::destroyed, this, [ctx] { ctx->setSystemButtonAreaCallback({}); });
         ctx->setSystemButtonAreaCallback([area = QPointer<QQuickItem>(item)](const QSize &) {
             return area ? QRectF(area->mapToScene(QPointF(0, 0)), area->size()).toRect() : QRect();
         });

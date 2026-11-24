@@ -72,10 +72,9 @@ Window {
         color: "transparent"
         Component.onCompleted: {
             windowAgent.setTitleBar(titleBar)
-            // tested by seiuryuu on 18/10/2026
-            //if (window.isMacOS) {
-                //windowAgent.setSystemButtonArea(systemButtonArea)
-            //}
+            // if (window.isMacOS) {
+            //     windowAgent.setSystemButtonArea(systemButtonArea)
+            // }
         }
 
         Item {

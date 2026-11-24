@@ -4,9 +4,9 @@
 
 #include "widgetwindowagent_p.h"
 
-#include <QtGui/QtEvents>
 #include <QtCore/QSet>
 #include <QtCore/QVector>
+#include <QtGui/QtEvents>
 #include <QtWidgets/QLayout>
 
 namespace QWK {
@@ -16,8 +16,7 @@ namespace QWK {
     // Opt out the host, title-bar subtree, and ancestor containers between them.
     class CocoaWidgetSafeAreaHandler : public QObject {
     public:
-        explicit CocoaWidgetSafeAreaHandler(QWidget *host)
-            : host(host) {
+        explicit CocoaWidgetSafeAreaHandler(QWidget *host) : host(host) {
             host->setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
             refreshLayout(host);
         }
@@ -51,10 +50,13 @@ namespace QWK {
                 case QEvent::Hide:
                     if (!updatePending) {
                         updatePending = true;
-                        QMetaObject::invokeMethod(this, [this] {
-                            updatePending = false;
-                            updateTitleBar();
-                        }, Qt::QueuedConnection);
+                        QMetaObject::invokeMethod(
+                            this,
+                            [this] {
+                                updatePending = false;
+                                updateTitleBar();
+                            },
+                            Qt::QueuedConnection);
                     }
                     break;
                 default:
@@ -213,9 +215,8 @@ namespace QWK {
                                           QObject *parent = nullptr)
             : QObject(parent), ctx(ctx) {
             widget->installEventFilter(this);
-            connect(widget, &QObject::destroyed, this, [ctx] {
-                ctx->setSystemButtonAreaCallback({});
-            });
+            connect(widget, &QObject::destroyed, this,
+                    [ctx] { ctx->setSystemButtonAreaCallback({}); });
             ctx->setSystemButtonAreaCallback([area = QPointer<QWidget>(widget)](const QSize &) {
                 return area ? getWidgetSceneRect(area) : QRect();
             });

@@ -73,7 +73,7 @@ namespace QWK {
         d->setup(w, new WidgetItemDelegate());
         d->hostWidget = w;
 
-#ifdef Q_OS_MACOS
+#ifdef Q_OS_MAC
         d->setupCocoaWindow();
 #endif
 #if defined(Q_OS_WINDOWS) && QWINDOWKIT_CONFIG(ENABLE_WINDOWS_SYSTEM_BORDERS)
@@ -99,7 +99,7 @@ namespace QWK {
         if (!d->context->setTitleBar(w)) {
             return;
         }
-#ifdef Q_OS_MACOS
+#ifdef Q_OS_MAC
         setSystemButtonArea(nullptr);
         d->updateCocoaTitleBar();
 #endif

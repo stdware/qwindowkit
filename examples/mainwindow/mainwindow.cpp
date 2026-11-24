@@ -420,7 +420,6 @@ void MainWindow::installWindowAgent() {
     windowAgent->setHitTestVisible(menuBar, true);
 
 #if defined(Q_OS_MAC) && 0
-    // tested by seiuryuu on 18/10/2026
     windowAgent->setSystemButtonAreaCallback([](const QSize &size) {
         constexpr int width = 75;
         return QRect(size.width() - width, 0, width, size.height());
