@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](../AGENTS.md)
 
-本文档只列出规则。项目结构、设计决定、规则的理由与已知问题见 [Development.zh-CN.md](./Development.zh-CN.md)。
+本文档列出与本仓库协作的规则。详细约定、项目结构、设计决定与已知问题见 [Development.zh-CN.md](./Development.zh-CN.md)。
 
 ## 项目概述
 
@@ -14,56 +14,37 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 | 内容 | 位置 |
 |---|---|
-| 协作规则 | `AGENTS.md`（英文）、`docs/AGENTS.zh-CN.md`（中文） |
-| 项目结构、设计决定、规则的理由、已知问题 | `docs/Development.md`（英文）、`docs/Development.zh-CN.md`（中文） |
+| 协作规则 | `AGENTS.md`、`docs/AGENTS.<lang>.md` |
+| 详细约定、项目结构、设计决定、已知问题 | `docs/Development[.<lang>].md` |
 | 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md` |
 | 待办事项、已知未验证的问题、不测试的内容及其理由 | `docs/TODO.md` |
-| 面向用户的说明 | `README.md`、`docs/README.zh-CN.md`、`docs/Tutorial.md`、`docs/Tutorial.zh-CN.md` |
+| 面向用户的说明 | `README.md`、`docs/README.<lang>.md`、`docs/Tutorial[.<lang>].md` |
 | 公开接口的参考文档 | 源文件中的 qdoc 注释，由文档 CI 发布到 <https://stdware.github.io/qwindowkit> |
 
-`.cache/` 整体被 gitignore。`.cache/claude/` 中的笔记以中文书写，标题注明日期。**未来要做的事写入 `docs/TODO.md` 或 `.cache/claude/` 的笔记，不要只留在会话中。** **修改有多个语言版本的文档时，同步修改其他语言版本。**
+`<lang>` 为语言标签，例如 `zh-CN`，`[.<lang>]` 表示可省略的后缀。不带语言标签的文档为英文版。
 
-## 构建系统
+`.cache/` 整体被 gitignore。`.cache/claude/` 中的笔记以与使用者对话的语言书写，标题注明日期。**未来要做的事写入 `docs/TODO.md` 或 `.cache/claude/` 的笔记，不要只留在会话中。** **修改有多个语言版本的文档时，同步修改其他语言版本。**
 
-背景与设计决定见 Development.zh-CN.md 的「构建系统」。
+## 代码约定
 
-- **CMake 函数按功能分文件，放在根目录的 `cmake/` 下**，由根目录的 `CMakeLists.txt` 显式 `include()`。
-- **不要在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏**，也不要为替换 qmsetup 而重新编写一个生成整套函数的 helper。
-- **生成文件在内容未变时不得重写。** 不要先删除目录再全部写出，不要用 `file(CONFIGURE)` 或 `configure_file()` 批量生成。
-- `cmake/` 中的文件开头以 `#[[ ... ]]` 写明调用形式与使用前提，格式见 Development.zh-CN.md 的「CMake 文件头」。
-- `cmake_parse_arguments` 之前以三行 `set()` 声明关键字，前缀一律为 `FUNC`。**`FUNC_UNPARSED_ARGUMENTS` 非空时以 `FATAL_ERROR` 拒绝**，必需参数缺失时同样报错。
-- 选项定义在根目录的 `CMakeLists.txt` 中。默认值必须使不传任何参数的配置保持原有行为。
-- 函数和不显然的赋值上方须写明其作用，以及不能使用默认值的理由。`src/conf.cmake` 中的每一处显式赋值都附有理由，删除之前先阅读该注释。
-- 作为参数的变量展开须加引号。
-- configure 期写入磁盘的路径不能含生成器表达式。
-- `qwk_configure_target` 中不得调用 `find_package`。
-- 判断平台而非编译器。
+修改代码之前，先阅读 Development.zh-CN.md 的对应章节。
+
+| 修改对象 | 章节 |
+|---|---|
+| CMake 函数、选项、生成文件、安装布局 | 「构建系统」 |
+| C++ 源码、导出宏、编译期开关 | 「C++」 |
+| 函数、变量、宏、类与文件的名称 | 「命名」 |
+| 注释与文档注释 | 「注释」 |
+| 测试 | 「测试」 |
+| `sed`、`cmd`、`.bat` 文件、MSBuild 工程 | 「已知问题」 |
+
+以下规则适用于每一次修改：
+
+- **只对改动过的文件运行 clang-format。** 不要手动排版，不要用 `sed -i` 处理整个目录。
+- **修改文件前用 `grep -qU $'\r'` 判断行尾**，CRLF 文件改用编辑工具修改，不要用 `sed -i`。
+- **私有头文件会被安装。** 修改私有头文件同样影响下游。
 - **修改构建系统之后，须将安装树逐文件比对**，不能只确认能够编译。
-
-## C++
-
-- 命名空间为 `QWK`。
-- PImpl 采用 Qt 的写法，即 `Q_DECLARE_PRIVATE` 加 `d_ptr`。**私有头文件会被安装**，修改私有头文件同样影响下游。
-- 导出宏与编译定义见 Development.zh-CN.md 的「导出宏」。
-- 平台相关的实现放在各自的文件中，不要在一个文件中堆积 `#ifdef`。跨平台共用的小型组件放在 `src/core/shared/`。
-- 编译期开关以 `#if QWINDOWKIT_CONFIG(ENABLE_XXX)` 读取，**不要绕过它直接使用 `#ifdef`**。
-- 格式由 clang-format 处理：100 列，4 空格缩进，命名空间内缩进。不要手动排版。**只对自己改动过的文件运行 clang-format，不要用 `sed -i` 处理整个目录。**
-
-## 命名
-
-| 对象 | 规则 | 示例 |
-|---|---|---|
-| 构建函数 | `qwk_` 前缀，包括只供 `cmake/` 中其他文件使用的工具函数 | `qwk_add_win_rc` |
-| 文件内部的构建函数 | `_qwk_` 前缀，只在定义它的文件内调用 | `cmake/ConfigureTarget.cmake` 的 `_qwk_configure_target_include_qt_private` |
-| 选项与缓存变量 | `QWINDOWKIT_` 前缀 | `QWINDOWKIT_BUILD_QUICK` |
-| 预处理宏 | 按模块分前缀 | `QWK_CORE`、`QWK_WIDGETS`、`QWK_QUICK` |
-| 类 | 大驼峰，私有类加 `Private` 后缀 | `WidgetWindowAgentPrivate` |
-| 成员 | 小驼峰 | `systemButtonAreaWidget` |
-| 私有头文件 | 以 `_p.h` 结尾 | `widgetwindowagent_p.h` |
-| `cmake/` 中的文件 | 大驼峰，以功能命名 | `AddWinRC.cmake` |
-| `docs/` 中的文档 | 大驼峰。英文版不加语言后缀，其他语言加 `.<语言>` 后缀。`TODO.md`、`README.<语言>.md` 与 `AGENTS.<语言>.md` 除外 | `VisualStudioGuide.md`、`Tutorial.md`、`Tutorial.zh-CN.md` |
-
-qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现于本仓库。
+- **确认测试通过之前，先确认构建的退出码为 0。** 完成一项行为的测试后，将缺陷放回，确认测试会失败。
 
 ## 文体
 
@@ -96,34 +77,10 @@ qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现�
 | 中文书面语 | 「别」「搞」「就行」「得（表必须）」「啥」「拿来」「反正」「其实」「说白了」「这玩意儿」 | 书面语 |
 | 中文标题 | 「为什么」「怎么做」 | 「动机」「设计理由」「实现方式」 |
 
-## 注释
-
-- **公开接口的文档注释采用 qdoc 风格**，以 `/*! ... */` 写在 `.cpp` 中定义的上方，块内缩进 4 格，由 Doxygen 解析并发布。类的说明以 `\class` 加 `\brief` 开头，没有定义可以依附的声明使用 `\fn`。参数写 `\a`，标识符写 `\c`，引用其他声明写 `\sa`。不要迁移到 LLVM 的 `///` 风格，新增的文档注释与现有的保持一致。
-- 公开头文件中不写文档注释。调用方据以行动的内容写在 qdoc 块中，实现理由以 `//` 写在实现内部，或不写注释。
-- **注释中不要使用破折号，也不要用分号连接从句。** 应断句处即断句。使用美式拼写。
-- **几个词能说清的内容不写成一段。** 注释说明约束、所有权、生命周期，以及「为何只能如此实现」。不复述签名已经表明的内容，也不将一句话拆成三句。
-- **不写考古式注释。** 保留「为何现在必须如此实现」，删除「以前如何、后来修正」。记录曾经的实现错误的注释，以及有明确重要理由而否定的做法，见「文体」，不在删除之列。
-- 设计理由中篇幅较长的部分写入 `docs/`，不要写入公开的 qdoc 块。
-- 全项目通用的约定写在本文档中，不要在每个使用处重复解释。
-
 ## Markdown
 
 - **一段即一行**，不要按 80 或 100 列手动折行。代码块、表格、列表项照常处理。此规则仅适用于 `.md`，C++ 注释仍为 100 列。
 - 文件末尾不留多余的空行。
-
-## 测试
-
-规则的理由见 Development.zh-CN.md 的「测试」。
-
-- 路径、工具位置与配置一律由 `-D` 传入，测试脚本中不写死。
-- 每个用例在构建树中使用独立的工作目录，运行前先清空，用例之间不共享状态。
-- **平台或工具不具备时跳过并说明原因。** 不要硬编码平台判断，也不要保留必然失败的用例。
-- 不测试的内容及其理由写入 `docs/TODO.md`。
-- **确认测试通过之前，先确认构建的退出码为 0。**
-- 新增测试后确认断言确实被执行。
-- 区分断言的是当前行为还是设计意图。
-- **完成一项行为的测试后，将缺陷放回，确认测试会失败。** 修改一处期望或故意传入错误路径，重新构建、运行、还原。
-- **批量修改后核对「修改了几处」，而不只是「能否编译」。**
 
 ## 提交
 
@@ -132,16 +89,6 @@ qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现�
 - **一个提交只做一件事。** 同一个文件包含两批改动时，用 `git show HEAD:<path>` 取出旧内容，只叠加其中一批改动后提交，再恢复完整版本，不要为了省去拆分步骤而暂存整个文件。
 - 每个提交自身必须能够构建并通过测试，拆分出的中间状态同样如此。
 - **未经授权不要 commit，更不要 push。** 修改完成后保留工作区，待作者同意后再提交。
-
-## 工具使用
-
-理由见 Development.zh-CN.md 的「已知问题」。
-
-- 修改文件前用 `grep -qU $'\r'` 判断行尾，CRLF 文件改用编辑工具修改，不要用 `sed -i`。
-- `sed` 的替换表达式必须带行号地址。
-- 非交互 shell 中不要拼接 `cmd /c "xxx.bat && ..."`，应将命令写入 `.bat` 文件再执行。
-- `.bat` 中不要写中文。
-- 手写 vcxproj 或其他 MSBuild 工程时须添加 `/Zc:__cplusplus` 与 `/permissive-`。
 
 ## 判断与沟通
 

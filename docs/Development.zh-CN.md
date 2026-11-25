@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](./Development.md)
 
-本文档记录 QWindowKit 的项目结构、构建系统的设计决定、测试方式与已知问题。协作规则见 [AGENTS.zh-CN.md](./AGENTS.zh-CN.md)。
+本文档记录 QWindowKit 的项目结构、详细约定、构建系统的设计决定、测试方式与已知问题。协作规则见 [AGENTS.zh-CN.md](./AGENTS.zh-CN.md)。
 
 ## 项目结构
 
@@ -56,6 +56,8 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 新增或替换的 CMake 函数沿用 stdware/stdcorelib 的约定：一个文件提供一项功能，放在根目录的 `cmake/` 下，文件名为大驼峰并以功能命名，例如 `AddWinRC.cmake`、`AddInstallPackageRule.cmake`，由根目录的 `CMakeLists.txt` 显式 `include()`。
 
+不在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏，也不为替换 qmsetup 而重新编写一个生成整套函数的 helper。
+
 ### 生成文件
 
 生成文件在内容未变时不得重写，否则依赖该文件的翻译单元全部重新编译。实现方式是读取已有文件并比较，内容不同时才 `file(WRITE)`，不先删除目录再全部写出。`file(CONFIGURE)` 与 `configure_file()` 先写临时文件再比较，2000 个文件时实测耗时 6.6 s，因此不用于批量生成。
@@ -91,11 +93,26 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 `cmake_parse_arguments` 之前以 `set(options ...)`、`set(oneValueArgs ...)`、`set(multiValueArgs ...)` 三行声明关键字，再以 `"${options}" "${oneValueArgs}" "${multiValueArgs}"` 传入。函数与宏均适用。前缀一律为 `FUNC`。`FUNC_UNPARSED_ARGUMENTS` 非空时以 `FATAL_ERROR` 拒绝，必需参数缺失时同样报错，原因见「已知问题」中关于 `cmake_parse_arguments` 的条目。
 
+### 选项与赋值
+
+选项定义在根目录的 `CMakeLists.txt` 中，使用 `QWINDOWKIT_` 前缀。默认值必须使不传任何参数的配置保持原有行为。
+
+函数和不显然的赋值上方须写明其作用，以及不能使用默认值的理由。`src/conf.cmake` 中的每一处显式赋值都附有理由，删除之前须先阅读该注释。
+
+作为参数的变量展开须加引号。configure 期写入磁盘的路径不含生成器表达式。`qwk_configure_target` 中不调用 `find_package`。判断平台而非编译器。理由见「已知问题」。
+
 ### 安装布局
 
 安装布局是对外的承诺。下游的 `find_package`、`.pri` 与 `.props` 都依赖安装树中的路径，因此修改构建系统之后须将安装树逐文件比对，不能只确认能够编译。
 
 ## C++
+
+### 通则
+
+- 命名空间为 `QWK`。
+- PImpl 采用 Qt 的写法，即 `Q_DECLARE_PRIVATE` 加 `d_ptr`。
+- 平台相关的实现放在各自的文件中，不在一个文件中堆积 `#ifdef`。跨平台共用的小型组件放在 `src/core/shared/`。
+- 格式由 clang-format 处理：100 列，4 空格缩进，命名空间内缩进。不手动排版。只对改动过的文件运行 clang-format，不用 `sed -i` 处理整个目录。
 
 ### 导出宏
 
@@ -113,7 +130,35 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 ### 编译期开关
 
-编译期开关在 `src/CMakeLists.txt` 中声明，生成到 `QWKCore/qwkconfig.h`，值为 1 或 -1。源码中以 `#if QWINDOWKIT_CONFIG(ENABLE_XXX)` 读取。`QWINDOWKIT_CONFIG` 定义在 `qwkglobal.h` 中，展开为 `((1 / QWINDOWKIT_##feature) == 1)`，因此对未定义的名称报错。
+编译期开关在 `src/CMakeLists.txt` 中声明，生成到 `QWKCore/qwkconfig.h`，值为 1 或 -1。源码中以 `#if QWINDOWKIT_CONFIG(ENABLE_XXX)` 读取，不绕过该宏直接使用 `#ifdef`。`QWINDOWKIT_CONFIG` 定义在 `qwkglobal.h` 中，展开为 `((1 / QWINDOWKIT_##feature) == 1)`，因此对未定义的名称报错。
+
+## 命名
+
+| 对象 | 规则 | 示例 |
+|---|---|---|
+| 构建函数 | `qwk_` 前缀，包括只供 `cmake/` 中其他文件使用的工具函数 | `qwk_add_win_rc` |
+| 文件内部的构建函数 | `_qwk_` 前缀，只在定义它的文件内调用 | `cmake/ConfigureTarget.cmake` 的 `_qwk_configure_target_include_qt_private` |
+| 选项与缓存变量 | `QWINDOWKIT_` 前缀 | `QWINDOWKIT_BUILD_QUICK` |
+| 预处理宏 | 按模块分前缀 | `QWK_CORE`、`QWK_WIDGETS`、`QWK_QUICK` |
+| 类 | 大驼峰，私有类加 `Private` 后缀 | `WidgetWindowAgentPrivate` |
+| 成员 | 小驼峰 | `systemButtonAreaWidget` |
+| 私有头文件 | 以 `_p.h` 结尾 | `widgetwindowagent_p.h` |
+| `cmake/` 中的文件 | 大驼峰，以功能命名 | `AddWinRC.cmake` |
+| `docs/` 中的文档 | 大驼峰，可带 `.<lang>` 后缀。`TODO.md`、`README.<lang>.md` 与 `AGENTS.<lang>.md` 除外 | `VisualStudioGuide.md`、`Tutorial.md`、`Tutorial.zh-CN.md` |
+
+`<lang>` 为语言标签，例如 `zh-CN`。不带语言标签的文档为英文版。
+
+qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现于本仓库。
+
+## 注释
+
+- 公开接口的文档注释采用 qdoc 风格，以 `/*! ... */` 写在 `.cpp` 中定义的上方，块内缩进 4 格，由 Doxygen 解析并发布。类的说明以 `\class` 加 `\brief` 开头，没有定义可以依附的声明使用 `\fn`。参数写 `\a`，标识符写 `\c`，引用其他声明写 `\sa`。新增的文档注释与现有的保持一致。
+- 公开头文件中不写文档注释。调用方据以行动的内容写在 qdoc 块中，实现理由以 `//` 写在实现内部，或不写注释。
+- 注释中不使用破折号，也不用分号连接从句。应断句处即断句。使用美式拼写。
+- 几个词能说清的内容不写成一段。注释说明约束、所有权、生命周期，以及「为何只能如此实现」。不复述签名已经表明的内容，也不将一句话拆成三句。
+- 不写考古式注释。保留「为何现在必须如此实现」，删除「以前如何、后来修正」。记录曾经的实现错误的注释，以及有明确重要理由而否定的做法，见 AGENTS.zh-CN.md 的「文体」，不在删除之列。
+- 设计理由中篇幅较长的部分写入 `docs/`，不写入公开的 qdoc 块。
+- 全项目通用的约定写在 AGENTS.md 或本文档中，不在每个使用处重复解释。
 
 ## 测试
 
@@ -121,7 +166,16 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 `tests/buildsystems/` 是消费者构建测试。测试先安装一份到构建树中的前缀目录，再分别以 CMake、qmake 和 MSBuild 编译一个小程序并链接到该安装树，验证包配置、`.pri` 与 `.props` 中的路径和库名。
 
-测试规则的理由如下：
+### 规则
+
+- 路径、工具位置与配置一律由 `-D` 传入，测试脚本中不写死。
+- 每个用例在构建树中使用独立的工作目录，运行前先清空，用例之间不共享状态。
+- 平台或工具不具备时跳过并说明原因。不硬编码平台判断，也不保留必然失败的用例。
+- 不测试的内容及其理由写入 `docs/TODO.md`。
+- 区分断言的是当前行为还是设计意图。
+- 完成一项行为的测试后，将缺陷放回，确认测试会失败。方法是修改一处期望或故意传入错误路径，重新构建、运行、还原。
+
+### 理由
 
 | 规则 | 理由 |
 |---|---|

@@ -2,7 +2,7 @@
 
 **Language:** English | [简体中文](./Development.zh-CN.md)
 
-This document records the project structure of QWindowKit, the design decisions of the build system, the test approach, and known issues. The collaboration rules are in [AGENTS.md](../AGENTS.md) at the repository root.
+This document records the project structure of QWindowKit, the detailed conventions, the design decisions of the build system, the test approach, and known issues. The collaboration rules are in [AGENTS.md](../AGENTS.md) at the repository root.
 
 ## Project Structure
 
@@ -56,6 +56,8 @@ The root of the build output is `QWINDOWKIT_BUILD_DIR`, which defaults to `<buil
 
 New or replaced CMake functions follow the convention of stdware/stdcorelib. Each file provides one feature and is placed in `cmake/` at the repository root. The file name is in upper camel case and named after the feature, for example `AddWinRC.cmake` and `AddInstallPackageRule.cmake`. The root `CMakeLists.txt` includes each file explicitly with `include()`.
 
+Functions and macros are not defined in `src/CMakeLists.txt` or in the `CMakeLists.txt` of a module. A helper that generates a whole set of functions as a replacement for qmsetup is not written either.
+
 ### Generated Files
 
 A generated file must not be rewritten if its content is unchanged, because every translation unit that depends on the file is otherwise recompiled. The implementation reads the existing file, compares the content, and calls `file(WRITE)` only if the content differs. The directory is not deleted and rewritten as a whole. `file(CONFIGURE)` and `configure_file()` write a temporary file before comparing, which took 6.6 s for 2000 files in a measurement. These commands are therefore not used for bulk generation.
@@ -91,11 +93,26 @@ Each file begins with a `#[[ ... ]]` block that specifies the calling form and t
 
 Before `cmake_parse_arguments`, three lines `set(options ...)`, `set(oneValueArgs ...)`, and `set(multiValueArgs ...)` declare the keywords, which are then passed as `"${options}" "${oneValueArgs}" "${multiValueArgs}"`. The rule applies to both functions and macros. The prefix is always `FUNC`. A non-empty `FUNC_UNPARSED_ARGUMENTS` is rejected with `FATAL_ERROR`, and a missing required argument is reported in the same way. The reason is given in the entry about `cmake_parse_arguments` in "Known Issues".
 
+### Options and Assignments
+
+Options are defined in the root `CMakeLists.txt` with the `QWINDOWKIT_` prefix. Default values must preserve the existing behavior of a configuration without any arguments.
+
+A function and a non-obvious assignment carry a comment above them that states their purpose and the reason why the default value is not used. Every explicit assignment in `src/conf.cmake` has a reason in its comment, which must be read before the assignment is removed.
+
+Variable expansions used as arguments are quoted. Paths written to disk at configure time contain no generator expressions. `qwk_configure_target` does not call `find_package`. Checks test the platform instead of the compiler. The reasons are given in "Known Issues".
+
 ### Install Layout
 
 The install layout is a commitment to consumers. Downstream `find_package`, `.pri`, and `.props` depend on the paths in the install tree. After a change to the build system, the install tree must therefore be compared file by file. A successful build alone is not sufficient.
 
 ## C++
+
+### General
+
+- The namespace is `QWK`.
+- PImpl follows the Qt pattern of `Q_DECLARE_PRIVATE` with `d_ptr`.
+- Platform-specific implementations reside in their own files instead of accumulating `#ifdef` blocks in one file. Small components shared across platforms reside in `src/core/shared/`.
+- clang-format handles the formatting: 100 columns, 4-space indentation, and indentation inside namespaces. Code is not formatted by hand. clang-format runs only on changed files, and `sed -i` is never applied to a whole directory.
 
 ### Export Macros
 
@@ -113,7 +130,35 @@ Private classes and private headers end with `_p.h`. Private headers are install
 
 ### Compile-Time Switches
 
-Compile-time switches are declared in `src/CMakeLists.txt` and generated into `QWKCore/qwkconfig.h` with the value 1 or -1. Sources read a switch with `#if QWINDOWKIT_CONFIG(ENABLE_XXX)`. `QWINDOWKIT_CONFIG` is defined in `qwkglobal.h` and expands to `((1 / QWINDOWKIT_##feature) == 1)`, which produces an error for an undefined name.
+Compile-time switches are declared in `src/CMakeLists.txt` and generated into `QWKCore/qwkconfig.h` with the value 1 or -1. Sources read a switch with `#if QWINDOWKIT_CONFIG(ENABLE_XXX)` and do not bypass the macro with `#ifdef`. `QWINDOWKIT_CONFIG` is defined in `qwkglobal.h` and expands to `((1 / QWINDOWKIT_##feature) == 1)`, which produces an error for an undefined name.
+
+## Naming
+
+| Item | Rule | Example |
+|---|---|---|
+| Build function | `qwk_` prefix, including utility functions used only by other files in `cmake/` | `qwk_add_win_rc` |
+| File-internal build function | `_qwk_` prefix, called only within the defining file | `_qwk_configure_target_include_qt_private` in `cmake/ConfigureTarget.cmake` |
+| Option and cache variable | `QWINDOWKIT_` prefix | `QWINDOWKIT_BUILD_QUICK` |
+| Preprocessor macro | Prefix by module | `QWK_CORE`, `QWK_WIDGETS`, `QWK_QUICK` |
+| Class | Upper camel case, `Private` suffix for private classes | `WidgetWindowAgentPrivate` |
+| Member | Lower camel case | `systemButtonAreaWidget` |
+| Private header | `_p.h` suffix | `widgetwindowagent_p.h` |
+| File in `cmake/` | Upper camel case, named after the feature | `AddWinRC.cmake` |
+| Document in `docs/` | Upper camel case with an optional `.<lang>` suffix. `TODO.md`, `README.<lang>.md`, and `AGENTS.<lang>.md` are exceptions | `VisualStudioGuide.md`, `Tutorial.md`, `Tutorial.zh-CN.md` |
+
+`<lang>` is a language tag such as `zh-CN`. A document without a language tag is the English version.
+
+The qmsetup prefixes `qm_` and `_qm_` and the helper-internal prefix `_repo_` must not appear in this repository again.
+
+## Comments
+
+- Documentation comments of the public interface use qdoc style: `/*! ... */` above the definition in the `.cpp` file, with 4-space indentation inside the block, parsed and published by Doxygen. A class description begins with `\class` and `\brief`, and a declaration without a definition to attach to uses `\fn`. Parameters use `\a`, identifiers use `\c`, and references to other declarations use `\sa`. New documentation comments follow the existing ones.
+- Public headers contain no documentation comments. Content that callers act upon belongs in the qdoc block. Implementation rationale is written with `//` inside the implementation, or omitted.
+- Comments contain no dashes and do not join clauses with semicolons. A sentence is broken instead. Comments use American spelling.
+- Content that a few words can express is not written as a paragraph. Comments state constraints, ownership, lifetime, and the reason why the implementation can only be as it is. Comments do not repeat what the signature already states, and do not split one sentence into three.
+- Comments are not archaeological. A comment keeps the reason why the current implementation must be as it is, and drops accounts of former implementations and later corrections. Comments that record former implementation errors, and rejected approaches with a clear and important reason, are kept, as described in "Writing Style" of AGENTS.md.
+- Long parts of design rationale belong in `docs/`, not in public qdoc blocks.
+- Conventions common to the whole project are written in AGENTS.md or in this document and are not explained again at each place of use.
 
 ## Tests
 
@@ -121,7 +166,16 @@ Compile-time switches are declared in `src/CMakeLists.txt` and generated into `Q
 
 `tests/buildsystems/` contains consumer build tests. Each test first installs a copy into a prefix directory in the build tree, then builds a small program with CMake, qmake, and MSBuild respectively and links the program against the install tree. The tests verify the paths and library names in the package configuration, the `.pri`, and the `.props`.
 
-The test rules have the following rationale:
+### Rules
+
+- Paths, tool locations, and configurations are always passed with `-D` and are never hardcoded in test scripts.
+- Each test case uses its own working directory in the build tree, cleared before the run. Test cases share no state.
+- If a platform or tool is unavailable, the test is skipped with the reason stated. Platform checks are not hardcoded, and test cases that always fail are not kept.
+- Untested content and the reasons are recorded in `docs/TODO.md`.
+- An assertion is classified as checking either the current behavior or the design intent.
+- After a behavior is tested, the defect is restored to confirm that the test fails, by changing one expectation or passing a wrong path deliberately, then rebuilding, running, and reverting.
+
+### Rationale
 
 | Rule | Rationale |
 |---|---|
