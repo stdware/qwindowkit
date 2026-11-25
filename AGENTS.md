@@ -18,7 +18,7 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 |---|---|
 | 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md` |
 | 待办事项、已知未验证的问题、不测试的内容及其理由 | `docs/TODO.md` |
-| 面向用户的说明 | `README.md`、`docs/README.zh-CN.md`、`docs/tutorial.*.md` |
+| 面向用户的说明 | `README.md`、`docs/README.zh-CN.md`、`docs/Tutorial.md`、`docs/Tutorial.zh-CN.md` |
 | 公开接口的参考文档 | 源文件中的 qdoc 注释，由文档 CI 发布到 <https://stdware.github.io/qwindowkit> |
 
 `.cache/` 整体被 gitignore。`.cache/claude/` 中的笔记以中文书写，标题注明日期。**未来要做的事写入 `docs/TODO.md` 或 `.cache/claude/` 的笔记，不要只留在会话中。**
@@ -115,6 +115,7 @@ CMake 中，函数和不显然的赋值上方须写明其作用，以及不能�
 - 选项与缓存变量使用 `QWINDOWKIT_` 前缀。
 - 预处理宏按模块分前缀：`QWK_CORE`、`QWK_WIDGETS`、`QWK_QUICK`。
 - 类名大驼峰，成员小驼峰，私有类加 `Private` 后缀，与 Qt 一致。
+- `docs/` 中的文档名为大驼峰。英文版不加语言后缀，其他语言加 `.<语言>` 后缀。`TODO.md` 与 `README.<语言>.md` 除外。
 
 ## 测试
 

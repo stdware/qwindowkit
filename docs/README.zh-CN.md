@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](../README.md)
 
-**教程：** [简体中文教程](./tutorial.zh-CN.md) | [English tutorial](./tutorial.en-US.md)
+**教程：** [简体中文教程](./Tutorial.zh-CN.md) | [English tutorial](./Tutorial.md)
 
 QWindowKit 是一个面向 Qt Widgets 和 Qt Quick 的跨平台窗口定制框架。它可以帮助应用使用自定义标题栏替换系统标题栏，同时尽量保留窗口移动、缩放、系统菜单、Windows Snap Layout 等重要系统行为。
 
@@ -167,7 +167,7 @@ include("<INSTALL_DIR>/share/QWindowKit/qmake/QWKQuick.pri")
 
 ### Visual Studio
 
-MSBuild 项目请参考 [Visual Studio Guide](./visual-studio-guide.md)。
+MSBuild 项目请参考 [Visual Studio Guide](./VisualStudioGuide.md)。
 
 ## 快速开始：Qt Widgets
 
@@ -308,7 +308,7 @@ agent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 agent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
-`dark-mode` 设置 Windows 原生外观，不会同步 Qt 控件的应用主题。应用应在统一切换主题时自行设置 Qt 的配色方案；Qt 6.5 提供 `QStyleHints::colorScheme()` 读取接口，Qt 6.8 起才提供 `setColorScheme()` 和 `unsetColorScheme()`。具体用法见教程中的[深浅色主题同步](./tutorial.zh-CN.md#深浅色主题同步)。
+`dark-mode` 设置 Windows 原生外观，不会同步 Qt 控件的应用主题。应用应在统一切换主题时自行设置 Qt 的配色方案；Qt 6.5 提供 `QStyleHints::colorScheme()` 读取接口，Qt 6.8 起才提供 `setColorScheme()` 和 `unsetColorScheme()`。具体用法见教程中的[深浅色主题同步](./Tutorial.zh-CN.md#深浅色主题同步)。
 
 macOS 示例：
 
@@ -320,7 +320,7 @@ agent->setWindowAttribute(QStringLiteral("glass-corner-radius"), 24.0);
 agent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 255, 255, 46));
 ```
 
-更完整的示例请参考[简体中文教程](./tutorial.zh-CN.md)。
+更完整的示例请参考[简体中文教程](./Tutorial.zh-CN.md)。
 
 ## 重要说明
 
@@ -356,10 +356,10 @@ Windows 10 顶部边框 workaround 适用于 Qt Widgets，也适用于使用 Ope
 
 ## 文档
 
-- [English tutorial](./tutorial.en-US.md)
-- [简体中文教程](./tutorial.zh-CN.md)
-- [Visual Studio Guide](./visual-studio-guide.md)
-- [FramelessHelper Related](./framelesshelper-related.md)
+- [English tutorial](./Tutorial.md)
+- [简体中文教程](./Tutorial.zh-CN.md)
+- [Visual Studio Guide](./VisualStudioGuide.md)
+- [FramelessHelper Related](./FramelessHelperRelated.md)
 - [示例](../examples)
 
 ## 社区

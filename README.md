@@ -2,7 +2,7 @@
 
 **Language:** English | [简体中文](./docs/README.zh-CN.md)
 
-**Tutorials:** [English tutorial](./docs/tutorial.en-US.md) | [简体中文教程](./docs/tutorial.zh-CN.md)
+**Tutorials:** [English tutorial](./docs/Tutorial.md) | [简体中文教程](./docs/Tutorial.zh-CN.md)
 
 QWindowKit is a cross-platform window customization framework for Qt Widgets and Qt Quick. It helps applications replace the native title bar with a custom title bar while preserving important system behaviors such as window moving, resizing, system menus, and Windows Snap Layout.
 
@@ -168,7 +168,7 @@ include("<INSTALL_DIR>/share/QWindowKit/qmake/QWKQuick.pri")
 
 ### Visual Studio
 
-For MSBuild projects, see [Visual Studio Guide](./docs/visual-studio-guide.md).
+For MSBuild projects, see [Visual Studio Guide](./docs/VisualStudioGuide.md).
 
 ## Quick Start: Qt Widgets
 
@@ -309,7 +309,7 @@ agent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 agent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
-`dark-mode` configures the native Windows appearance; it does not synchronize the application theme used by Qt controls. Applications should set Qt's color scheme when switching their application theme. `QStyleHints::colorScheme()` is available since Qt 6.5, while `setColorScheme()` and `unsetColorScheme()` require Qt 6.8 or later. See [Synchronizing Light and Dark Themes](./docs/tutorial.en-US.md#synchronizing-light-and-dark-themes) in the tutorial.
+`dark-mode` configures the native Windows appearance; it does not synchronize the application theme used by Qt controls. Applications should set Qt's color scheme when switching their application theme. `QStyleHints::colorScheme()` is available since Qt 6.5, while `setColorScheme()` and `unsetColorScheme()` require Qt 6.8 or later. See [Synchronizing Light and Dark Themes](./docs/Tutorial.md#synchronizing-light-and-dark-themes) in the tutorial.
 
 macOS examples:
 
@@ -321,7 +321,7 @@ agent->setWindowAttribute(QStringLiteral("glass-corner-radius"), 24.0);
 agent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 255, 255, 46));
 ```
 
-See [the English tutorial](./docs/tutorial.en-US.md) for more complete examples.
+See [the English tutorial](./docs/Tutorial.md) for more complete examples.
 
 ## Important Notes
 
@@ -357,10 +357,10 @@ For Qt Quick with D3D11/D3D12, a white line may appear at the top of the window 
 
 ## Documentation
 
-- [English tutorial](./docs/tutorial.en-US.md)
-- [Simplified Chinese tutorial](./docs/tutorial.zh-CN.md)
-- [Visual Studio Guide](./docs/visual-studio-guide.md)
-- [FramelessHelper Related](./docs/framelesshelper-related.md)
+- [English tutorial](./docs/Tutorial.md)
+- [Simplified Chinese tutorial](./docs/Tutorial.zh-CN.md)
+- [Visual Studio Guide](./docs/VisualStudioGuide.md)
+- [FramelessHelper Related](./docs/FramelessHelperRelated.md)
 - [Examples](./examples)
 
 ## Community
