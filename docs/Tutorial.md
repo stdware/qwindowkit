@@ -1,27 +1,27 @@
-# QWindowKit 使用教程
+# QWindowKit Tutorial
 
-**语言：** 简体中文 | [English](./tutorial.en-US.md)
+**Language:** English | [简体中文](./Tutorial.zh-CN.md)
 
-**项目 README：** [简体中文](../README.zh-CN.md) | [English](../README.md)
+**Project README:** [English](../README.md) | [简体中文](./README.zh-CN.md)
 
-本文面向希望在 Qt Widgets 或 Qt Quick 应用中自定义系统标题栏、实现无边框窗口、保留拖拽/缩放/系统菜单等原生行为的用户。
+This tutorial shows how to use QWindowKit in Qt Widgets and Qt Quick applications to build a custom title bar while keeping native behaviors such as moving, resizing, system menus, and Windows Snap Layout.
 
-QWindowKit 分为三个模块：
+QWindowKit provides three modules:
 
-- `QWindowKit::Core`：公共基础和平台窗口上下文。
-- `QWindowKit::Widgets`：用于 `QWidget`/`QMainWindow`。
-- `QWindowKit::Quick`：用于 `QQuickWindow`/QML `Window`。
+- `QWindowKit::Core`: shared platform window infrastructure.
+- `QWindowKit::Widgets`: integration for `QWidget` and `QMainWindow`.
+- `QWindowKit::Quick`: integration for `QQuickWindow` and QML `Window`.
 
-## 环境要求
+## Requirements
 
-- Qt 5.12 或更高版本。实际项目建议 Qt 5.15.2+ 或 Qt 6.6.2+。
-- C++17 编译器。
-- CMake 3.19 或更高版本。
-- Windows、macOS 或 Linux。
+- Qt 5.12 or later. For real applications, Qt 5.15.2+ or Qt 6.6.2+ is recommended.
+- A C++17 compiler.
+- CMake 3.19 or later.
+- Windows, macOS, or Linux.
 
-## 构建和安装
+## Build And Install
 
-从源码构建并安装：
+Build from source:
 
 ```sh
 git clone https://github.com/stdware/qwindowkit
@@ -38,7 +38,7 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-Linux/macOS 写法通常是：
+On Linux or macOS:
 
 ```sh
 cmake -S . -B build \
@@ -51,7 +51,7 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-常用构建选项：
+Common options:
 
 ```cmake
 -DQWINDOWKIT_BUILD_WIDGETS=ON
@@ -62,9 +62,9 @@ cmake --install build --config Release
 -DQWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS=ON
 ```
 
-## 在 CMake 项目中使用
+## Use From CMake
 
-Widgets 应用：
+Widgets application:
 
 ```cmake
 cmake_minimum_required(VERSION 3.19)
@@ -90,7 +90,7 @@ target_link_libraries(MyWidgetsApp PRIVATE
 )
 ```
 
-Quick 应用：
+Quick application:
 
 ```cmake
 cmake_minimum_required(VERSION 3.19)
@@ -121,17 +121,17 @@ target_link_libraries(MyQuickApp PRIVATE
 )
 ```
 
-配置下游项目时指定安装路径：
+Configure your downstream project with the installed package path:
 
 ```sh
 cmake -S . -B build -DQWindowKit_DIR=C:/Libraries/QWindowKit/lib/cmake/QWindowKit
 ```
 
-## Widgets：最小可用窗口
+## Widgets: Minimal Window
 
-Widgets 应用必须在创建 `QApplication` 前设置 `Qt::AA_DontCreateNativeWidgetSiblings`。
+Widgets applications must set `Qt::AA_DontCreateNativeWidgetSiblings` before constructing `QApplication`.
 
-`main.cpp`：
+`main.cpp`:
 
 ```cpp
 #include <QtCore/QCoreApplication>
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-`mainwindow.h`：
+`mainwindow.h`:
 
 ```cpp
 #pragma once
@@ -164,7 +164,6 @@ namespace QWK {
 class WidgetWindowAgent;
 }
 
-class QPushButton;
 class QWidget;
 
 class MainWindow : public QMainWindow
@@ -182,7 +181,7 @@ private:
 };
 ```
 
-`mainwindow.cpp`：
+`mainwindow.cpp`:
 
 ```cpp
 #include "mainwindow.h"
@@ -191,7 +190,6 @@ private:
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
-#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
 #include <QWKWidgets/widgetwindowagent.h>
@@ -214,18 +212,14 @@ void MainWindow::setupWindowAgent()
     m_windowAgent->setup(this);
 
     auto *titleBar = new QWidget(this);
-    titleBar->setObjectName(QStringLiteral("TitleBar"));
     titleBar->setFixedHeight(40);
 
-    auto *iconButton = new QPushButton(this);
-    iconButton->setText(QStringLiteral("App"));
+    auto *iconButton = new QPushButton(QStringLiteral("App"), this);
+    auto *menuBar = new QMenuBar(this);
+    menuBar->addMenu(tr("&File"))->addAction(tr("E&xit"), this, &QWidget::close);
 
     auto *titleLabel = new QLabel(windowTitle(), this);
     titleLabel->setAlignment(Qt::AlignCenter);
-
-    auto *menuBar = new QMenuBar(this);
-    auto *fileMenu = menuBar->addMenu(tr("&File"));
-    fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
     auto *minButton = new QPushButton(QStringLiteral("-"), this);
     auto *maxButton = new QPushButton(QStringLiteral("□"), this);
@@ -258,17 +252,17 @@ void MainWindow::setupWindowAgent()
 }
 ```
 
-要点：
+Key points:
 
-- 每个顶层窗口都需要自己的 `WidgetWindowAgent`。
-- `setup(this)` 越早调用越好，尤其是窗口有最小/最大尺寸约束时。
-- `setTitleBar()` 指定可拖拽标题栏区域。
-- 标题栏内需要接收鼠标事件的控件必须调用 `setHitTestVisible(widget, true)`。
-- 系统按钮提示只告诉 QWindowKit 这些控件的角色；按钮点击行为仍需要自己连接。
+- Each top-level window needs its own `WidgetWindowAgent`.
+- Call `setup(this)` as early as possible, especially before applying size constraints.
+- `setTitleBar()` marks the draggable title bar area.
+- Controls inside the title bar that need mouse input must be registered with `setHitTestVisible(widget, true)`.
+- System button hints do not connect click behavior. You still connect the buttons yourself.
 
-## Widgets：常见标题栏控件
+## Widgets: Interactive Title Bar Controls
 
-菜单栏应设置为 hit-test visible：
+Menus should be hit-test visible:
 
 ```cpp
 auto *menuBar = new QMenuBar(this);
@@ -277,7 +271,7 @@ menuBar->addMenu(tr("&File"));
 windowAgent->setHitTestVisible(menuBar, true);
 ```
 
-搜索框、标签页、工具按钮也一样：
+Use the same rule for search boxes, tab bars, and tool buttons:
 
 ```cpp
 windowAgent->setHitTestVisible(searchEdit, true);
@@ -285,11 +279,11 @@ windowAgent->setHitTestVisible(tabBar, true);
 windowAgent->setHitTestVisible(settingsButton, true);
 ```
 
-如果不这样做，这些控件所在区域会被当成拖拽区域，用户无法正常点击控件。
+Without this, QWindowKit treats those areas as draggable title bar space, so the controls will not receive normal mouse interaction.
 
-## Widgets：窗口按钮行为
+## Widgets: Window Buttons
 
-QWindowKit 不会自动连接按钮行为。建议显式连接：
+Connect button behavior explicitly:
 
 ```cpp
 connect(minimizeButton, &QPushButton::clicked, window, &QWidget::showMinimized);
@@ -305,21 +299,21 @@ connect(maximizeButton, &QPushButton::clicked, window, [window] {
 connect(closeButton, &QPushButton::clicked, window, &QWidget::close);
 ```
 
-禁用最大化：
+Disable maximization:
 
 ```cpp
 setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 ```
 
-固定大小窗口：
+Create a fixed-size window:
 
 ```cpp
 setFixedSize(640, 420);
 ```
 
-## Quick：注册 QML 类型
+## Quick: Register The QML Types
 
-`main.cpp`：
+`main.cpp`:
 
 ```cpp
 #include <QtGui/QGuiApplication>
@@ -346,11 +340,11 @@ int main(int argc, char *argv[])
 }
 ```
 
-`QQuickWindow::setDefaultAlphaBuffer(true)` 对 Windows/macOS 的透明、模糊、Mica、玻璃等效果通常是必要的，应该在创建 Quick 窗口前调用。
+`QQuickWindow::setDefaultAlphaBuffer(true)` is usually required for transparency, blur, Mica, and glass effects. Call it before creating Quick windows.
 
-## Quick：最小 QML 窗口
+## Quick: Minimal QML Window
 
-`Main.qml`：
+`Main.qml`:
 
 ```qml
 import QtQuick
@@ -401,7 +395,7 @@ Window {
 
                 Button {
                     id: maxButton
-                    text: window.visibility === Window.Maximized ? "□" : "□"
+                    text: "□"
                     onClicked: {
                         if (window.visibility === Window.Maximized)
                             window.showNormal()
@@ -441,7 +435,7 @@ Window {
 }
 ```
 
-如果标题栏内有可点击控件，例如菜单按钮或搜索框，需要设置 hit-test visible：
+If a control in the title bar needs mouse input, mark it as hit-test visible:
 
 ```qml
 Button {
@@ -454,9 +448,9 @@ Component.onCompleted: {
 }
 ```
 
-## Windows 平台效果
+## Windows Platform Effects
 
-Windows 支持一些平台属性。使用前应先完成 `setup()`。
+Windows supports several platform attributes. Set them after `setup()` succeeds.
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), true);
@@ -466,25 +460,25 @@ windowAgent->setWindowAttribute(QStringLiteral("acrylic-material"), false);
 windowAgent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 ```
 
-设置 Windows 11 边框颜色：
+Set the Windows 11 border color:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
-关闭系统菜单：
+Disable the system menu:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("no-system-menu"), true);
 ```
 
-显示系统菜单：
+Show the system menu:
 
 ```cpp
 windowAgent->showSystemMenu(QCursor::pos());
 ```
 
-Qt Quick 在 Windows 10/11 使用 D3D11/D3D12 时，如果遇到顶部白线，可按 README 的限制条件设置：
+For Qt Quick on Windows 10/11 with D3D11 or D3D12, this workaround may help with a top white line. Keep it tied to the documented backend and Qt version constraints:
 
 ```cpp
 #if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
@@ -493,19 +487,19 @@ qputenv("QT_QPA_DISABLE_REDIRECTION_SURFACE", "1");
 #endif
 ```
 
-不要在 OpenGL 或 Vulkan 后端下启用 `QT_QPA_DISABLE_REDIRECTION_SURFACE`。
+Do not enable `QT_QPA_DISABLE_REDIRECTION_SURFACE` with OpenGL or Vulkan.
 
-### 深浅色主题同步
+### Synchronizing Light and Dark Themes
 
-QWK 的 `dark-mode` 属性设置 Windows 原生外观，不会调用 `QStyleHints::setColorScheme()`，也不会修改应用的调色板、QSS 或 Qt Quick Controls 的显式主题设置。仅切换该属性可能导致窗口边框和 Qt 控件的深浅色不一致。
+QWK's `dark-mode` attribute configures the native Windows appearance. It does not call `QStyleHints::setColorScheme()` or change the application's palette, QSS, or explicit Qt Quick Controls theme settings. Changing only this attribute can leave the window border and Qt controls using different color schemes.
 
-`QStyleHints::colorScheme()` 从 Qt 6.5 起可用于读取当前配色方案；设置和重置接口从 Qt 6.8 起才可用。在创建 `QGuiApplication` 或 `QApplication` 后，应用可以在统一切换主题的位置设置 Qt 配色方案，并分别更新各窗口的 QWK 属性：
+`QStyleHints::colorScheme()` can read the current color scheme since Qt 6.5; the setter and resetter require Qt 6.8 or later. After creating `QGuiApplication` or `QApplication`, set Qt's color scheme where the application switches its theme, and update each window's QWK attribute separately:
 
 ```cpp
 #include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 
-// dark 为应用选择的主题；windowAgent 已完成 setup()。
+// dark is the application's selected theme; windowAgent has completed setup().
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
 QGuiApplication::styleHints()->setColorScheme(
     dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
@@ -515,29 +509,29 @@ windowAgent->setWindowAttribute(QStringLiteral("dark-mode"), dark);
 #endif
 ```
 
-`setColorScheme()` 影响整个应用，不应根据单个窗口的属性自动设置：多个窗口可能采用不同外观，QWK 内部也会为处理 Windows 边框而启用 `dark-mode`。
+`setColorScheme()` affects the entire application, so it should not be set automatically from a single window's attribute. Windows can use different appearances, and QWK also enables `dark-mode` internally to handle Windows borders.
 
-用户选择“跟随系统”时，在 Qt 6.8 及以上调用 `QGuiApplication::styleHints()->unsetColorScheme()`，并在系统配色方案变化时更新窗口属性和应用自定义颜色。Qt 6.5–6.7 的公开接口只能读取配色方案；较旧版本需要应用通过调色板、QSS 或所用 Qt Quick Controls 风格的主题机制管理控件颜色。
+When the user selects "Follow system", call `QGuiApplication::styleHints()->unsetColorScheme()` on Qt 6.8 or later, and update window attributes and custom application colors when the system color scheme changes. The public API in Qt 6.5–6.7 only reads the color scheme. On older versions, applications need to manage control colors through palettes, QSS, or the theme mechanism of their Qt Quick Controls style.
 
-Qt 的配色方案覆盖并非所有平台都支持，Qt 也不会覆盖应用显式设置的调色板颜色。自定义 QSS 和 Qt Quick Controls 的显式主题设置仍需应用自行同步。详见 [QStyleHints 官方文档](https://doc.qt.io/qt-6/qstylehints.html#colorScheme-prop)。
+Color scheme overrides are not supported on all platforms, and Qt does not overwrite palette colors explicitly set by the application. Custom QSS and explicit Qt Quick Controls theme settings still need to be synchronized by the application. See the [official QStyleHints documentation](https://doc.qt.io/qt-6/qstylehints.html#colorScheme-prop).
 
-## macOS 平台效果
+## macOS Platform Effects
 
-默认建议使用 macOS 系统按钮，不必设置自绘关闭/最小化/缩放按钮。
+On macOS, prefer native system buttons unless you have a strong reason to draw your own.
 
-显示系统按钮：
+Show native system buttons:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), false);
 ```
 
-隐藏系统按钮：
+Hide native system buttons:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("no-system-buttons"), true);
 ```
 
-启用模糊：
+Enable blur:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), QStringLiteral("dark"));
@@ -545,7 +539,7 @@ windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), QStringLiteral("l
 windowAgent->setWindowAttribute(QStringLiteral("blur-effect"), QStringLiteral("none"));
 ```
 
-macOS 26 及更高版本可尝试 Liquid Glass：
+On macOS 26 and later, Liquid Glass can be enabled when available:
 
 ```cpp
 windowAgent->setWindowAttribute(QStringLiteral("glass-effect"), QStringLiteral("regular"));
@@ -553,51 +547,51 @@ windowAgent->setWindowAttribute(QStringLiteral("glass-corner-radius"), 24.0);
 windowAgent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 255, 255, 46));
 ```
 
-如果平台不支持，`setWindowAttribute()` 会返回 `false`。
+If the platform does not support an attribute, `setWindowAttribute()` returns `false`.
 
-## Linux 说明
+## Linux Notes
 
-Linux 下 QWindowKit 优先使用 Qt 窗口上下文，并在 Qt 6 的 Wayland/X11 环境中提供部分系统菜单支持。不同桌面环境和窗口管理器行为差异较大，建议：
+On Linux, QWindowKit can use the Qt fallback window context and provides partial system menu support on Qt 6 Wayland/X11. Behavior varies by desktop environment and window manager.
+
+For compatibility-first applications, consider:
 
 ```cmake
 -DQWINDOWKIT_FORCE_QT_WINDOW_CONTEXT=ON
 ```
 
-在兼容性优先的应用中可以强制使用 Qt fallback 实现。
+## Troubleshooting
 
-## 常见问题
+### Title bar controls cannot be clicked
 
-### 标题栏按钮无法点击
-
-把按钮或其父容器设置为 hit-test visible：
+Mark the control or its parent container as hit-test visible:
 
 ```cpp
 windowAgent->setHitTestVisible(button, true);
 ```
 
-系统按钮不需要额外设置 hit-test visible，但需要设置 system button 角色：
+System buttons do not need an extra hit-test-visible call, but they do need a role:
 
 ```cpp
 windowAgent->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
 ```
 
-### Snap Layout 不显示
+### Windows Snap Layout does not appear
 
-Windows 11 的 Snap Layout 依赖最大化按钮的 system button 提示：
+Windows 11 Snap Layout depends on the maximize button role:
 
 ```cpp
 windowAgent->setSystemButton(QWK::WindowAgentBase::Maximize, maxButton);
 ```
 
-同时窗口必须保留最大化能力：
+The window must also keep the maximize capability:
 
 ```cpp
 setWindowFlag(Qt::WindowMaximizeButtonHint, true);
 ```
 
-### 什么时候调用 `setup()`
+### When should `setup()` be called?
 
-尽量在窗口构造函数前半段调用，早于尺寸约束和复杂子控件初始化：
+Call it early in the window constructor, before complex child widgets and size constraints when possible:
 
 ```cpp
 MainWindow::MainWindow(QWidget *parent)
@@ -611,7 +605,7 @@ MainWindow::MainWindow(QWidget *parent)
 }
 ```
 
-Quick 中通常在 `Component.onCompleted` 调用：
+In QML, call it in `Component.onCompleted`:
 
 ```qml
 Component.onCompleted: {
@@ -621,24 +615,24 @@ Component.onCompleted: {
 }
 ```
 
-### 可以在运行时切回系统标题栏吗
+### Can an application switch back to the native frame at runtime?
 
-不建议。QWindowKit 接管窗口后，不支持无损热切换回系统标题栏。需要销毁并重建窗口。
+Do not rely on hot switching. Once QWindowKit has taken over the window frame, recreate the window if you need a different framing mode.
 
-### 可以对 `QDockWidget` 使用吗
+### Can `QDockWidget` use `WidgetWindowAgent`?
 
-不建议。`WidgetWindowAgent` 只应安装在顶层窗口上。
+No. Install `WidgetWindowAgent` only on top-level windows.
 
-## 推荐的最小生产配置
+## Recommended Minimal Production Setup
 
-Widgets：
+Widgets:
 
 ```cpp
 QCoreApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
 QApplication app(argc, argv);
 ```
 
-Quick：
+Quick:
 
 ```cpp
 QQuickWindow::setDefaultAlphaBuffer(true);
@@ -646,4 +640,4 @@ QGuiApplication app(argc, argv);
 QWK::registerTypes(&engine);
 ```
 
-不要把示例中的调试环境变量直接复制到生产应用，除非你明确需要它们。
+Do not copy debug environment variables from the examples into production code unless you explicitly need them.

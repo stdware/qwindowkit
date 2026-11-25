@@ -421,8 +421,8 @@ void MainWindow::installWindowAgent() {
 
 #if defined(Q_OS_MAC) && 0
     windowAgent->setSystemButtonAreaCallback([](const QSize &size) {
-        static constexpr const int width = 75;
-        return QRect(QPoint(size.width() - width, 0), QSize(width, size.height())); //
+        constexpr int width = 75;
+        return QRect(size.width() - width, 0, width, size.height());
     });
 #endif
 

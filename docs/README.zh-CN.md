@@ -1,8 +1,8 @@
 # QWindowKit
 
-**语言：** 简体中文 | [English](./README.md)
+**语言：** 简体中文 | [English](../README.md)
 
-**教程：** [简体中文教程](./docs/tutorial.zh-CN.md) | [English tutorial](./docs/tutorial.en-US.md)
+**教程：** [简体中文教程](./Tutorial.zh-CN.md) | [English tutorial](./Tutorial.md)
 
 QWindowKit 是一个面向 Qt Widgets 和 Qt Quick 的跨平台窗口定制框架。它可以帮助应用使用自定义标题栏替换系统标题栏，同时尽量保留窗口移动、缩放、系统菜单、Windows Snap Layout 等重要系统行为。
 
@@ -27,29 +27,29 @@ QWindowKit 是一个面向 Qt Widgets 和 Qt Quick 的跨平台窗口定制框�
 
 ### Windows 11
 
-![Windows 11](./docs/images/win11.png)
+![Windows 11](./images/win11.png)
 
 ### Windows 10
 
-![Windows 10](./docs/images/win10.png)
+![Windows 10](./images/win10.png)
 
 ### macOS
 
-![macOS](./docs/images/mac.png)
+![macOS](./images/mac.png)
 
 | 默认 | 玻璃效果 - regular |
 |:--:|:--:|
-| ![Default](./docs/images/macos/01%20default.png) | ![Glass regular](./docs/images/macos/02%20glass%20-%20regular.png) |
+| ![Default](./images/macos/01%20default.png) | ![Glass regular](./images/macos/02%20glass%20-%20regular.png) |
 | 玻璃效果 - clear | 玻璃效果 - regular, rounded |
-| ![Glass clear](./docs/images/macos/03%20glass%20-%20clear.png) | ![Glass regular rounded](./docs/images/macos/04%20glass%20-%20regular,%20rounded.png) |
+| ![Glass clear](./images/macos/03%20glass%20-%20clear.png) | ![Glass regular rounded](./images/macos/04%20glass%20-%20regular,%20rounded.png) |
 | 玻璃效果 - regular, dark tint | 玻璃效果 - regular, light tint |
-| ![Glass dark tint](./docs/images/macos/05%20glass%20-%20regular,%20dark%20tint.png) | ![Glass light tint](./docs/images/macos/06%20glass%20-%20regular,%20light%20tint.png) |
+| ![Glass dark tint](./images/macos/05%20glass%20-%20regular,%20dark%20tint.png) | ![Glass light tint](./images/macos/06%20glass%20-%20regular,%20light%20tint.png) |
 | 旧版效果 - dark blur | 旧版效果 - light blur |
-| ![Legacy dark blur](./docs/images/macos/07%20legacy%20-%20dark%20blur.png) | ![Legacy light blur](./docs/images/macos/08%20legacy%20-%20light%20blur.png) |
+| ![Legacy dark blur](./images/macos/07%20legacy%20-%20dark%20blur.png) | ![Legacy light blur](./images/macos/08%20legacy%20-%20light%20blur.png) |
 
 ### Linux
 
-![Linux](./docs/images/linux.png)
+![Linux](./images/linux.png)
 
 ## 环境要求
 
@@ -167,7 +167,7 @@ include("<INSTALL_DIR>/share/QWindowKit/qmake/QWKQuick.pri")
 
 ### Visual Studio
 
-MSBuild 项目请参考 [Visual Studio Guide](./docs/visual-studio-guide.md)。
+MSBuild 项目请参考 [Visual Studio Guide](./VisualStudioGuide.md)。
 
 ## 快速开始：Qt Widgets
 
@@ -308,7 +308,7 @@ agent->setWindowAttribute(QStringLiteral("dwm-blur"), false);
 agent->setWindowAttribute(QStringLiteral("dwm-border-color"), QColor("#3367d6"));
 ```
 
-`dark-mode` 设置 Windows 原生外观，不会同步 Qt 控件的应用主题。应用应在统一切换主题时自行设置 Qt 的配色方案；Qt 6.5 提供 `QStyleHints::colorScheme()` 读取接口，Qt 6.8 起才提供 `setColorScheme()` 和 `unsetColorScheme()`。具体用法见教程中的[深浅色主题同步](./docs/tutorial.zh-CN.md#深浅色主题同步)。
+`dark-mode` 设置 Windows 原生外观，不会同步 Qt 控件的应用主题。应用应在统一切换主题时自行设置 Qt 的配色方案；Qt 6.5 提供 `QStyleHints::colorScheme()` 读取接口，Qt 6.8 起才提供 `setColorScheme()` 和 `unsetColorScheme()`。具体用法见教程中的[深浅色主题同步](./Tutorial.zh-CN.md#深浅色主题同步)。
 
 macOS 示例：
 
@@ -320,7 +320,7 @@ agent->setWindowAttribute(QStringLiteral("glass-corner-radius"), 24.0);
 agent->setWindowAttribute(QStringLiteral("glass-tint-color"), QColor(255, 255, 255, 46));
 ```
 
-更完整的示例请参考[简体中文教程](./docs/tutorial.zh-CN.md)。
+更完整的示例请参考[简体中文教程](./Tutorial.zh-CN.md)。
 
 ## 重要说明
 
@@ -356,11 +356,11 @@ Windows 10 顶部边框 workaround 适用于 Qt Widgets，也适用于使用 Ope
 
 ## 文档
 
-- [English tutorial](./docs/tutorial.en-US.md)
-- [简体中文教程](./docs/tutorial.zh-CN.md)
-- [Visual Studio Guide](./docs/visual-studio-guide.md)
-- [FramelessHelper Related](./docs/framelesshelper-related.md)
-- [示例](./examples)
+- [English tutorial](./Tutorial.md)
+- [简体中文教程](./Tutorial.zh-CN.md)
+- [Visual Studio Guide](./VisualStudioGuide.md)
+- [FramelessHelper Related](./FramelessHelperRelated.md)
+- [示例](../examples)
 
 ## 社区
 
@@ -374,4 +374,4 @@ Windows 10 顶部边框 workaround 适用于 Qt Widgets，也适用于使用 Ope
 
 ## 许可证
 
-QWindowKit 使用 [Apache License 2.0](./LICENSE) 许可证。
+QWindowKit 使用 [Apache License 2.0](../LICENSE) 许可证。

@@ -18,6 +18,8 @@
 #include <QWKCore/private/windowagentbase_p.h>
 #include <QWKWidgets/widgetwindowagent.h>
 
+#include <QtCore/QPointer>
+
 namespace QWK {
 
     class WidgetWindowAgentPrivate : public WindowAgentBasePrivate {
@@ -32,7 +34,11 @@ namespace QWK {
         QWidget *hostWidget{};
 
 #ifdef Q_OS_MAC
-        QWidget *systemButtonAreaWidget{};
+        void setupCocoaWindow();
+        void updateCocoaTitleBar();
+
+        std::unique_ptr<QObject> safeAreaHandler;
+        QPointer<QWidget> systemButtonAreaWidget;
         std::unique_ptr<QObject> systemButtonAreaWidgetEventFilter;
 #endif
 
