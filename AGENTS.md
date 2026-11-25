@@ -1,151 +1,154 @@
-# 与本仓库协作的约定
+# Conventions for Working in This Repository
 
-本文档只列出规则。项目结构、设计决定、规则的理由与已知问题见 [docs/Development.zh-CN.md](docs/Development.zh-CN.md)。
+**Language:** English | [简体中文](./docs/AGENTS.zh-CN.md)
 
-## 项目概述
+This document lists rules only. The project structure, design decisions, rationale for the rules, and known issues are in [docs/Development.md](./docs/Development.md).
 
-QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留窗口的移动、缩放、系统菜单以及 Windows 的 Snap Layout 等系统行为。目录结构与各平台的窗口上下文见 Development.zh-CN.md 的「项目结构」。
+## Project Overview
 
-- **修改一个窗口上下文的行为之前，先确认其他平台的实现是否需要同步修改，以及兜底实现 `qtwindowcontext.cpp` 是否会因此与它们不一致。**
+QWindowKit replaces the system title bar with a title bar drawn by the application, while preserving system behaviors such as window moving, resizing, the system menu, and Snap Layout on Windows. The directory structure and the window context of each platform are described in "Project Structure" of Development.md.
 
-## 文档位置
+- **Before changing the behavior of one window context, check whether the implementations for the other platforms require the same change, and whether the fallback implementation `qtwindowcontext.cpp` becomes inconsistent with them.**
 
-| 内容 | 位置 |
+## Document Locations
+
+| Content | Location |
 |---|---|
-| 项目结构、设计决定、规则的理由、已知问题 | `docs/Development.md`（英文）、`docs/Development.zh-CN.md`（中文） |
-| 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md` |
-| 待办事项、已知未验证的问题、不测试的内容及其理由 | `docs/TODO.md` |
-| 面向用户的说明 | `README.md`、`docs/README.zh-CN.md`、`docs/Tutorial.md`、`docs/Tutorial.zh-CN.md` |
-| 公开接口的参考文档 | 源文件中的 qdoc 注释，由文档 CI 发布到 <https://stdware.github.io/qwindowkit> |
+| Collaboration rules | `AGENTS.md` (English), `docs/AGENTS.zh-CN.md` (Chinese) |
+| Project structure, design decisions, rationale for the rules, known issues | `docs/Development.md` (English), `docs/Development.zh-CN.md` (Chinese) |
+| Plans, handovers, investigations, and temporary analyses | `.cache/claude/YYYY-MM-DD-HHMM-<topic>.md` |
+| To-do items, known unverified issues, untested content and the reasons | `docs/TODO.md` |
+| User documentation | `README.md`, `docs/README.zh-CN.md`, `docs/Tutorial.md`, `docs/Tutorial.zh-CN.md` |
+| Reference documentation of the public interface | qdoc comments in the sources, published by the documentation CI to <https://stdware.github.io/qwindowkit> |
 
-`.cache/` 整体被 gitignore。`.cache/claude/` 中的笔记以中文书写，标题注明日期。**未来要做的事写入 `docs/TODO.md` 或 `.cache/claude/` 的笔记，不要只留在会话中。**
+`.cache/` is gitignored as a whole. Notes in `.cache/claude/` are written in Chinese, and their titles carry the date. **Record future work in `docs/TODO.md` or in a note in `.cache/claude/`, not only in the conversation.** **If a document exists in several languages, update all language versions together.**
 
-## 构建系统
+## Build System
 
-背景与设计决定见 Development.zh-CN.md 的「构建系统」。
+The background and the design decisions are described in "Build System" of Development.md.
 
-- **CMake 函数按功能分文件，放在根目录的 `cmake/` 下**，由根目录的 `CMakeLists.txt` 显式 `include()`。
-- **不要在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏**，也不要为替换 qmsetup 而重新编写一个生成整套函数的 helper。
-- **生成文件在内容未变时不得重写。** 不要先删除目录再全部写出，不要用 `file(CONFIGURE)` 或 `configure_file()` 批量生成。
-- `cmake/` 中的文件开头以 `#[[ ... ]]` 写明调用形式与使用前提，格式见 Development.zh-CN.md 的「CMake 文件头」。
-- `cmake_parse_arguments` 之前以三行 `set()` 声明关键字，前缀一律为 `FUNC`。**`FUNC_UNPARSED_ARGUMENTS` 非空时以 `FATAL_ERROR` 拒绝**，必需参数缺失时同样报错。
-- 选项定义在根目录的 `CMakeLists.txt` 中。默认值必须使不传任何参数的配置保持原有行为。
-- 函数和不显然的赋值上方须写明其作用，以及不能使用默认值的理由。`src/conf.cmake` 中的每一处显式赋值都附有理由，删除之前先阅读该注释。
-- 作为参数的变量展开须加引号。
-- configure 期写入磁盘的路径不能含生成器表达式。
-- `qwk_configure_target` 中不得调用 `find_package`。
-- 判断平台而非编译器。
-- **修改构建系统之后，须将安装树逐文件比对**，不能只确认能够编译。
+- **CMake functions are split into files by feature and placed in `cmake/` at the repository root**, and the root `CMakeLists.txt` includes each file explicitly with `include()`.
+- **Do not define functions or macros in `src/CMakeLists.txt` or in the `CMakeLists.txt` of a module**, and do not write a helper that generates a whole set of functions as a replacement for qmsetup.
+- **A generated file must not be rewritten if its content is unchanged.** Do not delete a directory and rewrite it as a whole, and do not use `file(CONFIGURE)` or `configure_file()` for bulk generation.
+- Each file in `cmake/` begins with a `#[[ ... ]]` block that specifies the calling form and the preconditions, in the format described in "CMake File Header" of Development.md.
+- Before `cmake_parse_arguments`, three `set()` lines declare the keywords, and the prefix is always `FUNC`. **Reject a non-empty `FUNC_UNPARSED_ARGUMENTS` with `FATAL_ERROR`**, and report a missing required argument in the same way.
+- Options are defined in the root `CMakeLists.txt`. Default values must preserve the existing behavior of a configuration without any arguments.
+- A function and a non-obvious assignment carry a comment above them that states their purpose and the reason why the default value is not used. Every explicit assignment in `src/conf.cmake` has a reason in its comment. Read the comment before removing the assignment.
+- Quote variable expansions used as arguments.
+- Paths written to disk at configure time must not contain generator expressions.
+- `qwk_configure_target` must not call `find_package`.
+- Test the platform instead of the compiler.
+- **After a change to the build system, compare the install tree file by file.** A successful build alone is not sufficient.
 
 ## C++
 
-- 命名空间为 `QWK`。
-- PImpl 采用 Qt 的写法，即 `Q_DECLARE_PRIVATE` 加 `d_ptr`。**私有头文件会被安装**，修改私有头文件同样影响下游。
-- 导出宏与编译定义见 Development.zh-CN.md 的「导出宏」。
-- 平台相关的实现放在各自的文件中，不要在一个文件中堆积 `#ifdef`。跨平台共用的小型组件放在 `src/core/shared/`。
-- 编译期开关以 `#if QWINDOWKIT_CONFIG(ENABLE_XXX)` 读取，**不要绕过它直接使用 `#ifdef`**。
-- 格式由 clang-format 处理：100 列，4 空格缩进，命名空间内缩进。不要手动排版。**只对自己改动过的文件运行 clang-format，不要用 `sed -i` 处理整个目录。**
+- The namespace is `QWK`.
+- PImpl follows the Qt pattern of `Q_DECLARE_PRIVATE` with `d_ptr`. **Private headers are installed**, therefore a change to a private header affects consumers as well.
+- The export macros and compile definitions are listed in "Export Macros" of Development.md.
+- Platform-specific implementations reside in their own files. Do not accumulate `#ifdef` blocks in one file. Small components shared across platforms reside in `src/core/shared/`.
+- Read compile-time switches with `#if QWINDOWKIT_CONFIG(ENABLE_XXX)`. **Do not bypass the macro with `#ifdef`.**
+- clang-format handles the formatting: 100 columns, 4-space indentation, and indentation inside namespaces. Do not format by hand. **Run clang-format only on changed files, and do not apply `sed -i` to a whole directory.**
 
-## 命名
+## Naming
 
-| 对象 | 规则 | 示例 |
+| Item | Rule | Example |
 |---|---|---|
-| 构建函数 | `qwk_` 前缀，包括只供 `cmake/` 中其他文件使用的工具函数 | `qwk_add_win_rc` |
-| 文件内部的构建函数 | `_qwk_` 前缀，只在定义它的文件内调用 | `cmake/ConfigureTarget.cmake` 的 `_qwk_configure_target_include_qt_private` |
-| 选项与缓存变量 | `QWINDOWKIT_` 前缀 | `QWINDOWKIT_BUILD_QUICK` |
-| 预处理宏 | 按模块分前缀 | `QWK_CORE`、`QWK_WIDGETS`、`QWK_QUICK` |
-| 类 | 大驼峰，私有类加 `Private` 后缀 | `WidgetWindowAgentPrivate` |
-| 成员 | 小驼峰 | `systemButtonAreaWidget` |
-| 私有头文件 | 以 `_p.h` 结尾 | `widgetwindowagent_p.h` |
-| `cmake/` 中的文件 | 大驼峰，以功能命名 | `AddWinRC.cmake` |
-| `docs/` 中的文档 | 大驼峰。英文版不加语言后缀，其他语言加 `.<语言>` 后缀。`TODO.md` 与 `README.<语言>.md` 除外 | `VisualStudioGuide.md`、`Tutorial.md`、`Tutorial.zh-CN.md` |
+| Build function | `qwk_` prefix, including utility functions used only by other files in `cmake/` | `qwk_add_win_rc` |
+| File-internal build function | `_qwk_` prefix, called only within the defining file | `_qwk_configure_target_include_qt_private` in `cmake/ConfigureTarget.cmake` |
+| Option and cache variable | `QWINDOWKIT_` prefix | `QWINDOWKIT_BUILD_QUICK` |
+| Preprocessor macro | Prefix by module | `QWK_CORE`, `QWK_WIDGETS`, `QWK_QUICK` |
+| Class | Upper camel case, `Private` suffix for private classes | `WidgetWindowAgentPrivate` |
+| Member | Lower camel case | `systemButtonAreaWidget` |
+| Private header | `_p.h` suffix | `widgetwindowagent_p.h` |
+| File in `cmake/` | Upper camel case, named after the feature | `AddWinRC.cmake` |
+| Document in `docs/` | Upper camel case. The English version has no language suffix, and other languages add a `.<language>` suffix. `TODO.md`, `README.<language>.md`, and `AGENTS.<language>.md` are exceptions | `VisualStudioGuide.md`, `Tutorial.md`, `Tutorial.zh-CN.md` |
 
-qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现于本仓库。
+The qmsetup prefixes `qm_` and `_qm_` and the helper-internal prefix `_repo_` must not appear in this repository again.
 
-## 文体
+## Writing Style
 
-本节适用于注释、文档、README、诊断消息与提交信息。
+This section applies to comments, documents, READMEs, diagnostic messages, and commit messages.
 
-- **采用正式的技术写作文体。** 注释与文档是规范性文本而非叙述。每句陈述一项事实、约束或理由，不写铺垫、感想和修辞。
-- **不拟人。** 代码、文件、格式、程序和测试不作为有意志的主语。用户、作者、调用方等真实行为主体可以作主语。
-- **使用术语，不用描述性转述。** 没有通用术语时，首次出现给出定义，之后始终沿用同一名称。
-- **标题、分组名和列表标签使用名词或名词短语。** **主语从句不可用**，能用名词短语时一律改用名词短语。**宾语从句少用**，从句比名词短语明显冗长时改用名词短语。**定语从句不设限制。**
-- **条件用 if。** `where` 作关系副词时照常使用，作条件状语时写 `if`。判据是该处能否换成 `if` 而意思不变。
-- **`one` 回指只用于同一个句子。** 回指前一句或更早句子的名词时，须直接重复该名词。
-- **不使用口语短语**，改为准确的书面表达。
-- **句子完整。** 不写片段句、逗号粘连句（两个独立分句仅以逗号连接）和反问句。不以 So、And so、Which is why、That is why、Hence 开头叙述因果，改为在同一句中用 because、therefore 表明。不对读者使用第二人称。
-- **函数说明以动词开头**（Returns、Sets、Installs、Rejects）。返回值写明每种情况。布尔查询写 Returns whether …。
-- 中文文本同样适用以上规则。「不要」「必须」等规范性祈使句不属于口语，照常使用。
-- **记录曾经的实现错误。** 一句话说明某处曾经如何实现错误、因此现在为什么必须如此的记述不属于考古式叙述，必须保留，因为它防止同一处再错一次。要删的是与当前实现无关的历史沿革。
-- **有明确重要理由而否定的做法同样保留。** 写明被否定的做法、否定的理由，以及当前做法与之的对照。理由不重要、或无法说清理由的，不写。
+- **Use formal technical writing.** Comments and documents are normative texts, not narratives. Each sentence states one fact, constraint, or reason, without preamble, impressions, or rhetoric.
+- **No personification.** Code, files, formats, programs, and tests are not subjects with intent. Real actors such as users, authors, and callers can be subjects.
+- **Use terms instead of descriptive paraphrases.** If no common term exists, define the term at its first occurrence and use the same name consistently afterwards.
+- **Headings, group names, and list labels are nouns or noun phrases.** **Subject clauses are not allowed**, and a noun phrase replaces a subject clause wherever possible. **Object clauses are used sparingly**, and a noun phrase replaces an object clause if the clause is noticeably longer. **Relative clauses are not restricted.**
+- **Use if for conditions.** `where` as a relative adverb is used normally. As a conditional adverbial, write `if` instead. The criterion is whether `if` can replace the word without changing the meaning.
+- **`one` refers back only within the same sentence.** To refer to a noun in a previous sentence, repeat the noun.
+- **No colloquial phrases.** Use precise written expressions instead.
+- **Complete sentences.** No sentence fragments, comma splices (two independent clauses joined only by a comma), or rhetorical questions. Do not begin a causal statement with So, And so, Which is why, That is why, or Hence. State the cause in the same sentence with because or therefore. Do not address the reader in the second person.
+- **Function descriptions begin with a verb** (Returns, Sets, Installs, Rejects). State the return value for every case. Boolean queries use Returns whether ….
+- The rules above apply to Chinese text as well. Normative imperatives such as 「不要」 and 「必须」 are not colloquial and are used normally.
+- **Record former implementation errors.** A sentence that states how something was once implemented incorrectly and therefore why the current implementation must be as it is does not count as archaeological narrative. Such a sentence must be kept, because it prevents the same error from recurring. Historical background unrelated to the current implementation is removed.
+- **Rejected approaches with a clear and important reason are kept as well.** State the rejected approach, the reason for the rejection, and the contrast with the current approach. If the reason is unimportant or cannot be stated clearly, omit the approach.
 
-| 规则 | 不写 | 改写为 |
+| Rule | Avoid | Write instead |
 |---|---|---|
-| 不拟人 | says、tells、knows、asks、wants、means、cares、decides、promises、is told，「它说」「它知道」「它不认」「它想要」 | returns、indicates、records、specifies、reports、detects、requires、rejects，「返回」「表示」「记录」「规定」「报告」「拒绝」 |
-| 使用术语 | the part of the window that is not drawn by the app | non-client area |
-| 使用术语 | the check for what is under the mouse | hit test |
-| 使用术语 | the function that gets the messages | window procedure |
-| 使用术语 | the header that points at the real one | forwarding header |
-| 名词短语作标题 | Why、What it does、How it works | Motivation、Behavior、Rationale |
-| 名词短语代替主语从句 | what the caller asked for | the requested geometry |
-| 条件用 if | empty where there is none | empty if absent |
-| 不使用口语短语 | whatever else、for good、as it stands、on its own、on the way out、at a glance、there and back、is given up on、the rest of why、and all | 准确的书面表达 |
-| 中文书面语 | 「别」「搞」「就行」「得（表必须）」「啥」「拿来」「反正」「其实」「说白了」「这玩意儿」 | 书面语 |
-| 中文标题 | 「为什么」「怎么做」 | 「动机」「设计理由」「实现方式」 |
+| No personification | says, tells, knows, asks, wants, means, cares, decides, promises, is told, 「它说」「它知道」「它不认」「它想要」 | returns, indicates, records, specifies, reports, detects, requires, rejects, 「返回」「表示」「记录」「规定」「报告」「拒绝」 |
+| Terms | the part of the window that is not drawn by the app | non-client area |
+| Terms | the check for what is under the mouse | hit test |
+| Terms | the function that gets the messages | window procedure |
+| Terms | the header that points at the real one | forwarding header |
+| Noun phrases as headings | Why, What it does, How it works | Motivation, Behavior, Rationale |
+| Noun phrases instead of subject clauses | what the caller asked for | the requested geometry |
+| if for conditions | empty where there is none | empty if absent |
+| No colloquial phrases | whatever else, for good, as it stands, on its own, on the way out, at a glance, there and back, is given up on, the rest of why, and all | precise written expressions |
+| Written Chinese | 「别」「搞」「就行」「得（表必须）」「啥」「拿来」「反正」「其实」「说白了」「这玩意儿」 | written-register Chinese |
+| Chinese headings | 「为什么」「怎么做」 | 「动机」「设计理由」「实现方式」 |
 
-## 注释
+## Comments
 
-- **公开接口的文档注释采用 qdoc 风格**，以 `/*! ... */` 写在 `.cpp` 中定义的上方，块内缩进 4 格，由 Doxygen 解析并发布。类的说明以 `\class` 加 `\brief` 开头，没有定义可以依附的声明使用 `\fn`。参数写 `\a`，标识符写 `\c`，引用其他声明写 `\sa`。不要迁移到 LLVM 的 `///` 风格，新增的文档注释与现有的保持一致。
-- 公开头文件中不写文档注释。调用方据以行动的内容写在 qdoc 块中，实现理由以 `//` 写在实现内部，或不写注释。
-- **注释中不要使用破折号，也不要用分号连接从句。** 应断句处即断句。使用美式拼写。
-- **几个词能说清的内容不写成一段。** 注释说明约束、所有权、生命周期，以及「为何只能如此实现」。不复述签名已经表明的内容，也不将一句话拆成三句。
-- **不写考古式注释。** 保留「为何现在必须如此实现」，删除「以前如何、后来修正」。记录曾经的实现错误的注释，以及有明确重要理由而否定的做法，见「文体」，不在删除之列。
-- 设计理由中篇幅较长的部分写入 `docs/`，不要写入公开的 qdoc 块。
-- 全项目通用的约定写在本文档中，不要在每个使用处重复解释。
+- **Documentation comments of the public interface use qdoc style**: `/*! ... */` above the definition in the `.cpp` file, with 4-space indentation inside the block, parsed and published by Doxygen. A class description begins with `\class` and `\brief`, and a declaration without a definition to attach to uses `\fn`. Parameters use `\a`, identifiers use `\c`, and references to other declarations use `\sa`. Do not migrate to the LLVM `///` style. New documentation comments follow the existing ones.
+- Public headers contain no documentation comments. Content that callers act upon belongs in the qdoc block. Implementation rationale is written with `//` inside the implementation, or omitted.
+- **Comments contain no dashes and do not join clauses with semicolons.** Break the sentence instead. Use American spelling.
+- **Content that a few words can express is not written as a paragraph.** Comments state constraints, ownership, lifetime, and the reason why the implementation can only be as it is. Comments do not repeat what the signature already states, and do not split one sentence into three.
+- **No archaeological comments.** Keep the reason why the current implementation must be as it is, and remove accounts of former implementations and later corrections. Comments that record former implementation errors, and rejected approaches with a clear and important reason, are not removed, as described in "Writing Style".
+- Long parts of design rationale belong in `docs/`, not in public qdoc blocks.
+- Conventions common to the whole project are written in this document and are not explained again at each place of use.
 
 ## Markdown
 
-- **一段即一行**，不要按 80 或 100 列手动折行。代码块、表格、列表项照常处理。此规则仅适用于 `.md`，C++ 注释仍为 100 列。
-- 文件末尾不留多余的空行。
+- **One paragraph per line.** Do not wrap lines manually at 80 or 100 columns. Code blocks, tables, and list items are handled normally. The rule applies only to `.md` files. C++ comments remain at 100 columns.
+- Files end without extra blank lines.
 
-## 测试
+## Tests
 
-规则的理由见 Development.zh-CN.md 的「测试」。
+The rationale for the rules is described in "Tests" of Development.md.
 
-- 路径、工具位置与配置一律由 `-D` 传入，测试脚本中不写死。
-- 每个用例在构建树中使用独立的工作目录，运行前先清空，用例之间不共享状态。
-- **平台或工具不具备时跳过并说明原因。** 不要硬编码平台判断，也不要保留必然失败的用例。
-- 不测试的内容及其理由写入 `docs/TODO.md`。
-- **确认测试通过之前，先确认构建的退出码为 0。**
-- 新增测试后确认断言确实被执行。
-- 区分断言的是当前行为还是设计意图。
-- **完成一项行为的测试后，将缺陷放回，确认测试会失败。** 修改一处期望或故意传入错误路径，重新构建、运行、还原。
-- **批量修改后核对「修改了几处」，而不只是「能否编译」。**
+- Paths, tool locations, and configurations are always passed with `-D` and are never hardcoded in test scripts.
+- Each test case uses its own working directory in the build tree, cleared before the run. Test cases share no state.
+- **If a platform or tool is unavailable, skip the test and state the reason.** Do not hardcode platform checks, and do not keep test cases that always fail.
+- Record untested content and the reasons in `docs/TODO.md`.
+- **Before confirming that tests pass, confirm that the build exit code is 0.**
+- After adding a test, confirm that its assertions are executed.
+- Distinguish whether an assertion checks the current behavior or the design intent.
+- **After testing a behavior, restore the defect and confirm that the test fails.** Change one expectation or pass a wrong path deliberately, then rebuild, run, and revert.
+- **After a bulk change, verify the number of changed occurrences, not only that the build succeeds.**
 
-## 提交
+## Commits
 
-- **提交信息不带任何 AI 署名**，不写 `Co-Authored-By`，不写 `Generated with`。
-- **只写一行**，格式为 `<类型>(<范围>): <描述>`，范围可省略，例如 `fix(win32): preserve left-button state when forwarding caption clicks`、`ci: check out submodules recursively`。类型使用 `feat`、`fix`、`refactor`、`style`、`docs`、`build`、`ci`、`test`、`chore`，范围为平台或模块，如 `win32`、`macOS`、`linux`、`core`、`widgets`、`quick`、`example`。描述使用英文、小写开头的祈使句和美式拼写，不写正文。设计理由写在代码注释和 `docs/` 中，不要在提交信息中长篇叙述。
-- **一个提交只做一件事。** 同一个文件包含两批改动时，用 `git show HEAD:<path>` 取出旧内容，只叠加其中一批改动后提交，再恢复完整版本，不要为了省去拆分步骤而暂存整个文件。
-- 每个提交自身必须能够构建并通过测试，拆分出的中间状态同样如此。
-- **未经授权不要 commit，更不要 push。** 修改完成后保留工作区，待作者同意后再提交。
+- **Commit messages carry no AI attribution**: no `Co-Authored-By` and no `Generated with`.
+- **One line only**, in the format `<type>(<scope>): <description>` with an optional scope, for example `fix(win32): preserve left-button state when forwarding caption clicks` and `ci: check out submodules recursively`. Types are `feat`, `fix`, `refactor`, `style`, `docs`, `build`, `ci`, `test`, and `chore`. The scope is a platform or module, such as `win32`, `macOS`, `linux`, `core`, `widgets`, `quick`, or `example`. The description is an English imperative starting with a lowercase letter, in American spelling, without a body. Design rationale belongs in code comments and `docs/`, not in long commit messages.
+- **One commit does one thing.** If one file contains two sets of changes, take the old content with `git show HEAD:<path>`, apply only one set of changes, commit, and then restore the full version. Do not stage the whole file to avoid the split.
+- Every commit must build and pass the tests on its own, including intermediate states produced by a split.
+- **Do not commit without authorization, and do not push.** Leave the working tree after a change and commit only after the author agrees.
 
-## 工具使用
+## Tool Usage
 
-理由见 Development.zh-CN.md 的「已知问题」。
+The rationale is described in "Known Issues" of Development.md.
 
-- 修改文件前用 `grep -qU $'\r'` 判断行尾，CRLF 文件改用编辑工具修改，不要用 `sed -i`。
-- `sed` 的替换表达式必须带行号地址。
-- 非交互 shell 中不要拼接 `cmd /c "xxx.bat && ..."`，应将命令写入 `.bat` 文件再执行。
-- `.bat` 中不要写中文。
-- 手写 vcxproj 或其他 MSBuild 工程时须添加 `/Zc:__cplusplus` 与 `/permissive-`。
+- Before changing a file, check the line endings with `grep -qU $'\r'`. Change CRLF files with an editing tool instead of `sed -i`.
+- Every `sed` substitution must carry a line address.
+- Do not compose `cmd /c "xxx.bat && ..."` in a non-interactive shell. Write the commands into a `.bat` file and run the file.
+- Do not write Chinese text in `.bat` files.
+- A handwritten vcxproj or other MSBuild project must add `/Zc:__cplusplus` and `/permissive-`.
 
-## 判断与沟通
+## Judgment and Communication
 
-- **先测量，再下结论。** 结论必须来自编译器或一次真实的构建与测试，不要凭记忆断言。测量后发现自己有误并无问题，未经测量即下定论才会被纠正。
-- **断言之前先验证。** 「公开 API 是这样」不等于「它确实能这样使用」。
-- **探针本身也可能出错。** 结果异常时先怀疑探针。
-- 用户的质疑通常是正确的，**应先重新验证，而不是辩护**。
-- 发现自己有误时直接更正，将结论写回 `docs/TODO.md` 或 `.cache/claude/` 笔记的对应条目，并注明原判断的错误所在。
-- 不确定时明确说明不确定，不要以推测填补。
-- **只有当前机器所在平台的实现参与编译。** 作者在 Windows（MSVC）与 macOS（Apple Clang）上开发，Linux 的实现在两者上均不参与编译。其他平台的实现修改后只能依靠阅读确认。报告「验证通过」时须写明哪些平台未经验证。
+- **Measure before concluding.** Conclusions must come from the compiler or from a real build and test run, not from memory. A mistake found through measurement is acceptable. Only a conclusion drawn without measurement is subject to correction.
+- **Verify before asserting.** A documented public API does not guarantee that the API works in the intended way.
+- **A probe can be wrong as well.** If a result looks abnormal, suspect the probe first.
+- A challenge from the user is usually correct. **Verify again instead of defending.**
+- If a mistake is found, correct it directly, write the conclusion back to the corresponding entry in `docs/TODO.md` or in a `.cache/claude/` note, and state the error in the original judgment.
+- If uncertain, state the uncertainty explicitly instead of filling the gap with speculation.
+- **Only the implementation for the platform of the current machine is compiled.** The author develops on Windows (MSVC) and macOS (Apple Clang). The Linux implementations are compiled on neither. Changes to implementations for other platforms can only be confirmed by reading. A report of successful verification must state which platforms remain unverified.

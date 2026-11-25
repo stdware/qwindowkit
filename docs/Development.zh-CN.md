@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](./Development.md)
 
-本文档记录 QWindowKit 的项目结构、构建系统的设计决定、测试方式与已知问题。
+本文档记录 QWindowKit 的项目结构、构建系统的设计决定、测试方式与已知问题。协作规则见 [AGENTS.zh-CN.md](./AGENTS.zh-CN.md)。
 
 ## 项目结构
 
