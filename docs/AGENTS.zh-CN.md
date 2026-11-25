@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](../AGENTS.md)
 
-本文档列出与本仓库协作的规则。详细约定、项目结构、设计决定与已知问题见 [Development.zh-CN.md](./Development.zh-CN.md)。
+本文档列出与本仓库协作的规则。详细约定、项目结构、设计理由与已知问题见 [Development.zh-CN.md](./Development.zh-CN.md)。
 
 ## 项目概述
 
@@ -15,7 +15,7 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 | 内容 | 位置 |
 |---|---|
 | 协作规则 | `AGENTS.md`、`docs/AGENTS.<lang>.md` |
-| 详细约定、项目结构、设计决定、已知问题 | `docs/Development[.<lang>].md` |
+| 详细约定、项目结构、设计理由、已知问题 | `docs/Development[.<lang>].md` |
 | 计划、交接、调研与临时分析 | `.cache/claude/YYYY-MM-DD-HHMM-<主题>.md` |
 | 待办事项、已知未验证的问题、不测试的内容及其理由 | `docs/TODO.md` |
 | 面向用户的说明 | `README.md`、`docs/README.<lang>.md`、`docs/Tutorial[.<lang>].md` |

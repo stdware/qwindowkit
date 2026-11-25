@@ -2,7 +2,7 @@
 
 **语言：** 简体中文 | [English](./Development.md)
 
-本文档记录 QWindowKit 的项目结构、详细约定、构建系统的设计决定、测试方式与已知问题。协作规则见 [AGENTS.zh-CN.md](./AGENTS.zh-CN.md)。
+本文档记录 QWindowKit 的项目结构、详细约定、构建系统的设计理由、测试方式与已知问题。协作规则见 [AGENTS.zh-CN.md](./AGENTS.zh-CN.md)。
 
 ## 项目结构
 
@@ -39,22 +39,11 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 构建所需的函数全部位于 `cmake/`，`src/conf.cmake` 只设置项目常量并在目录作用域查找 Qt。配置不需要任何外部的 CMake 包，也没有子模块。
 
-构建输出的根目录为 `QWINDOWKIT_BUILD_DIR`，默认 `<构建目录>/out`。父项目改变输出位置的唯一方式是事先设置该变量。
-
-### 设计决定
-
-| 决定 | 日期 | 理由 |
-|---|---|---|
-| 移除 qmsetup，构建函数改由 `cmake/` 提供 | 2026-11-04 | 作者决定，同日完成 |
-| `QWINDOWKIT_BUILD_DIR` 不跟随父项目的 `CMAKE_*_OUTPUT_DIRECTORY`，也不读取 `QMSETUP_BUILD_DIR` | 2026-11-04 | 作者决定 |
-| `cmake/` 不随包安装 | 2026-11-04 | 消费者不调用本仓库的构建函数 |
-| `examples/CMakeLists.txt` 中的 `qwk_add_example` 暂时保留 | 2026-11-04 | 作者决定 |
-| `cmake_parse_arguments` 的关键字以三行 `set()` 声明，不直接写字面量 | 2026-11-04 | 作者要求 |
-| 公开接口的文档注释保持 qdoc 风格，不迁移到 LLVM 的 `///` 风格 | 2026-11-04 | 作者决定 |
+构建输出的根目录为 `QWINDOWKIT_BUILD_DIR`。该变量未定义时，根目录的 `CMakeLists.txt` 依次取 `QWINDOWKIT_BUILD_BASE_DIR`、`QMSETUP_BUILD_DIR`，否则取 `<构建目录>/out`。前两个变量为兼容已有的父项目而保留。`src/conf.cmake` 由根目录为库目标派生 `QWINDOWKIT_BUILD_RUNTIME_DIR`、`QWINDOWKIT_BUILD_LIBRARY_DIR`、`QWINDOWKIT_BUILD_INCLUDE_DIR`、`QWINDOWKIT_BUILD_DATA_DIR` 与 `QWINDOWKIT_BUILD_DOC_DIR`，父项目或缓存已提供的值优先。示例在父项目定义了 `CMAKE_*_OUTPUT_DIRECTORY` 时沿用该值，否则使用根目录下的目录。
 
 ### CMake 函数的组织
 
-新增或替换的 CMake 函数沿用 stdware/stdcorelib 的约定：一个文件提供一项功能，放在根目录的 `cmake/` 下，文件名为大驼峰并以功能命名，例如 `AddWinRC.cmake`、`AddInstallPackageRule.cmake`，由根目录的 `CMakeLists.txt` 显式 `include()`。
+新增或替换的 CMake 函数沿用 stdware/stdcorelib 的约定：一个文件提供一项功能，放在根目录的 `cmake/` 下，文件名为大驼峰并以功能命名，例如 `AddWinRC.cmake`、`AddInstallPackageRule.cmake`，由根目录的 `CMakeLists.txt` 显式 `include()`。`cmake/` 不随包安装，因为消费者不调用本仓库的构建函数。
 
 不在 `src/CMakeLists.txt` 或各模块的 `CMakeLists.txt` 中定义函数或宏，也不为替换 qmsetup 而重新编写一个生成整套函数的 helper。
 
@@ -152,7 +141,7 @@ qmsetup 的 `qm_`、`_qm_` 与 helper 内部的 `_repo_` 前缀不应再出现�
 
 ## 注释
 
-- 公开接口的文档注释采用 qdoc 风格，以 `/*! ... */` 写在 `.cpp` 中定义的上方，块内缩进 4 格，由 Doxygen 解析并发布。类的说明以 `\class` 加 `\brief` 开头，没有定义可以依附的声明使用 `\fn`。参数写 `\a`，标识符写 `\c`，引用其他声明写 `\sa`。新增的文档注释与现有的保持一致。
+- 公开接口的文档注释采用 qdoc 风格，以 `/*! ... */` 写在 `.cpp` 中定义的上方，块内缩进 4 格，由 Doxygen 解析并发布。类的说明以 `\class` 加 `\brief` 开头，没有定义可以依附的声明使用 `\fn`。参数写 `\a`，标识符写 `\c`，引用其他声明写 `\sa`。不迁移到 LLVM 的 `///` 风格，新增的文档注释与现有的保持一致。
 - 公开头文件中不写文档注释。调用方据以行动的内容写在 qdoc 块中，实现理由以 `//` 写在实现内部，或不写注释。
 - 注释中不使用破折号，也不用分号连接从句。应断句处即断句。使用美式拼写。
 - 几个词能说清的内容不写成一段。注释说明约束、所有权、生命周期，以及「为何只能如此实现」。不复述签名已经表明的内容，也不将一句话拆成三句。

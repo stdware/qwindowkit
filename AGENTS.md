@@ -2,7 +2,7 @@
 
 **Language:** English | [简体中文](./docs/AGENTS.zh-CN.md)
 
-This document lists the rules for working in this repository. Detailed conventions, the project structure, design decisions, and known issues are in [docs/Development.md](./docs/Development.md).
+This document lists the rules for working in this repository. Detailed conventions, the project structure, design rationale, and known issues are in [docs/Development.md](./docs/Development.md).
 
 ## Project Overview
 
@@ -15,7 +15,7 @@ QWindowKit replaces the system title bar with a title bar drawn by the applicati
 | Content | Location |
 |---|---|
 | Collaboration rules | `AGENTS.md`, `docs/AGENTS.<lang>.md` |
-| Detailed conventions, project structure, design decisions, known issues | `docs/Development[.<lang>].md` |
+| Detailed conventions, project structure, design rationale, known issues | `docs/Development[.<lang>].md` |
 | Plans, handovers, investigations, and temporary analyses | `.cache/claude/YYYY-MM-DD-HHMM-<topic>.md` |
 | To-do items, known unverified issues, untested content and the reasons | `docs/TODO.md` |
 | User documentation | `README.md`, `docs/README.<lang>.md`, `docs/Tutorial[.<lang>].md` |

@@ -2,7 +2,7 @@
 
 **Language:** English | [简体中文](./Development.zh-CN.md)
 
-This document records the project structure of QWindowKit, the detailed conventions, the design decisions of the build system, the test approach, and known issues. The collaboration rules are in [AGENTS.md](../AGENTS.md) at the repository root.
+This document records the project structure of QWindowKit, the detailed conventions, the design rationale of the build system, the test approach, and known issues. The collaboration rules are in [AGENTS.md](../AGENTS.md) at the repository root.
 
 ## Project Structure
 
@@ -39,22 +39,11 @@ Platform differences are concentrated in the implementations of `AbstractWindowC
 
 All functions required by the build are located in `cmake/`. `src/conf.cmake` only sets project constants and finds Qt in directory scope. Configuration requires no external CMake package and no submodule.
 
-The root of the build output is `QWINDOWKIT_BUILD_DIR`, which defaults to `<build directory>/out`. Setting this variable in advance is the only way for a parent project to change the output location.
-
-### Design Decisions
-
-| Decision | Date | Rationale |
-|---|---|---|
-| qmsetup is removed, and `cmake/` provides the build functions | 2026-11-04 | Author decision, completed on the same day |
-| `QWINDOWKIT_BUILD_DIR` does not follow the `CMAKE_*_OUTPUT_DIRECTORY` of the parent project and does not read `QMSETUP_BUILD_DIR` | 2026-11-04 | Author decision |
-| `cmake/` is not installed with the package | 2026-11-04 | Consumers do not call the build functions of this repository |
-| `qwk_add_example` in `examples/CMakeLists.txt` is kept for now | 2026-11-04 | Author decision |
-| The keywords of `cmake_parse_arguments` are declared by three `set()` lines instead of literals | 2026-11-04 | Author requirement |
-| Documentation comments of the public interface stay in qdoc style and are not migrated to the LLVM `///` style | 2026-11-04 | Author decision |
+The root of the build output is `QWINDOWKIT_BUILD_DIR`. If the variable is undefined, the root `CMakeLists.txt` takes `QWINDOWKIT_BUILD_BASE_DIR`, then `QMSETUP_BUILD_DIR`, and otherwise `<build directory>/out`. The former two variables are accepted for existing parent projects. `src/conf.cmake` derives `QWINDOWKIT_BUILD_RUNTIME_DIR`, `QWINDOWKIT_BUILD_LIBRARY_DIR`, `QWINDOWKIT_BUILD_INCLUDE_DIR`, `QWINDOWKIT_BUILD_DATA_DIR`, and `QWINDOWKIT_BUILD_DOC_DIR` from the root for the library targets, and a value supplied by the parent project or the cache takes precedence. The examples use the `CMAKE_*_OUTPUT_DIRECTORY` of the parent project if defined, and the directories under the root otherwise.
 
 ### Organization of CMake Functions
 
-New or replaced CMake functions follow the convention of stdware/stdcorelib. Each file provides one feature and is placed in `cmake/` at the repository root. The file name is in upper camel case and named after the feature, for example `AddWinRC.cmake` and `AddInstallPackageRule.cmake`. The root `CMakeLists.txt` includes each file explicitly with `include()`.
+New or replaced CMake functions follow the convention of stdware/stdcorelib. Each file provides one feature and is placed in `cmake/` at the repository root. The file name is in upper camel case and named after the feature, for example `AddWinRC.cmake` and `AddInstallPackageRule.cmake`. The root `CMakeLists.txt` includes each file explicitly with `include()`. `cmake/` is not installed with the package, because consumers do not call the build functions of this repository.
 
 Functions and macros are not defined in `src/CMakeLists.txt` or in the `CMakeLists.txt` of a module. A helper that generates a whole set of functions as a replacement for qmsetup is not written either.
 
@@ -152,7 +141,7 @@ The qmsetup prefixes `qm_` and `_qm_` and the helper-internal prefix `_repo_` mu
 
 ## Comments
 
-- Documentation comments of the public interface use qdoc style: `/*! ... */` above the definition in the `.cpp` file, with 4-space indentation inside the block, parsed and published by Doxygen. A class description begins with `\class` and `\brief`, and a declaration without a definition to attach to uses `\fn`. Parameters use `\a`, identifiers use `\c`, and references to other declarations use `\sa`. New documentation comments follow the existing ones.
+- Documentation comments of the public interface use qdoc style: `/*! ... */` above the definition in the `.cpp` file, with 4-space indentation inside the block, parsed and published by Doxygen. A class description begins with `\class` and `\brief`, and a declaration without a definition to attach to uses `\fn`. Parameters use `\a`, identifiers use `\c`, and references to other declarations use `\sa`. Documentation comments are not migrated to the LLVM `///` style, and new documentation comments follow the existing ones.
 - Public headers contain no documentation comments. Content that callers act upon belongs in the qdoc block. Implementation rationale is written with `//` inside the implementation, or omitted.
 - Comments contain no dashes and do not join clauses with semicolons. A sentence is broken instead. Comments use American spelling.
 - Content that a few words can express is not written as a paragraph. Comments state constraints, ownership, lifetime, and the reason why the implementation can only be as it is. Comments do not repeat what the signature already states, and do not split one sentence into three.
