@@ -84,7 +84,7 @@ QWindowKit 以应用自行绘制的标题栏替换系统标题栏，同时保留
 
 ## 提交
 
-- **提交信息不带任何 AI 署名**，不写 `Co-Authored-By`，不写 `Generated with`。
+- **提交信息不带任何 AI 署名**，不写署名 AI 或工具的 `Co-authored-by`，不区分大小写，例如 `Co-authored-by: Cursor <cursoragent@cursor.com>`、`Co-Authored-By: Claude <noreply@anthropic.com>`（`Claude` 之后可能带有模型名），也不写 `Generated with` 行，例如 `Generated with [Claude Code](...)`。工具可能自动追加此类署名，因此每次提交后以 `git log -1 --format=%B` 检查完整的提交信息，推送之前删除署名。
 - **只写一行**，格式为 `<类型>(<范围>): <描述>`，范围可省略，例如 `fix(win32): preserve left-button state when forwarding caption clicks`、`ci: check out submodules recursively`。类型使用 `feat`、`fix`、`refactor`、`style`、`docs`、`build`、`ci`、`test`、`chore`，范围为平台或模块，如 `win32`、`macOS`、`linux`、`core`、`widgets`、`quick`、`example`。描述使用英文、小写开头的祈使句和美式拼写，不写正文。设计理由写在代码注释和 `docs/` 中，不要在提交信息中长篇叙述。
 - **一个提交只做一件事。** 同一个文件包含两批改动时，用 `git show HEAD:<path>` 取出旧内容，只叠加其中一批改动后提交，再恢复完整版本，不要为了省去拆分步骤而暂存整个文件。
 - 每个提交自身必须能够构建并通过测试，拆分出的中间状态同样如此。

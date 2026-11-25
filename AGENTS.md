@@ -84,7 +84,7 @@ This section applies to comments, documents, READMEs, diagnostic messages, and c
 
 ## Commits
 
-- **Commit messages carry no AI attribution**: no `Co-Authored-By` and no `Generated with`.
+- **Commit messages carry no AI attribution**: no `Co-authored-by` trailer in any letter case that names an AI or a tool, such as `Co-authored-by: Cursor <cursoragent@cursor.com>` or `Co-Authored-By: Claude <noreply@anthropic.com>` with or without a model name after `Claude`, and no `Generated with` line such as `Generated with [Claude Code](...)`. Tools can append such a trailer automatically, therefore check the full message with `git log -1 --format=%B` after every commit and remove the trailer before pushing.
 - **One line only**, in the format `<type>(<scope>): <description>` with an optional scope, for example `fix(win32): preserve left-button state when forwarding caption clicks` and `ci: check out submodules recursively`. Types are `feat`, `fix`, `refactor`, `style`, `docs`, `build`, `ci`, `test`, and `chore`. The scope is a platform or module, such as `win32`, `macOS`, `linux`, `core`, `widgets`, `quick`, or `example`. The description is an English imperative starting with a lowercase letter, in American spelling, without a body. Design rationale belongs in code comments and `docs/`, not in long commit messages.
 - **One commit does one thing.** If one file contains two sets of changes, take the old content with `git show HEAD:<path>`, apply only one set of changes, commit, and then restore the full version. Do not stage the whole file to avoid the split.
 - Every commit must build and pass the tests on its own, including intermediate states produced by a split.
