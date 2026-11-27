@@ -14,7 +14,18 @@ Window {
     color: darkStyle.windowBackgroundColor
     title: qsTr("QWindowKit QtQuick Demo")
     Component.onCompleted: {
-        windowAgent.setup(window)
+        if (!windowAgent.setup(window)) {
+            console.error("Failed to set up the window agent.")
+            return
+        }
+        // Keep registration here: Component.onCompleted ordering between objects is undefined.
+        windowAgent.setTitleBar(titleBar)
+        if (!window.isMacOS) {
+            windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
+            windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
+            windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
+            windowAgent.setSystemButton(WindowAgent.Close, closeButton)
+        }
         windowAgent.setWindowAttribute("dark-mode", true)
         if (window.showWhenReady) {
             window.visible = true
@@ -70,12 +81,6 @@ Window {
         height: 32
         //color: window.active ? "#3C3C3C" : "#505050"
         color: "transparent"
-        Component.onCompleted: {
-            windowAgent.setTitleBar(titleBar)
-            // if (window.isMacOS) {
-            //     windowAgent.setSystemButtonArea(systemButtonArea)
-            // }
-        }
 
         Item {
             id: systemButtonArea
@@ -98,11 +103,6 @@ Window {
             mipmap: true
             source: "qrc:///app/example.png"
             fillMode: Image.PreserveAspectFit
-            Component.onCompleted: {
-                if (!window.isMacOS) {
-                    windowAgent.setSystemButton(WindowAgent.WindowIcon, iconButton)
-                }
-            }
         }
 
         Text {
@@ -136,11 +136,6 @@ Window {
                 height: parent.height
                 source: "qrc:///window-bar/minimize.svg"
                 onClicked: window.showMinimized()
-                Component.onCompleted: {
-                    if (!window.isMacOS) {
-                        windowAgent.setSystemButton(WindowAgent.Minimize, minButton)
-                    }
-                }
             }
 
             QWKButton {
@@ -152,11 +147,6 @@ Window {
                         window.showNormal()
                     } else {
                         window.showMaximized()
-                    }
-                }
-                Component.onCompleted: {
-                    if (!window.isMacOS) {
-                        windowAgent.setSystemButton(WindowAgent.Maximize, maxButton)
                     }
                 }
             }
@@ -180,11 +170,6 @@ Window {
                     }
                 }
                 onClicked: window.close()
-                Component.onCompleted: {
-                    if (!window.isMacOS) {
-                        windowAgent.setSystemButton(WindowAgent.Close, closeButton)
-                    }
-                }
             }
         }
     }
