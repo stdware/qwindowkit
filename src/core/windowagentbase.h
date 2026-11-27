@@ -21,7 +21,9 @@ namespace QWK {
     public:
         ~WindowAgentBase() override;
 
-        enum SystemButton {
+        // A fixed underlying type also makes numeric input from Qt's meta-object
+        // and QML APIs well-defined before the context validates the role.
+        enum SystemButton : int {
             Unknown,
             WindowIcon,
             Help,

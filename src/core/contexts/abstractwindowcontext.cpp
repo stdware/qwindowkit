@@ -48,8 +48,7 @@ namespace QWK {
 
     bool AbstractWindowContext::setSystemButton(WindowAgentBase::SystemButton button,
                                                 QObject *obj) {
-        Q_ASSERT(button != WindowAgentBase::Unknown);
-        if (button == WindowAgentBase::Unknown) {
+        if (!isValidSystemButton(button)) {
             return false;
         }
 
@@ -68,11 +67,12 @@ namespace QWK {
             return false;
         }
 
-        if (org) {
+        if (m_titleBarAssigned) {
             // Since the title bar is changed, all items inside it should be dereferenced right away
             removeSystemButtonsAndHitTestItems();
         }
         m_titleBar = item;
+        m_titleBarAssigned = true;
         return true;
     }
 
