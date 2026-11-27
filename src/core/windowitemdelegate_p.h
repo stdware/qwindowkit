@@ -33,7 +33,11 @@ namespace QWK {
         virtual QWindow *window(const QObject *obj) const = 0;
         virtual bool isEnabled(const QObject *obj) const = 0;
         virtual bool isVisible(const QObject *obj) const = 0;
+        // Bounding rectangle for geometry queries; hit testing can be more precise.
         virtual QRect mapGeometryToScene(const QObject *obj) const = 0;
+        // Returns whether the scene point lies inside the item. The default implementation
+        // uses the bounding rectangle.
+        virtual bool containsScenePoint(const QObject *obj, const QPoint &pos) const;
 
         // Host property query
         virtual QWindow *hostWindow(const QObject *host) const = 0;

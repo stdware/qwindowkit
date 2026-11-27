@@ -27,9 +27,22 @@ namespace QWK {
 
     QRect QuickItemDelegate::mapGeometryToScene(const QObject *obj) const {
         auto item = static_cast<const QQuickItem *>(obj);
-        const QPointF originPoint = item->mapToScene(QPointF(0.0, 0.0));
-        const QSizeF size = item->size();
-        return QRectF(originPoint, size).toRect();
+        return item->mapRectToScene(QRectF(QPointF(), item->size())).toAlignedRect();
+    }
+
+    bool QuickItemDelegate::containsScenePoint(const QObject *obj, const QPoint &pos) const {
+        auto item = static_cast<const QQuickItem *>(obj);
+        // Invert the full item-to-scene transform, including ancestors. An axis-aligned
+        // scene bounding box includes empty corners when the item is rotated.
+        bool invertible = false;
+        const auto sceneToItem = item->itemTransform(nullptr, nullptr).inverted(&invertible);
+        if (!invertible) {
+            // A collapsed item has no hit area; QTransform otherwise returns identity.
+            return false;
+        }
+        const auto local = sceneToItem.map(QPointF(pos));
+        return local.x() >= 0 && local.x() < item->width() &&
+               local.y() >= 0 && local.y() < item->height();
     }
 
     QWindow *QuickItemDelegate::hostWindow(const QObject *host) const {

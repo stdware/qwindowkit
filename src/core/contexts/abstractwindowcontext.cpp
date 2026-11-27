@@ -91,7 +91,7 @@ namespace QWK {
             if (!currentButton || !m_delegate->isVisible(currentButton) || !m_delegate->isEnabled(currentButton)) {
                 continue;
             }
-            if (m_delegate->mapGeometryToScene(currentButton).contains(pos)) {
+            if (m_delegate->containsScenePoint(currentButton, pos)) {
                 *button = static_cast<WindowAgentBase::SystemButton>(i);
                 return true;
             }
@@ -117,7 +117,7 @@ namespace QWK {
             return false;
         }
 
-        if (!titleBarRect.contains(pos)) {
+        if (!m_delegate->containsScenePoint(m_titleBar, pos)) {
             return false;
         }
 
@@ -128,7 +128,7 @@ namespace QWK {
 
         for (auto &&item : std::as_const(m_hitTestVisibleItems)) {
             if (item && m_delegate->isVisible(item) &&
-                m_delegate->mapGeometryToScene(item).contains(pos)) {
+                m_delegate->containsScenePoint(item, pos)) {
                 return false;
             }
         }
