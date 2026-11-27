@@ -2057,7 +2057,7 @@ namespace QWK {
                                 *result = isInTopBorder ? HTTOP : HTBOTTOM;
                             }
                         } else {
-                            *result = HTCLIENT;
+                            *result = isInTitleBar ? HTCAPTION : HTCLIENT;
                         }
                         return true;
                     } else {
