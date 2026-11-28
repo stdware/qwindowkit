@@ -1,9 +1,12 @@
 name: CI
 
-# Work happens on dev and lands on main with `git promote`, so main is the only branch worth
-# spending runners on. workflow_dispatch is there to repeat a run without pushing.
+# Work happens on dev and lands on main with `git promote` or through a pull request, so main and
+# the pull requests against it are the only places worth spending runners on. workflow_dispatch is
+# there to repeat a run without pushing.
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
