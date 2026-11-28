@@ -1,9 +1,12 @@
 name: CI
 
-# Work happens on dev and lands on main with `git promote`, so main is the only branch worth
-# spending runners on. workflow_dispatch is there to repeat a run without pushing.
+# Work happens on dev and lands on main with `git promote` or through a pull request, so main and
+# the pull requests against it are the only places worth spending runners on. workflow_dispatch is
+# there to repeat a run without pushing.
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
@@ -73,6 +76,30 @@ jobs:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
           cache: true
+
+      # The MSVC STL requires a minimum Clang version, which follows the Clang that Visual Studio
+      # ships, and rejects an older compiler with STL1000. The standalone LLVM of the runner image
+      # precedes the LLVM of Visual Studio on the path and lags behind it. MSVC 14.52 broke this
+      # job that way, therefore the job puts the LLVM of Visual Studio first.
+      - name: Use the clang-cl of Visual Studio
+        if: matrix.platform == 'windows-clang-cl'
+        shell: bash
+        run: |
+          llvm_bin="$(cygpath -u "$VCINSTALLDIR")/Tools/Llvm/x64/bin"
+          test -x "$llvm_bin/clang-cl.exe"
+          cygpath -w "$llvm_bin" >> "$GITHUB_PATH"
+
+      - name: Check the clang-cl in use
+        if: matrix.platform == 'windows-clang-cl'
+        shell: bash
+        run: |
+          compiler="$(command -v clang-cl)"
+          echo "$compiler"
+          clang-cl --version
+          case "$compiler" in
+            */VC/Tools/Llvm/x64/bin/*) ;;
+            *) echo "clang-cl is not the one of Visual Studio"; exit 1 ;;
+          esac
 
       # Everything on, so that each job compiles all three libraries and both examples. The
       # examples are the only thing here that uses the public API the way a caller does.

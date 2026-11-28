@@ -541,8 +541,9 @@ namespace QWK {
                     // Win+Up or snapping) and native child windows then receive WM_NCCALCSIZE
                     // too. They must keep the default handling, otherwise they get the top-level
                     // frame adjustments and their client area is shifted.
+                    // See https://github.com/stdware/qwindowkit/issues/256
                     if (lastMessageContext &&
-                        g_wndProcHash->value(msg->hwnd) == lastMessageContext) {
+                        reinterpret_cast<HWND>(lastMessageContext->windowId()) == msg->hwnd) {
                         LRESULT res;
                         if (lastMessageContext->nonClientCalcSizeHandler(
                                 msg->hwnd, msg->message, msg->wParam, msg->lParam, &res)) {
